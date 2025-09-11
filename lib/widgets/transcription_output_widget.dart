@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../main.dart';
+import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
 class TranscriptionOutputWidget extends StatefulWidget {
   final List<TranscriptionSegment> segments;
   final String? currentTranscription;
-  
+
   const TranscriptionOutputWidget({
     super.key,
     required this.segments,
@@ -17,14 +17,14 @@ class TranscriptionOutputWidget extends StatefulWidget {
   State<TranscriptionOutputWidget> createState() => _TranscriptionOutputWidgetState();
 }
 
-class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget> 
+class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     with TickerProviderStateMixin {
   bool _showSegments = true;
   bool _showTimestamps = true;
   bool _showSpeakers = true;
   bool _showConfidence = false;
   String _searchQuery = '';
-  
+
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
@@ -49,7 +49,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
       children: [
         // Controls
         _buildControls(),
-        
+
         // Content
         Expanded(
           child: TabBarView(
@@ -77,9 +77,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
               Tab(text: 'Full Text', icon: Icon(Icons.article)),
             ],
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Search and options
           Row(
             children: [
@@ -100,9 +100,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                   },
                 ),
               ),
-              
+
               const SizedBox(width: 8),
-              
+
               // Options menu
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
@@ -154,9 +154,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
       return _buildEmptyState();
     }
 
-    final filteredSegments = _searchQuery.isEmpty 
+    final filteredSegments = _searchQuery.isEmpty
         ? widget.segments
-        : widget.segments.where((segment) => 
+        : widget.segments.where((segment) =>
             segment.text.toLowerCase().contains(_searchQuery)).toList();
 
     if (filteredSegments.isEmpty) {
@@ -176,7 +176,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
   Widget _buildSegmentCard(TranscriptionSegment segment, int index) {
     final hasSearch = _searchQuery.isNotEmpty;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -209,7 +209,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                     ),
                     const SizedBox(width: 8),
                   ],
-                  
+
                   if (_showSpeakers && segment.speaker != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -228,9 +228,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                     ),
                     const SizedBox(width: 8),
                   ],
-                  
+
                   const Spacer(),
-                  
+
                   if (_showConfidence) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -248,7 +248,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                       ),
                     ),
                   ],
-                  
+
                   // Options menu
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_horiz, size: 16),
@@ -282,11 +282,11 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Transcription text
-              hasSearch 
+              hasSearch
                   ? _buildHighlightedText(segment.text, _searchQuery)
                   : SelectableText(
                       segment.text,
@@ -307,16 +307,16 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     final spans = <TextSpan>[];
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
-    
+
     int start = 0;
     int index = lowerText.indexOf(lowerQuery);
-    
+
     while (index != -1) {
       // Add text before match
       if (index > start) {
         spans.add(TextSpan(text: text.substring(start, index)));
       }
-      
+
       // Add highlighted match
       spans.add(TextSpan(
         text: text.substring(index, index + query.length),
@@ -325,16 +325,16 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
           fontWeight: FontWeight.bold,
         ),
       ));
-      
+
       start = index + query.length;
       index = lowerText.indexOf(lowerQuery, start);
     }
-    
+
     // Add remaining text
     if (start < text.length) {
       spans.add(TextSpan(text: text.substring(start)));
     }
-    
+
     return SelectableText.rich(
       TextSpan(children: spans),
       style: const TextStyle(fontSize: 16),
@@ -352,7 +352,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     return Container(
       padding: const EdgeInsets.all(16),
       child: SingleChildScrollView(
-        child: hasSearch 
+        child: hasSearch
             ? _buildHighlightedText(text, _searchQuery)
             : SelectableText(
                 text,
@@ -433,7 +433,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
       Colors.red.shade600,
       Colors.teal.shade600,
     ];
-    
+
     final hash = speaker.hashCode;
     return colors[hash.abs() % colors.length];
   }
@@ -492,7 +492,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     final text = _showSpeakers && segment.speaker != null
         ? '${segment.speaker}: ${segment.text}'
         : segment.text;
-    
+
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -584,4 +584,3 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     );
   }
 }
-

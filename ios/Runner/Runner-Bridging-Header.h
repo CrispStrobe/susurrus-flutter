@@ -3,6 +3,7 @@
 //
 
 #import "GeneratedPluginRegistrant.h"
+#import "whisper_ios_wrapper.h"
 
 // Add any additional Objective-C headers needed for Swift interop
 // For whisper.cpp integration

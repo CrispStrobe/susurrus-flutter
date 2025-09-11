@@ -64,11 +64,12 @@ class CoreMLEngine implements TranscriptionEngine {
     try {
       _config = config ?? {};
       _coreMLWhisper = CoreMLWhisper.instance;
+      _modelService = ModelService();
       
       final isAvailable = await _coreMLWhisper!.isAvailable;
       if (!isAvailable) {
         throw EngineInitializationException(
-          'CoreML not available on this device',
+          'CoreML not available on this device (requires iOS 13.0+)',
           engineId,
         );
       }
@@ -85,18 +86,8 @@ class CoreMLEngine implements TranscriptionEngine {
   }
 
   @override
-  Future<void> dispose() async {
-    await _coreMLWhisper?.unloadModel();
-    _coreMLWhisper = null;
-    _isInitialized = false;
-    _isProcessing = false;
-    _currentModelId = null;
-    _config.clear();
-  }
-
-  @override
   Future<List<EngineModel>> getAvailableModels() async {
-    if (!_isInitialized || _coreMLWhisper == null) {
+    if (!_isInitialized || _modelService == null) {
       throw EngineInitializationException(
         'Engine not initialized',
         engineId,
@@ -104,11 +95,23 @@ class CoreMLEngine implements TranscriptionEngine {
     }
 
     try {
-      final availableModels = await _coreMLWhisper!.getAvailableModels();
+      // Get models from model service
+      final modelInfos = await _modelService!.getCoreMLModels();
       
-      return availableModels.map((modelName) {
-        return _createModelInfo(modelName);
-      }).toList();
+      return modelInfos.map((modelInfo) => EngineModel(
+        id: modelInfo.name,
+        name: modelInfo.displayName,
+        description: 'CoreML optimized Whisper model',
+        sizeBytes: _parseModelSize(modelInfo.size),
+        supportedLanguages: supportedLanguages,
+        isDownloaded: modelInfo.isDownloaded,
+        localPath: modelInfo.localPath,
+        metadata: {
+          'framework': 'CoreML',
+          'platform': 'iOS',
+          'backend': 'coreml',
+        },
+      )).toList();
     } catch (e) {
       throw EngineException(
         'Failed to get available models: $e',
@@ -130,17 +133,19 @@ class CoreMLEngine implements TranscriptionEngine {
     try {
       onProgress?.call(0.1);
       
-      final modelPath = await _resolveModelPath(modelId);
+      // Check if model is downloaded
+      final modelPath = await _modelService!.getCoreMLModelPath(modelId);
       if (modelPath == null) {
         throw ModelLoadException(
-          'Model not found: $modelId',
+          'Model not found: $modelId. Please download it first.',
           engineId,
           modelId,
         );
       }
 
-      onProgress?.call(0.5);
+      onProgress?.call(0.3);
 
+      // Load model using CoreML
       final success = await _coreMLWhisper!.loadModel(modelPath);
       
       onProgress?.call(1.0);
@@ -164,12 +169,6 @@ class CoreMLEngine implements TranscriptionEngine {
         e,
       );
     }
-  }
-
-  @override
-  Future<void> unloadModel() async {
-    await _coreMLWhisper?.unloadModel();
-    _currentModelId = null;
   }
 
   @override
@@ -202,9 +201,14 @@ class CoreMLEngine implements TranscriptionEngine {
     try {
       onProgress?.call(0.1);
 
+      // Preprocess audio for CoreML (ensure 16kHz, mono)
+      final processedAudio = await _preprocessAudio(audioData);
+      
+      onProgress?.call(0.2);
+
       // Call CoreML transcription
       final coreMLSegments = await _coreMLWhisper!.transcribe(
-        audioData,
+        processedAudio,
         language: language,
         wordTimestamps: enableWordTimestamps,
       );
@@ -212,27 +216,32 @@ class CoreMLEngine implements TranscriptionEngine {
       onProgress?.call(0.9);
 
       // Convert CoreML segments to engine format
-      final segments = coreMLSegments.map((coreMLSegment) {
+      final segments = <TranscriptionSegment>[];
+      
+      for (int i = 0; i < coreMLSegments.length; i++) {
+        final coreMLSegment = coreMLSegments[i];
+        
         final transcriptionSegment = TranscriptionSegment(
           text: coreMLSegment.text,
           startTime: coreMLSegment.startTime,
           endTime: coreMLSegment.endTime,
           confidence: coreMLSegment.confidence,
-          words: coreMLSegment.words?.map((word) => TranscriptionWord(
+          words: enableWordTimestamps ? coreMLSegment.words?.map((word) => TranscriptionWord(
             word: word.word,
             startTime: word.startTime,
             endTime: word.endTime,
             confidence: word.confidence,
-          )).toList(),
+          )).toList() : null,
           metadata: {
             'engine': engineId,
             'model': _currentModelId,
+            'segmentIndex': i,
           },
         );
 
+        segments.add(transcriptionSegment);
         onSegment?.call(transcriptionSegment);
-        return transcriptionSegment;
-      }).toList();
+      }
 
       onProgress?.call(1.0);
 
@@ -245,12 +254,17 @@ class CoreMLEngine implements TranscriptionEngine {
         segments: segments,
         processingTime: processingTime,
         detectedLanguage: language ?? 'auto',
+        confidence: segments.isNotEmpty ? 
+          segments.map((s) => s.confidence).reduce((a, b) => a + b) / segments.length : 
+          null,
         metadata: {
           'engine': engineId,
           'model': _currentModelId,
           'audioLength': audioData.length,
+          'processedAudioLength': processedAudio.length,
           'language': language,
           'wordTimestamps': enableWordTimestamps,
+          'processingTimeMs': processingTime.inMilliseconds,
         },
       );
     } catch (e) {
@@ -264,91 +278,42 @@ class CoreMLEngine implements TranscriptionEngine {
     }
   }
 
-  @override
-  Stream<TranscriptionSegment>? transcribeStream(
-    Stream<Float32List> audioStream, {
-    String? language,
-    bool enableWordTimestamps = false,
-  }) {
-    // CoreML typically uses batch processing, not streaming
-    return null;
-  }
-
-  @override
-  Future<void> cancel() async {
-    _isProcessing = false;
-    // CoreML models don't typically support cancellation mid-inference
-  }
-
-  @override
-  Future<void> updateConfig(Map<String, dynamic> config) async {
-    _config.addAll(config);
-    // Apply configuration changes if needed
-  }
-
-  // Helper methods
-
-  EngineModel _createModelInfo(String modelName) {
-    // Map model names to their properties
-    final modelSizes = {
-      'whisper-tiny': 39 * 1024 * 1024,
-      'whisper-base': 74 * 1024 * 1024,
-      'whisper-small': 244 * 1024 * 1024,
-      'whisper-medium': 769 * 1024 * 1024,
-      'whisper-large-v3': 1550 * 1024 * 1024,
-    };
-
-    final displayNames = {
-      'whisper-tiny': 'Whisper Tiny (CoreML)',
-      'whisper-base': 'Whisper Base (CoreML)',
-      'whisper-small': 'Whisper Small (CoreML)',
-      'whisper-medium': 'Whisper Medium (CoreML)',
-      'whisper-large-v3': 'Whisper Large v3 (CoreML)',
-    };
-
-    final descriptions = {
-      'whisper-tiny': 'Fastest CoreML model, optimized for iOS',
-      'whisper-base': 'Balanced CoreML model for iOS',
-      'whisper-small': 'High quality CoreML model',
-      'whisper-medium': 'Very high quality CoreML model',
-      'whisper-large-v3': 'Best quality CoreML model',
-    };
-
-    return EngineModel(
-      id: modelName,
-      name: displayNames[modelName] ?? modelName,
-      description: descriptions[modelName] ?? 'CoreML optimized model',
-      sizeBytes: modelSizes[modelName] ?? 100 * 1024 * 1024,
-      supportedLanguages: supportedLanguages,
-      metadata: {
-        'framework': 'CoreML',
-        'platform': 'iOS',
-        'optimized': true,
-      },
-    );
-  }
-
-  Future<String?> _resolveModelPath(String modelId) async {
-    // TODO: Implement proper CoreML model path resolution
-    // This should check the iOS app bundle and documents directory
+  // Audio preprocessing for CoreML
+  Future<Float32List> _preprocessAudio(Float32List audioData) async {
+    // CoreML Whisper models expect:
+    // - 16kHz sample rate
+    // - Mono audio
+    // - Normalized to [-1, 1]
     
-    // CoreML models are typically stored in the app bundle or documents directory
-    try {
-      // Check app bundle first
-      final bundlePath = '/path/to/bundle/$modelId.mlmodel';
-      if (await File(bundlePath).exists()) {
-        return bundlePath;
-      }
-      
-      // Check documents directory
-      final documentsPath = '/path/to/documents/$modelId.mlmodel';
-      if (await File(documentsPath).exists()) {
-        return documentsPath;
-      }
-      
-      return null;
-    } catch (e) {
-      return null;
+    // For now, assume audio is already in correct format
+    // In production, you'd want proper resampling and normalization
+    
+    // Simple normalization
+    final maxValue = audioData.map((sample) => sample.abs()).reduce((a, b) => a > b ? a : b);
+    if (maxValue > 1.0) {
+      return Float32List.fromList(audioData.map((sample) => sample / maxValue).toList());
+    }
+    
+    return audioData;
+  }
+
+  // Helper to parse model size strings like "74 MB" to bytes
+  int _parseModelSize(String sizeString) {
+    final parts = sizeString.split(' ');
+    if (parts.length != 2) return 0;
+    
+    final value = double.tryParse(parts[0]) ?? 0;
+    final unit = parts[1].toUpperCase();
+    
+    switch (unit) {
+      case 'KB':
+        return (value * 1024).round();
+      case 'MB':
+        return (value * 1024 * 1024).round();
+      case 'GB':
+        return (value * 1024 * 1024 * 1024).round();
+      default:
+        return value.round();
     }
   }
 }

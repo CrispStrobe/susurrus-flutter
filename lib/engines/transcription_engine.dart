@@ -1,3 +1,4 @@
+// lib/engines/transcription_engine.dart
 import 'dart:typed_data';
 
 /// Abstract interface for all transcription engines
@@ -6,28 +7,28 @@ abstract class TranscriptionEngine {
   String get engineId;
   String get engineName;
   String get version;
-  
+
   /// Engine capabilities
   bool get supportsStreaming;
   bool get supportsLanguageDetection;
   bool get supportsWordTimestamps;
   bool get supportsSpeakerDiarization;
   List<String> get supportedLanguages;
-  
+
   /// Engine status
   bool get isInitialized;
   bool get isProcessing;
-  
+
   /// Lifecycle methods
   Future<bool> initialize({Map<String, dynamic>? config});
   Future<void> dispose();
-  
+
   /// Model management
   Future<List<EngineModel>> getAvailableModels();
   Future<bool> loadModel(String modelId, {Function(double progress)? onProgress});
   Future<void> unloadModel();
   String? get currentModelId;
-  
+
   /// Transcription methods
   Future<TranscriptionResult> transcribe(
     Float32List audioData, {
@@ -37,17 +38,17 @@ abstract class TranscriptionEngine {
     Function(TranscriptionSegment segment)? onSegment,
     Function(double progress)? onProgress,
   });
-  
+
   /// Streaming transcription (if supported)
   Stream<TranscriptionSegment>? transcribeStream(
     Stream<Float32List> audioStream, {
     String? language,
     bool enableWordTimestamps = false,
   });
-  
+
   /// Cancel ongoing operations
   Future<void> cancel();
-  
+
   /// Engine-specific configuration
   Future<void> updateConfig(Map<String, dynamic> config);
   Map<String, dynamic> get currentConfig;
@@ -162,7 +163,7 @@ class EngineInitializationException extends EngineException {
 
 class ModelLoadException extends EngineException {
   final String modelId;
-  
+
   const ModelLoadException(String message, String engineId, this.modelId, [dynamic originalError])
       : super(message, engineId, originalError);
 }

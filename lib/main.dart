@@ -1,3 +1,4 @@
+// lib/main.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,41 +13,37 @@ import 'services/audio_service.dart';
 import 'services/transcription_service.dart';
 import 'theme/app_theme.dart';
 import 'engines/engine_factory.dart';
-
-// Engine manager provider
-final engineManagerProvider = StateNotifierProvider<EngineManagerNotifier, EngineManagerState>((ref) {
-  return EngineManagerNotifier();
-});
+import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Request necessary permissions
   await _requestPermissions();
-  
-  // Initialize services
   await _initializeServices();
-  
-  runApp(
-    ProviderScope(
-      child: SusurrusApp(),
-    ),
-  );
+
+  runApp(ProviderScope(child: SusurrusApp()));
 }
 
 Future<void> _requestPermissions() async {
   final permissions = [
     Permission.microphone,
     Permission.storage,
-    Permission.manageExternalStorage,
   ];
-  
+
+  // Request additional permissions on Android
+  if (Theme.of(WidgetsBinding.instance.platformDispatcher.platformBrightness.index == 0 ?
+      TargetPlatform.android : TargetPlatform.iOS) == TargetPlatform.android) {
+    permissions.add(Permission.manageExternalStorage);
+  }
+
   await permissions.request();
 }
 
 Future<void> _initializeServices() async {
-  // Initialize path providers and other async services
-  await getApplicationDocumentsDirectory();
+  try {
+    await getApplicationDocumentsDirectory();
+  } catch (e) {
+    debugPrint('Failed to initialize services: $e');
+  }
 }
 
 class SusurrusApp extends ConsumerWidget {
@@ -58,17 +55,17 @@ class SusurrusApp extends ConsumerWidget {
       GoRoute(
         path: '/',
         name: 'home',
-        builder: (context, state) => const TranscriptionScreen(),
+        builder: (context, state) => const TranscriptionScreen()
       ),
       GoRoute(
         path: '/settings',
         name: 'settings',
-        builder: (context, state) => const SettingsScreen(),
+        builder: (context, state) => const SettingsScreen()
       ),
       GoRoute(
         path: '/models',
         name: 'models',
-        builder: (context, state) => const ModelManagementScreen(),
+        builder: (context, state) => const ModelManagementScreen()
       ),
     ],
   );
@@ -87,27 +84,21 @@ class SusurrusApp extends ConsumerWidget {
 }
 
 // Global providers
-final audioServiceProvider = Provider<AudioService>((ref) {
-  return AudioService();
-});
+final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
 
 final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
   final audioService = ref.watch(audioServiceProvider);
   return TranscriptionService(audioService);
 });
 
-// App state providers
-final currentTranscriptionProvider = StateProvider<String?>((ref) => null);
-final isTranscribingProvider = StateProvider<bool>((ref) => false);
-final transcriptionProgressProvider = StateProvider<double>((ref) => 0.0);
-
+// App state using engine TranscriptionSegment
 class AppState {
   final String? currentTranscription;
   final bool isTranscribing;
   final double progress;
   final String? errorMessage;
-  final List<TranscriptionSegment> segments;
-  
+  final List<TranscriptionSegment> segments; // From engines/transcription_engine.dart
+
   const AppState({
     this.currentTranscription,
     this.isTranscribing = false,
@@ -115,7 +106,7 @@ class AppState {
     this.errorMessage,
     this.segments = const [],
   });
-  
+
   AppState copyWith({
     String? currentTranscription,
     bool? isTranscribing,
@@ -133,87 +124,53 @@ class AppState {
   }
 }
 
-class TranscriptionSegment {
-  final String text;
-  final double startTime;
-  final double endTime;
-  final String? speaker;
-  final double confidence;
-  
-  const TranscriptionSegment({
-    required this.text,
-    required this.startTime,
-    required this.endTime,
-    this.speaker,
-    this.confidence = 1.0,
-  });
-  
-  String get formattedTime {
-    final start = _formatTime(startTime);
-    final end = _formatTime(endTime);
-    return '[$start -> $end]';
-  }
-  
-  String _formatTime(double seconds) {
-    final minutes = (seconds / 60).floor();
-    final secs = (seconds % 60);
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toStringAsFixed(3).padLeft(6, '0')}';
-  }
-  
-  @override
-  String toString() {
-    final speakerPrefix = speaker != null ? '$speaker: ' : '';
-    return '$formattedTime $speakerPrefix$text';
-  }
-}
-
 final appStateProvider = StateNotifierProvider<AppStateNotifier, AppState>((ref) {
   return AppStateNotifier();
 });
 
 class AppStateNotifier extends StateNotifier<AppState> {
   AppStateNotifier() : super(const AppState());
-  
+
   void startTranscription() {
     state = state.copyWith(
       isTranscribing: true,
       progress: 0.0,
       errorMessage: null,
+      segments: [], // Clear previous segments
     );
   }
-  
+
   void updateProgress(double progress) {
-    state = state.copyWith(progress: progress);
+    state = state.copyWith(progress: progress.clamp(0.0, 1.0));
   }
-  
+
   void addSegment(TranscriptionSegment segment) {
     final updatedSegments = [...state.segments, segment];
     final fullText = updatedSegments.map((s) => s.text).join(' ');
-    
     state = state.copyWith(
       segments: updatedSegments,
-      currentTranscription: fullText,
+      currentTranscription: fullText
     );
   }
-  
+
   void completeTranscription(List<TranscriptionSegment> segments) {
     final fullText = segments.map((s) => s.text).join(' ');
-    
     state = state.copyWith(
       isTranscribing: false,
       segments: segments,
       currentTranscription: fullText,
       progress: 1.0,
+      errorMessage: null,
     );
   }
-  
+
   void setError(String error) {
     state = state.copyWith(
       isTranscribing: false,
-      errorMessage: error,
+      errorMessage: error
     );
   }
-  
+
   void clearTranscription() {
     state = const AppState();
   }

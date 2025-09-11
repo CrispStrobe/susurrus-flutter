@@ -1,59 +1,414 @@
-<!-- Add these entries to your existing Info.plist file -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Identity -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Susurrus</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>susurrus_flutter</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 
-<!-- Microphone permission -->
-<key>NSMicrophoneUsageDescription</key>
-<string>This app needs access to the microphone to record audio for transcription.</string>
+	<!-- iOS Version Requirements -->
+	<key>MinimumOSVersion</key>
+	<string>13.0</string>
+	<key>DTPlatformName</key>
+	<string>iphoneos</string>
 
-<!-- File access permissions -->
-<key>NSDocumentsFolderUsageDescription</key>
-<string>This app needs access to documents to save and load audio files and transcriptions.</string>
+	<!-- Device Capabilities -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+		<string>microphone</string>
+	</array>
 
-<key>NSDownloadsFolderUsageDescription</key>
-<string>This app needs access to downloads to import audio files for transcription.</string>
+	<!-- Interface and Orientation -->
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 
-<!-- Audio session configuration -->
-<key>UIBackgroundModes</key>
-<array>
-    <string>audio</string>
-</array>
+	<!-- Status Bar -->
+	<key>UIStatusBarHidden</key>
+	<false/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 
-<!-- Supported document types -->
-<key>CFBundleDocumentTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeName</key>
-        <string>Audio Files</string>
-        <key>CFBundleTypeRole</key>
-        <string>Viewer</string>
-        <key>LSItemContentTypes</key>
-        <array>
-            <string>public.audio</string>
-            <string>public.mp3</string>
-            <string>com.apple.m4a-audio</string>
-            <string>public.aac-audio</string>
-            <string>org.xiph.flac</string>
-            <string>public.wav-audio</string>
-        </array>
-    </dict>
-</array>
+	<!-- Privacy and Permissions -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to the microphone to record audio for transcription.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app may need camera access for certain features.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>This app needs access to documents to save and load audio files and transcriptions.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>This app needs access to downloads to import audio files for transcription.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to import media files for transcription.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app may access contacts for sharing transcriptions.</string>
 
-<!-- URL schemes for deep linking -->
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleURLName</key>
-        <string>com.susurrus.flutter</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>susurrus</string>
-        </array>
-    </dict>
-</array>
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>background-processing</string>
+		<string>background-fetch</string>
+	</array>
 
-<!-- CoreML capability -->
-<key>com.apple.developer.coreml</key>
-<true/>
+	<!-- Audio Session -->
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 
-<!-- Minimum iOS version -->
-<key>MinimumOSVersion</key>
-<string>13.0</string>
+	<!-- File Type Associations -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio Files</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleTypeIconFiles</key>
+			<array/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.audio</string>
+				<string>public.mp3</string>
+				<string>com.apple.m4a-audio</string>
+				<string>public.aac-audio</string>
+				<string>org.xiph.flac</string>
+				<string>public.wav-audio</string>
+				<string>com.microsoft.waveform-audio</string>
+				<string>public.aiff-audio</string>
+				<string>public.aifc-audio</string>
+				<string>com.apple.coreaudio-format</string>
+				<string>org.xiph.ogg-audio</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Transcription Files</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleTypeIconFiles</key>
+			<array/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.plain-text</string>
+				<string>public.json</string>
+				<string>dyn.ah62d4rv4ge8003dcta</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
+
+	<!-- URL Schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.susurrus.flutter</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>susurrus</string>
+			</array>
+			<key>CFBundleURLIconFile</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.susurrus.flutter.audio</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>susurrus-audio</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Exported UTIs (for file sharing) -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.susurrus.transcription</string>
+			<key>UTTypeDescription</key>
+			<string>Susurrus Transcription</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>susurrus</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-susurrus-transcription</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<!-- App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>huggingface.co</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>cdn-lfs.huggingface.co</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- CoreML and Metal Support -->
+	<key>com.apple.developer.coreml</key>
+	<true/>
+	<key>MetalPerformanceShadersGraph</key>
+	<true/>
+
+	<!-- App Capabilities -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+
+	<!-- Scene Configuration (iOS 13+) -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+
+	<!-- App Icon and Launch Images -->
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Icon-App-20x20@1x</string>
+				<string>Icon-App-20x20@2x</string>
+				<string>Icon-App-20x20@3x</string>
+				<string>Icon-App-29x29@1x</string>
+				<string>Icon-App-29x29@2x</string>
+				<string>Icon-App-29x29@3x</string>
+				<string>Icon-App-40x40@1x</string>
+				<string>Icon-App-40x40@2x</string>
+				<string>Icon-App-40x40@3x</string>
+				<string>Icon-App-50x50@1x</string>
+				<string>Icon-App-50x50@2x</string>
+				<string>Icon-App-57x57@1x</string>
+				<string>Icon-App-57x57@2x</string>
+				<string>Icon-App-60x60@2x</string>
+				<string>Icon-App-60x60@3x</string>
+				<string>Icon-App-72x72@1x</string>
+				<string>Icon-App-72x72@2x</string>
+				<string>Icon-App-76x76@1x</string>
+				<string>Icon-App-76x76@2x</string>
+				<string>Icon-App-83.5x83.5@2x</string>
+				<string>Icon-App-1024x1024@1x</string>
+			</array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+	</dict>
+
+	<!-- iPad specific -->
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Icon-App-20x20@1x</string>
+				<string>Icon-App-20x20@2x</string>
+				<string>Icon-App-29x29@1x</string>
+				<string>Icon-App-29x29@2x</string>
+				<string>Icon-App-40x40@1x</string>
+				<string>Icon-App-40x40@2x</string>
+				<string>Icon-App-50x50@1x</string>
+				<string>Icon-App-50x50@2x</string>
+				<string>Icon-App-72x72@1x</string>
+				<string>Icon-App-72x72@2x</string>
+				<string>Icon-App-76x76@1x</string>
+				<string>Icon-App-76x76@2x</string>
+				<string>Icon-App-83.5x83.5@2x</string>
+				<string>Icon-App-1024x1024@1x</string>
+			</array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+	</dict>
+
+	<!-- QuickLook Support -->
+	<key>QLSupportedContentTypes</key>
+	<array>
+		<string>public.audio</string>
+		<string>public.plain-text</string>
+		<string>com.susurrus.transcription</string>
+	</array>
+
+	<!-- Spotlight Search -->
+	<key>CoreSpotlightContinuation</key>
+	<true/>
+
+	<!-- Handoff -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.susurrus.flutter.transcription</string>
+		<string>com.susurrus.flutter.recording</string>
+	</array>
+
+	<!-- Privacy Manifest (iOS 17+) -->
+	<key>NSPrivacyManifestRequired</key>
+	<true/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeAudioData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Accessibility -->
+	<key>UIAccessibilityEnabled</key>
+	<true/>
+
+	<!-- Performance and Memory -->
+	<key>UIApplicationExitsOnSuspend</key>
+	<false/>
+	<key>UIPrerenderedIcon</key>
+	<false/>
+
+	<!-- Widget Extensions Support -->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+
+	<!-- CarPlay Support (optional) -->
+	<key>UIApplicationSupportsCarPlay</key>
+	<false/>
+
+	<!-- Apple Pencil Support -->
+	<key>UIPencilPreferredAction</key>
+	<integer>1</integer>
+
+	<!-- Keyboard Support -->
+	<key>UIKeyboardDismissMode</key>
+	<string>onDrag</string>
+
+	<!-- 3D Touch -->
+	<key>UIForceTouchCapability</key>
+	<true/>
+
+	<!-- App Store Information -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+
+	<!-- Development -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!-- Additional Flutter Configuration -->
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>FLTEnableImpeller</key>
+	<false/>
+</dict>
+</plist>

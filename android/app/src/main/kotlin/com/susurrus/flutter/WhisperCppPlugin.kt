@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import java.io.File
 
 class WhisperCppPlugin : FlutterPlugin, MethodCallHandler {
+
     private lateinit var channel: MethodChannel
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     

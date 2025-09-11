@@ -1,9 +1,10 @@
+// lib/screens/model_management_screen.dart (FIXED)
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/model_service.dart';
-import '../services/transcription_service.dart';
+import '../engines/engine_factory.dart'; // Use EngineType instead of TranscriptionBackend
 
 class ModelManagementScreen extends ConsumerStatefulWidget {
   const ModelManagementScreen({super.key});
@@ -16,7 +17,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   final ModelService _modelService = ModelService();
-  
+
   List<ModelInfo> _whisperModels = [];
   List<ModelInfo> _coreMLModels = [];
   bool _isLoading = true;
@@ -41,17 +42,17 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
 
   Future<void> _loadModels() async {
     setState(() => _isLoading = true);
-    
+
     try {
       _whisperModels = await _modelService.getWhisperCppModels();
-      
+
       if (Platform.isIOS) {
         _coreMLModels = await _modelService.getCoreMLModels();
       }
     } catch (e) {
       _showErrorDialog('Failed to load models: $e');
     }
-    
+
     setState(() => _isLoading = false);
   }
 
@@ -61,10 +62,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
       appBar: AppBar(
         title: const Text('Model Management'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadModels,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadModels),
         ],
         bottom: Platform.isIOS
             ? TabBar(
@@ -82,41 +80,29 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
               ? TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildModelList(_whisperModels, TranscriptionBackend.whisperCpp),
-                    _buildModelList(_coreMLModels, TranscriptionBackend.coreML),
+                    _buildModelList(_whisperModels, ModelType.whisperCpp),
+                    _buildModelList(_coreMLModels, ModelType.coreML),
                   ],
                 )
-              : _buildModelList(_whisperModels, TranscriptionBackend.whisperCpp),
-      floatingActionButton: _downloadingModel != null
-          ? FloatingActionButton(
-              onPressed: null,
-              child: CircularProgressIndicator(
-                value: _downloadProgress,
-                backgroundColor: Colors.grey.shade300,
-              ),
-            )
-          : null,
+              : _buildModelList(_whisperModels, ModelType.whisperCpp),
     );
   }
 
-  Widget _buildModelList(List<ModelInfo> models, TranscriptionBackend backend) {
+  Widget _buildModelList(List<ModelInfo> models, ModelType modelType) {
     if (models.isEmpty) {
-      return _buildEmptyState(backend);
+      return _buildEmptyState(modelType);
     }
 
     return Column(
       children: [
-        // Summary card
-        _buildSummaryCard(models, backend),
-        
-        // Model list
+        _buildSummaryCard(models, modelType),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(8),
             itemCount: models.length,
             itemBuilder: (context, index) {
               final model = models[index];
-              return _buildModelCard(model, backend);
+              return _buildModelCard(model, modelType);
             },
           ),
         ),
@@ -124,10 +110,10 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Widget _buildSummaryCard(List<ModelInfo> models, TranscriptionBackend backend) {
+  Widget _buildSummaryCard(List<ModelInfo> models, ModelType modelType) {
     final downloadedCount = models.where((m) => m.isDownloaded).length;
     final totalSize = _calculateTotalSize(models.where((m) => m.isDownloaded));
-    
+
     return Card(
       margin: const EdgeInsets.all(8),
       child: Padding(
@@ -135,9 +121,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
         child: Row(
           children: [
             Icon(
-              backend == TranscriptionBackend.coreML 
-                  ? Icons.apple 
-                  : Icons.memory,
+              modelType == ModelType.coreML ? Icons.apple : Icons.memory,
               size: 32,
               color: Theme.of(context).primaryColor,
             ),
@@ -147,9 +131,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    backend == TranscriptionBackend.coreML 
-                        ? 'CoreML Models' 
-                        : 'Whisper.cpp Models',
+                    modelType == ModelType.coreML ? 'CoreML Models' : 'Whisper.cpp Models',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -168,32 +150,26 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
                 ],
               ),
             ),
-            if (downloadedCount < models.length)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.download),
-                label: const Text('Download All'),
-                onPressed: () => _downloadAllModels(models),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildModelCard(ModelInfo model, TranscriptionBackend backend) {
+  Widget _buildModelCard(ModelInfo model, ModelType modelType) {
     final isDownloading = _downloadingModel == model.name;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: model.isDownloaded 
-              ? Colors.green.shade100 
+          backgroundColor: model.isDownloaded
+              ? Colors.green.shade100
               : Colors.grey.shade200,
           child: Icon(
             model.isDownloaded ? Icons.check : Icons.download,
-            color: model.isDownloaded 
-                ? Colors.green.shade700 
+            color: model.isDownloaded
+                ? Colors.green.shade700
                 : Colors.grey.shade600,
           ),
         ),
@@ -205,6 +181,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Size: ${model.size}'),
+            Text(model.description),
             if (model.isDownloaded)
               Text(
                 'Downloaded',
@@ -234,20 +211,15 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           children: [
             if (model.isDownloaded) ...[
               IconButton(
-                icon: const Icon(Icons.info_outline),
-                onPressed: () => _showModelInfo(model),
-                tooltip: 'Model info',
-              ),
-              IconButton(
                 icon: const Icon(Icons.delete_outline),
-                onPressed: () => _deleteModel(model),
+                onPressed: () => _deleteModel(model, modelType),
                 tooltip: 'Delete model',
               ),
             ] else if (!isDownloading) ...[
               ElevatedButton.icon(
                 icon: const Icon(Icons.download),
                 label: const Text('Download'),
-                onPressed: () => _downloadModel(model, backend),
+                onPressed: () => _downloadModel(model, modelType),
               ),
             ],
           ],
@@ -257,16 +229,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Widget _buildEmptyState(TranscriptionBackend backend) {
+  Widget _buildEmptyState(ModelType modelType) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.models,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.models, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             'No models available',
@@ -276,7 +244,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            backend == TranscriptionBackend.coreML
+            modelType == ModelType.coreML
                 ? 'CoreML models not supported on this device'
                 : 'Failed to load model list',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -294,7 +262,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Future<void> _downloadModel(ModelInfo model, TranscriptionBackend backend) async {
+  Future<void> _downloadModel(ModelInfo model, ModelType modelType) async {
     setState(() {
       _downloadingModel = model.name;
       _downloadProgress = 0.0;
@@ -302,8 +270,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
 
     try {
       bool success = false;
-      
-      if (backend == TranscriptionBackend.coreML) {
+
+      if (modelType == ModelType.coreML) {
         success = await _modelService.downloadCoreMLModel(
           model.name,
           onProgress: (progress) {
@@ -337,45 +305,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     }
   }
 
-  Future<void> _downloadAllModels(List<ModelInfo> models) async {
-    final undownloadedModels = models.where((m) => !m.isDownloaded).toList();
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Download All Models'),
-        content: Text(
-          'This will download ${undownloadedModels.length} models. '
-          'This may take a while and use significant storage space. Continue?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Download'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    for (final model in undownloadedModels) {
-      if (!mounted) break;
-      
-      // Determine backend based on current tab
-      final backend = _tabController.index == 0 
-          ? TranscriptionBackend.whisperCpp 
-          : TranscriptionBackend.coreML;
-      
-      await _downloadModel(model, backend);
-    }
-  }
-
-  Future<void> _deleteModel(ModelInfo model) async {
+  Future<void> _deleteModel(ModelInfo model, ModelType modelType) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -398,7 +328,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     if (confirmed != true) return;
 
     try {
-      final success = await _modelService.deleteModel(model.name);
+      final success = await _modelService.deleteModel(model.name, modelType: modelType);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${model.displayName} deleted')),
@@ -412,60 +342,10 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     }
   }
 
-  void _showModelInfo(ModelInfo model) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(model.displayName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoRow('Name', model.name),
-            _buildInfoRow('Size', model.size),
-            _buildInfoRow('Backend', _getBackendName(model.backend)),
-            _buildInfoRow('Status', model.isDownloaded ? 'Downloaded' : 'Not downloaded'),
-            if (model.localPath != null)
-              _buildInfoRow('Path', model.localPath!),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _calculateTotalSize(Iterable<ModelInfo> models) {
-    // Simple calculation - in a real app you'd calculate actual file sizes
     final count = models.length;
     if (count == 0) return '0 MB';
-    
-    // Estimate based on typical model sizes
+
     double totalMB = 0;
     for (final model in models) {
       if (model.size.contains('GB')) {
@@ -476,22 +356,11 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
         totalMB += mb;
       }
     }
-    
+
     if (totalMB > 1024) {
       return '${(totalMB / 1024).toStringAsFixed(1)} GB';
     } else {
       return '${totalMB.toStringAsFixed(0)} MB';
-    }
-  }
-
-  String _getBackendName(TranscriptionBackend backend) {
-    switch (backend) {
-      case TranscriptionBackend.whisperCpp:
-        return 'Whisper.cpp';
-      case TranscriptionBackend.coreML:
-        return 'CoreML';
-      case TranscriptionBackend.auto:
-        return 'Auto';
     }
   }
 

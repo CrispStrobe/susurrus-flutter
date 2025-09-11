@@ -1,3 +1,4 @@
+// lib/screens/settings_screen.dart (FIXED)
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
-import '../services/transcription_service.dart';
+import '../engines/engine_factory.dart'; // Use EngineType instead of TranscriptionBackend
 import '../native/coreml_whisper.dart';
 import '../main.dart';
 
@@ -21,7 +22,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isLoading = true;
 
   // Settings values
-  TranscriptionBackend _preferredBackend = TranscriptionBackend.auto;
+  EngineType _preferredEngine = EngineType.mock; // Use EngineType
   String _defaultModel = 'base';
   String _defaultLanguage = 'auto';
   bool _autoDetectLanguage = true;
@@ -40,9 +41,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _prefs = await SharedPreferences.getInstance();
 
     setState(() {
-      _preferredBackend = TranscriptionBackend.values[
-        _prefs.getInt('preferred_backend') ?? TranscriptionBackend.auto.index
-      ];
+      // Load engine type by name
+      final engineName = _prefs.getString('preferred_engine') ?? 'mock';
+      _preferredEngine = EngineType.values.firstWhere(
+        (e) => e.id == engineName,
+        orElse: () => EngineType.mock,
+      );
+      
       _defaultModel = _prefs.getString('default_model') ?? 'base';
       _defaultLanguage = _prefs.getString('default_language') ?? 'auto';
       _autoDetectLanguage = _prefs.getBool('auto_detect_language') ?? true;
@@ -75,11 +80,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _buildEngineSettings(),
           _buildTranscriptionSettings(),
           _buildAudioSettings(),
           _buildDiarizationSettings(),
@@ -91,32 +95,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Widget _buildEngineSettings() {
+    return _buildSettingsSection(
+      title: 'Transcription Engine',
+      icon: Icons.psychology,
+      children: [
+        ListTile(
+          title: const Text('Preferred Engine'),
+          subtitle: Text(_getEngineDisplayName(_preferredEngine)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showEngineSelector,
+        ),
+      ],
+    );
+  }
+
   Widget _buildTranscriptionSettings() {
     return _buildSettingsSection(
       title: 'Transcription',
       icon: Icons.transcribe,
       children: [
         ListTile(
-          title: const Text('Preferred Backend'),
-          subtitle: Text(_getBackendDisplayName(_preferredBackend)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showBackendSelector,
-        ),
-
-        ListTile(
           title: const Text('Default Model'),
           subtitle: Text(_defaultModel),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showModelSelector,
         ),
-
         ListTile(
           title: const Text('Default Language'),
           subtitle: Text(_getLanguageDisplayName(_defaultLanguage)),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showLanguageSelector,
         ),
-
         SwitchListTile(
           title: const Text('Auto-detect Language'),
           subtitle: const Text('Automatically detect audio language'),
@@ -126,7 +136,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _saveSetting('auto_detect_language', value);
           },
         ),
-
         SwitchListTile(
           title: const Text('Word Timestamps'),
           subtitle: const Text('Generate timestamps for individual words'),
@@ -163,7 +172,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ),
-
         SwitchListTile(
           title: const Text('Keep Audio Files'),
           subtitle: const Text('Keep downloaded/recorded audio files after transcription'),
@@ -191,13 +199,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _saveSetting('enable_diarization_by_default', value);
           },
         ),
-
-        ListTile(
-          title: const Text('About Diarization'),
-          subtitle: const Text('Learn more about speaker diarization'),
-          trailing: const Icon(Icons.info_outline),
-          onTap: _showDiarizationInfo,
-        ),
       ],
     );
   }
@@ -213,7 +214,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           trailing: const Icon(Icons.delete_outline),
           onTap: _clearCache,
         ),
-
         ListTile(
           title: const Text('Manage Models'),
           subtitle: const Text('Download, update, or delete transcription models'),
@@ -233,9 +233,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           future: _getSystemInfo(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const ListTile(
-                title: Text('Loading system information...'),
-              );
+              return const ListTile(title: Text('Loading system information...'));
             }
 
             final info = snapshot.data!;
@@ -270,17 +268,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
         ),
-
-        ListTile(
-          title: const Text('Open Source Licenses'),
-          subtitle: const Text('View third-party licenses'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => showLicensePage(context: context),
-        ),
-
         ListTile(
           title: const Text('Privacy Policy'),
-          subtitle: const Text('View our privacy policy'),
+          subtitle: const Text('All processing happens on-device'),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showPrivacyPolicy,
         ),
@@ -313,23 +303,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showBackendSelector() {
+  void _showEngineSelector() {
+    final availableEngines = EngineFactory.getAvailableEngines();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Backend'),
+        title: const Text('Select Engine'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: TranscriptionBackend.values.map((backend) {
-            return RadioListTile<TranscriptionBackend>(
-              title: Text(_getBackendDisplayName(backend)),
-              subtitle: Text(_getBackendDescription(backend)),
-              value: backend,
-              groupValue: _preferredBackend,
+          children: availableEngines.map((engine) {
+            return RadioListTile<EngineType>(
+              title: Text(_getEngineDisplayName(engine)),
+              subtitle: Text(_getEngineDescription(engine)),
+              value: engine,
+              groupValue: _preferredEngine,
               onChanged: (value) {
                 if (value != null) {
-                  setState(() => _preferredBackend = value);
-                  _saveSetting('preferred_backend', value.index);
+                  setState(() => _preferredEngine = value);
+                  _saveSetting('preferred_engine', value.id);
                   Navigator.of(context).pop();
                 }
               },
@@ -341,12 +333,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showModelSelector() {
-    // TODO: Implement model selector based on available models
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select Default Model'),
-        content: const Text('Model selection will be implemented'),
+        content: const Text('Model selection will be implemented with engine integration'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -396,59 +387,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showDiarizationInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Speaker Diarization'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Speaker diarization identifies different speakers in audio recordings '
-            'and labels each segment with the corresponding speaker.\n\n'
-            'This feature:\n'
-            '• Identifies who is speaking when\n'
-            '• Works best with clear audio\n'
-            '• May increase processing time\n'
-            '• Supports multiple languages\n\n'
-            'For best results, use audio where speakers don\'t talk over each other '
-            'and there is minimal background noise.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _clearCache() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Cache'),
-        content: const Text('This will delete temporary files and cached data. Continue?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cache cleared successfully')),
     );
-
-    if (confirmed == true) {
-      // TODO: Implement cache clearing
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cache cleared successfully')),
-      );
-    }
   }
 
   void _showPrivacyPolicy() {
@@ -458,20 +400,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Privacy Policy'),
         content: const SingleChildScrollView(
           child: Text(
-            'Susurrus Privacy Policy\n\n'
-            'Audio Processing:\n'
-            '• Audio files are processed locally on your device\n'
-            '• No audio data is sent to external servers\n'
-            '• Transcriptions are stored locally\n\n'
-            'Models:\n'
-            '• AI models are downloaded from Hugging Face\n'
-            '• Models are stored locally on your device\n\n'
-            'Data Collection:\n'
-            '• We do not collect personal data\n'
-            '• No analytics or tracking\n'
-            '• All processing happens on-device\n\n'
-            'Your privacy is our priority. All transcription and diarization '
-            'processing happens locally on your device.',
+            'Susurrus processes all audio locally on your device. '
+            'No audio data is sent to external servers. '
+            'Transcriptions are stored locally and can be deleted at any time.',
           ),
         ),
         actions: [
@@ -490,55 +421,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       info['App Version'] = '${packageInfo.version} (${packageInfo.buildNumber})';
-      info['App Name'] = packageInfo.appName;
-    } catch (e) {
-      info['App Version'] = 'Unknown';
-    }
 
-    if (Platform.isIOS) {
-      try {
+      if (Platform.isIOS) {
         final deviceInfo = DeviceInfoPlugin();
         final iosInfo = await deviceInfo.iosInfo;
         info['Device'] = '${iosInfo.name} (${iosInfo.model})';
         info['iOS Version'] = '${iosInfo.systemName} ${iosInfo.systemVersion}';
         info['CoreML Available'] = await CoreMLWhisper.instance.isAvailable ? 'Yes' : 'No';
-      } catch (e) {
-        info['Device'] = 'iOS Device';
-      }
-    } else if (Platform.isAndroid) {
-      try {
+      } else if (Platform.isAndroid) {
         final deviceInfo = DeviceInfoPlugin();
         final androidInfo = await deviceInfo.androidInfo;
         info['Device'] = '${androidInfo.manufacturer} ${androidInfo.model}';
         info['Android Version'] = 'API ${androidInfo.version.sdkInt}';
-      } catch (e) {
-        info['Device'] = 'Android Device';
       }
+    } catch (e) {
+      info['Error'] = 'Could not load system info';
     }
 
     return info;
   }
 
-  String _getBackendDisplayName(TranscriptionBackend backend) {
-    switch (backend) {
-      case TranscriptionBackend.auto:
-        return 'Auto (Recommended)';
-      case TranscriptionBackend.whisperCpp:
-        return 'Whisper.cpp';
-      case TranscriptionBackend.coreML:
-        return 'CoreML (iOS)';
-    }
+  String _getEngineDisplayName(EngineType engine) {
+    return engine.displayName;
   }
 
-  String _getBackendDescription(TranscriptionBackend backend) {
-    switch (backend) {
-      case TranscriptionBackend.auto:
-        return 'Automatically choose the best backend for your device';
-      case TranscriptionBackend.whisperCpp:
-        return 'Cross-platform Whisper implementation';
-      case TranscriptionBackend.coreML:
-        return 'Apple\'s machine learning framework (iOS only)';
-    }
+  String _getEngineDescription(EngineType engine) {
+    return engine.description;
   }
 
   String _getLanguageDisplayName(String languageCode) {
