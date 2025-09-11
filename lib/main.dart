@@ -11,6 +11,12 @@ import 'screens/model_management_screen.dart';
 import 'services/audio_service.dart';
 import 'services/transcription_service.dart';
 import 'theme/app_theme.dart';
+import 'engines/engine_factory.dart';
+
+// Engine manager provider
+final engineManagerProvider = StateNotifierProvider<EngineManagerNotifier, EngineManagerState>((ref) {
+  return EngineManagerNotifier();
+});
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
