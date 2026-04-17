@@ -36,30 +36,52 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 ### Non-Whisper model families
 
 CrispASR supports 10 on-device ASR backends. The model picker in
-**Settings → Manage models** now lists every family (with q4_k / q5_0 / q8_0
-variants where available). Downloads work across the board; runtime support
-depends on which backends the bundled `libwhisper` exports.
+**Settings → Manage models** lists every family (with q4_k / q5_0 / q8_0
+variants where available). **Downloads work across the board.** Runtime
+support is gated by the unified `crispasr_session_*` dispatcher that
+shipped in CrispASR 0.4.0 — the bundled `libwhisper` must be linked with
+the backend's static/shared library for its context to be reachable.
 
 | Family               | Download | Runtime FFI                                   | Notes                                      |
 | -------------------- | :------: | :-------------------------------------------: | ------------------------------------------ |
-| Whisper (tiny → large-v3 + quants) | ✅ | ✅                                    | Default; fully working today               |
-| Parakeet (NVIDIA TDT)| ✅       | ❌ (dispatcher gap — ready to wire)           | Fast English ASR, native word timestamps   |
-| Canary (NVIDIA)      | ✅       | ❌ (dispatcher gap)                           | Speech translation (X↔en)                  |
-| Cohere Transcribe    | ✅       | ❌ (dispatcher gap)                           | High-accuracy Conformer decoder            |
-| Voxtral Mini 3B      | ✅       | ❌ (dispatcher gap)                           | Speech translation, LLM-grade              |
-| Voxtral Mini 4B      | ✅       | ❌ (dispatcher gap)                           | Realtime variant                           |
-| Qwen3-ASR            | ✅       | ❌ (dispatcher gap)                           | 30+ langs incl. Chinese dialects           |
-| Granite Speech (IBM) | ✅       | ❌ (dispatcher gap)                           | Instruction-tuned speech model             |
-| FastConformer-CTC    | ✅       | ❌ (dispatcher gap)                           | Low-latency CTC backbone                   |
-| Wav2Vec2             | ✅       | ❌ (dispatcher gap)                           | Self-supervised speech                     |
+| Whisper (tiny → large-v3 + quants) | ✅ | ✅                                    | Default; full features (word-ts, lang-detect, streaming, VAD) |
+| Parakeet (NVIDIA TDT)| ✅       | ✅ via `CrispasrSession` (macOS verified)     | Fast English ASR, native word timestamps   |
+| Canary (NVIDIA)      | ✅       | ⚠️ Add `target_link_libraries(whisper PUBLIC canary)` + re-run `cmake --build build` | Speech translation (X↔en) |
+| Cohere Transcribe    | ✅       | ⚠️ Same one-line CMake change                 | High-accuracy Conformer decoder            |
+| Voxtral Mini 3B      | ✅       | ⚠️ Same                                       | Speech translation, LLM-grade              |
+| Voxtral Mini 4B      | ✅       | ⚠️ Same                                       | Realtime variant                           |
+| Qwen3-ASR            | ✅       | ⚠️ Same                                       | 30+ langs incl. Chinese dialects           |
+| Granite Speech (IBM) | ✅       | ⚠️ Same                                       | Instruction-tuned speech model             |
+| FastConformer-CTC    | ✅       | ⚠️ Same                                       | Low-latency CTC backbone                   |
+| Wav2Vec2             | ✅       | ⚠️ Same                                       | Self-supervised speech                     |
 
-Picking a non-Whisper model loads cleanly (and shows a clear per-card
-warning), but attempting to transcribe errors out with the exact upstream
-work that's missing — each backend has its own C++ `<name>_context`,
-`<name>_init_from_file`, `<name>_transcribe_ex` surface, and we need a
-unified dispatcher wired into `libwhisper` (or a new `libcrispasr`). See
-[`docs/crispasr-dart-gaps.md` §2](docs/crispasr-dart-gaps.md) for the
-exact FFI surface required.
+### Adding a new backend at runtime — three-step recipe
+
+1. In `CrispASR/src/CMakeLists.txt`, in the "Dart FFI multi-backend
+   linkage" section, add one line:
+   ```cmake
+   if (TARGET canary) target_link_libraries(whisper PUBLIC canary) endif()
+   ```
+2. Add a `#if __has_include("canary.h")` block to
+   `CrispASR/src/crispasr_dart_helpers.cpp`, plus a `case "canary":` arm
+   to `crispasr_session_open_explicit` and `crispasr_session_transcribe`.
+3. `cmake --build build --target whisper` and copy both
+   `libwhisper.dylib` + `libcanary.dylib` into the app bundle's
+   `Contents/Frameworks/`.
+
+Susurrus picks up new backends automatically through
+`CrispasrSession.availableBackends()` — no Dart changes needed. If the
+user picks a backend the bundled libwhisper wasn't linked with, the load
+error names exactly which backends ARE available and what to do.
+
+### Server-based alternative (desktop only)
+
+CrispASR also ships an HTTP server (`examples/cli/crispasr_server.cpp`)
+with `POST /inference`, `POST /v1/audio/transcriptions` (OpenAI-
+compatible), `POST /load`, `GET /backends`. Desktop builds could bundle
+the `crispasr` binary and spawn it in server mode for unified backend
+access. Not used here because iOS can't spawn subprocesses — FFI is
+required for parity with mobile.
 
 ## What's inside
 

@@ -183,19 +183,26 @@ class CrispASREngine implements TranscriptionEngine {
       return true;
     }
 
-    // The FFI runtime in the shipped libwhisper only speaks Whisper today.
-    // Non-Whisper CrispASR backends (parakeet, canary, qwen3, …) have their
-    // own C++ contexts that haven't been exposed through the Dart package
-    // yet — bail with a specific error so the UI can explain.
+    // As of CrispASR 0.4.0 libwhisper can dispatch to any backend it was
+    // linked against (see `CrispasrSession.availableBackends`). We still
+    // throw a specific error when the model's backend isn't in that list,
+    // so the UI can explain that libwhisper needs to be rebuilt with that
+    // backend for runtime support (download has already succeeded).
     final def = _modelService!.lookupDefinition(modelId);
-    if (def != null && def.backend != 'whisper') {
-      throw ModelLoadException(
-        'Model uses the ${def.backend} backend, which is not yet runtime-'
-        'supported in the bundled libwhisper. See '
-        'docs/crispasr-dart-gaps.md §2 for the upstream work required.',
-        engineId,
-        modelId,
+    if (def != null) {
+      final available = crispasr.CrispasrSession.availableBackends(
+        libPath: _libPath,
       );
+      if (!available.contains(def.backend)) {
+        throw ModelLoadException(
+          'Model uses the ${def.backend} backend. The bundled libwhisper '
+          'was built with {${available.join(", ")}}. Rebuild CrispASR '
+          'with the ${def.backend} backend linked in — see '
+          'src/CMakeLists.txt "Dart FFI multi-backend linkage" section.',
+          engineId,
+          modelId,
+        );
+      }
     }
 
     onProgress?.call(0.05);
