@@ -55,7 +55,7 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 | -------- | ----- | -------------------------------------------------------------------------------------------- |
 | macOS    | ✅    | None. `flutter build macos` + `scripts/bundle_macos_dylibs.sh` produces a runnable `.app`.   |
 | Linux    | ✅    | None. CI `build-linux` job bundles all `.so`'s; local build needs a Linux host.              |
-| Windows  | ⚠️    | CMake targets exist; no CI job yet.                                                          |
+| Windows  | ⚠️    | No Flutter runner scaffold yet — `windows/` only has a single `whisper_windows.cpp` stub. Run `flutter create --platforms=windows .` + wire libcrispasr.dll bundling. |
 | Android  | ⚠️    | APK builds with Mock engine. Gradle is mixed Groovy (`app/build.gradle`) + KTS (`settings.gradle.kts`). Pick one and port the plugin registrations. Separately, `libwhisper.so` is built by `CrispASR/build-android.sh` and bundled under `android/app/src/main/jniLibs/<abi>/` — but this wiring isn't automated in CI. |
 | iOS      | ⚠️    | Xcode project regenerated; `pod install` is blocked by stale `TensorFlowLiteSwift '~> 2.13.0'` pin in `ios/Podfile`. Drop the pin or refresh the pod spec. |
 
@@ -108,9 +108,9 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 **Verification:** `flutter build apk --debug` locally; then test on an emulator.
 
-### 5.4 Windows CI job
+### 5.4 Windows scaffold + CI
 
-**What:** add a `build-windows` job to `.github/workflows/ci.yml`. Needs: Windows runner (already in GH Actions matrix), MSVC 2022, CMake, Flutter Windows toolchain enabled. Build libwhisper + all sibling `.dll`'s; run `flutter build windows --debug`; bundle `.dll`'s into `build/windows/x64/runner/Debug/`.
+**What:** the `windows/` directory only has a single `whisper_windows.cpp` stub; there's no Flutter runner project. Run `flutter create --platforms=windows .` to regenerate the scaffold, then add a `build-windows` job to `.github/workflows/ci.yml`: Windows runner + MSVC 2022 + CMake + Flutter Windows toolchain. Build libwhisper + all sibling `.dll`'s; run `flutter build windows --debug`; bundle `.dll`'s into `build/windows/x64/runner/Debug/`.
 
 **Risk:** medium. MSVC + ggml's SIMD headers can be fiddly; CrispASR CI already validates Windows builds, so cross-reference its config.
 

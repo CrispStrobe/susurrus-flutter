@@ -1,9 +1,9 @@
 name: crisper_weaver
-description: A Flutter audio transcription app with speaker diarization using whisper.cpp and CoreML
+description: A cross-platform Flutter app for fully-offline audio transcription. Ten ASR families via CrispASR.
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 0.1.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
