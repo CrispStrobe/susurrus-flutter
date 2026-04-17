@@ -30,9 +30,36 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 | Word-level timestamps             | ✅ via CrispASR 0.2.0 helpers — `whisper_full_get_token_data` wrapper + `token_timestamps=true` through new param setters |
 | Language auto-detection (standalone) | ✅ via CrispASR 0.2.0 `crispasr_detect_language` (mel + encode + `whisper_lang_auto_detect`) |
 | VAD (Silero) Dart binding         | ✅ via CrispASR 0.2.0 `crispasr_vad_segments` — needs a separate VAD GGML model bundled or downloaded |
-| Streaming transcription           | ❌ Still blocked on upstream streaming-state API — see `docs/crispasr-dart-gaps.md` §1 |
+| Streaming transcription           | ✅ via CrispASR 0.3.0 `crispasr_stream_*` — 10 s sliding window / 3 s step, in-process, drives `CrispASREngine.transcribeStream` |
 | Real speaker diarization          | ❌ Blocked on upstream CrispASR diarization API — current MFCC/k-means fallback is a stopgap |
-| Non-Whisper backends (Parakeet, Canary, Qwen3-ASR, Voxtral, …) | ❌ Blocked on upstream CrispASR Dart pkg backend dispatch |
+
+### Non-Whisper model families
+
+CrispASR supports 10 on-device ASR backends. The model picker in
+**Settings → Manage models** now lists every family (with q4_k / q5_0 / q8_0
+variants where available). Downloads work across the board; runtime support
+depends on which backends the bundled `libwhisper` exports.
+
+| Family               | Download | Runtime FFI                                   | Notes                                      |
+| -------------------- | :------: | :-------------------------------------------: | ------------------------------------------ |
+| Whisper (tiny → large-v3 + quants) | ✅ | ✅                                    | Default; fully working today               |
+| Parakeet (NVIDIA TDT)| ✅       | ❌ (dispatcher gap — ready to wire)           | Fast English ASR, native word timestamps   |
+| Canary (NVIDIA)      | ✅       | ❌ (dispatcher gap)                           | Speech translation (X↔en)                  |
+| Cohere Transcribe    | ✅       | ❌ (dispatcher gap)                           | High-accuracy Conformer decoder            |
+| Voxtral Mini 3B      | ✅       | ❌ (dispatcher gap)                           | Speech translation, LLM-grade              |
+| Voxtral Mini 4B      | ✅       | ❌ (dispatcher gap)                           | Realtime variant                           |
+| Qwen3-ASR            | ✅       | ❌ (dispatcher gap)                           | 30+ langs incl. Chinese dialects           |
+| Granite Speech (IBM) | ✅       | ❌ (dispatcher gap)                           | Instruction-tuned speech model             |
+| FastConformer-CTC    | ✅       | ❌ (dispatcher gap)                           | Low-latency CTC backbone                   |
+| Wav2Vec2             | ✅       | ❌ (dispatcher gap)                           | Self-supervised speech                     |
+
+Picking a non-Whisper model loads cleanly (and shows a clear per-card
+warning), but attempting to transcribe errors out with the exact upstream
+work that's missing — each backend has its own C++ `<name>_context`,
+`<name>_init_from_file`, `<name>_transcribe_ex` surface, and we need a
+unified dispatcher wired into `libwhisper` (or a new `libcrispasr`). See
+[`docs/crispasr-dart-gaps.md` §2](docs/crispasr-dart-gaps.md) for the
+exact FFI surface required.
 
 ## What's inside
 

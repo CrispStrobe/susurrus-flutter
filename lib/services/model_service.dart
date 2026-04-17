@@ -22,7 +22,10 @@ class ModelService {
   static const String cstrWhisperCppBaseUrl =
       'https://huggingface.co/cstr/whisper-ggml-quants/resolve/main';
 
-  /// A general-purpose cstr GGUF repo (CrispASR-compatible backends).
+  /// A general-purpose cstr GGUF repo (CrispASR-compatible backends:
+  /// Parakeet, Canary, Cohere, Voxtral, Qwen3-ASR, Granite, FastConformer-CTC,
+  /// Wav2Vec2). Each backend has its own filename convention — see
+  /// `crispasrBackendModels` below.
   static const String cstrCrispBaseUrl =
       'https://huggingface.co/cstr/crispasr-gguf/resolve/main';
 
@@ -241,6 +244,122 @@ class ModelService {
     ),
   };
 
+  /// Non-Whisper ASR backends CrispASR supports. These download + show up in
+  /// the model manager today; full FFI runtime for every one of them is
+  /// still being rolled out (tracked in `docs/crispasr-dart-gaps.md`).
+  /// The `backend` field names the CrispASR backend id — matches
+  /// `crispasr --list-backends`.
+  static const Map<String, ModelDefinition> crispasrBackendModels = {
+    // Parakeet — NVIDIA TDT, very fast English ASR with word timestamps.
+    'parakeet-tdt-0.6b-v3-q4_k': ModelDefinition(
+      name: 'parakeet-tdt-0.6b-v3-q4_k',
+      displayName: 'Parakeet TDT 0.6B v3 (q4_k)',
+      fileName: 'parakeet-tdt-0.6b-v3-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/parakeet-tdt-0.6b-v3-q4_k.gguf',
+      sizeBytes: 467 * 1024 * 1024,
+      checksum: '',
+      description: 'Fast English ASR (NVIDIA Parakeet) — ~467 MB',
+      quantization: 'q4_k',
+      backend: 'parakeet',
+    ),
+    // Canary — NVIDIA, translation-capable (X→en, en→X).
+    'canary-1b-v2-q5_0': ModelDefinition(
+      name: 'canary-1b-v2-q5_0',
+      displayName: 'Canary 1B v2 (q5_0)',
+      fileName: 'canary-1b-v2-q5_0.gguf',
+      url: '$cstrCrispBaseUrl/canary-1b-v2-q5_0.gguf',
+      sizeBytes: 600 * 1024 * 1024,
+      checksum: '',
+      description: 'Multilingual ASR with speech-translation — ~600 MB',
+      quantization: 'q5_0',
+      backend: 'canary',
+    ),
+    // Cohere — Conformer encoder + transformer decoder.
+    'cohere-transcribe-03-2026-q5_0': ModelDefinition(
+      name: 'cohere-transcribe-03-2026-q5_0',
+      displayName: 'Cohere Transcribe 03-2026 (q5_0)',
+      fileName: 'cohere-transcribe-03-2026-q5_0.gguf',
+      url: '$cstrCrispBaseUrl/cohere-transcribe-03-2026-q5_0.gguf',
+      sizeBytes: 1200 * 1024 * 1024,
+      checksum: '',
+      description: 'Cohere high-accuracy ASR — ~1.2 GB',
+      quantization: 'q5_0',
+      backend: 'cohere',
+    ),
+    // Voxtral — speech translation (Mistral family).
+    'voxtral-mini-3b-2507-q4_k': ModelDefinition(
+      name: 'voxtral-mini-3b-2507-q4_k',
+      displayName: 'Voxtral Mini 3B 2507 (q4_k)',
+      fileName: 'voxtral-mini-3b-2507-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/voxtral-mini-3b-2507-q4_k.gguf',
+      sizeBytes: 2500 * 1024 * 1024,
+      checksum: '',
+      description: 'Speech translation + ASR — ~2.5 GB',
+      quantization: 'q4_k',
+      backend: 'voxtral',
+    ),
+    // Voxtral 4B — realtime variant.
+    'voxtral-mini-4b-realtime-q4_k': ModelDefinition(
+      name: 'voxtral-mini-4b-realtime-q4_k',
+      displayName: 'Voxtral Mini 4B realtime (q4_k)',
+      fileName: 'voxtral-mini-4b-realtime-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/voxtral-mini-4b-realtime-q4_k.gguf',
+      sizeBytes: 3300 * 1024 * 1024,
+      checksum: '',
+      description: 'Voxtral realtime tuning — ~3.3 GB',
+      quantization: 'q4_k',
+      backend: 'voxtral4b',
+    ),
+    // Qwen3-ASR — 30+ languages incl. Chinese dialects.
+    'qwen3-asr-0.6b-q4_k': ModelDefinition(
+      name: 'qwen3-asr-0.6b-q4_k',
+      displayName: 'Qwen3-ASR 0.6B (q4_k)',
+      fileName: 'qwen3-asr-0.6b-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/qwen3-asr-0.6b-q4_k.gguf',
+      sizeBytes: 380 * 1024 * 1024,
+      checksum: '',
+      description: 'Multilingual (30+ langs, incl. Chinese dialects) — ~380 MB',
+      quantization: 'q4_k',
+      backend: 'qwen3',
+    ),
+    // Granite — IBM's speech model.
+    'granite-4.0-1b-speech-q4_k': ModelDefinition(
+      name: 'granite-4.0-1b-speech-q4_k',
+      displayName: 'Granite 4.0 1B Speech (q4_k)',
+      fileName: 'granite-4.0-1b-speech-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/granite-4.0-1b-speech-q4_k.gguf',
+      sizeBytes: 900 * 1024 * 1024,
+      checksum: '',
+      description: 'IBM Granite speech — ~900 MB',
+      quantization: 'q4_k',
+      backend: 'granite',
+    ),
+    // FastConformer-CTC — low-latency CTC backbone.
+    'fastconformer-ctc-en-q4_k': ModelDefinition(
+      name: 'fastconformer-ctc-en-q4_k',
+      displayName: 'FastConformer CTC (en, q4_k)',
+      fileName: 'fastconformer-ctc-en-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/fastconformer-ctc-en-q4_k.gguf',
+      sizeBytes: 400 * 1024 * 1024,
+      checksum: '',
+      description: 'Low-latency CTC ASR (English) — ~400 MB',
+      quantization: 'q4_k',
+      backend: 'fastconformer-ctc',
+    ),
+    // Wav2Vec2 — self-supervised speech model.
+    'wav2vec2-base-en-q4_k': ModelDefinition(
+      name: 'wav2vec2-base-en-q4_k',
+      displayName: 'Wav2Vec2 base (en, q4_k)',
+      fileName: 'wav2vec2-base-en-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/wav2vec2-base-en-q4_k.gguf',
+      sizeBytes: 100 * 1024 * 1024,
+      checksum: '',
+      description: 'Self-supervised (facebook/wav2vec2) — ~100 MB',
+      quantization: 'q4_k',
+      backend: 'wav2vec2',
+    ),
+  };
+
   static const Map<String, ModelDefinition> coreMLModels = {
     'tiny': ModelDefinition(
       name: 'tiny',
@@ -332,10 +451,38 @@ class ModelService {
         description: modelDef.description,
         modelType: ModelType.whisperCpp,
         quantization: modelDef.quantization,
+        backend: modelDef.backend,
+      ));
+    }
+
+    // Non-Whisper CrispASR backends. They share the same on-disk directory
+    // since each file is just a GGUF blob, but their `backend` field tells
+    // the engine which runtime path to dispatch to.
+    for (final entry in crispasrBackendModels.entries) {
+      final modelDef = entry.value;
+      final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
+      final isDownloaded = await _isModelDownloaded(localPath, modelDef);
+
+      modelInfos.add(ModelInfo(
+        name: modelDef.name,
+        displayName: modelDef.displayName,
+        size: _formatSize(modelDef.sizeBytes),
+        sizeBytes: modelDef.sizeBytes,
+        isDownloaded: isDownloaded,
+        localPath: isDownloaded ? localPath : null,
+        description: modelDef.description,
+        modelType: ModelType.whisperCpp,
+        quantization: modelDef.quantization,
+        backend: modelDef.backend,
       ));
     }
 
     return modelInfos;
+  }
+
+  /// Unified lookup — finds a model by name across both catalogs.
+  ModelDefinition? lookupDefinition(String name) {
+    return whisperCppModels[name] ?? crispasrBackendModels[name];
   }
 
   /// Whether the user has disabled SHA-1 checksum validation for downloads.
@@ -377,7 +524,7 @@ class ModelService {
   }) async {
     await initialize();
 
-    final modelDef = whisperCppModels[modelName];
+    final modelDef = lookupDefinition(modelName);
     if (modelDef == null) {
       throw ModelException('Unknown Whisper.cpp model: $modelName');
     }
@@ -685,7 +832,7 @@ class ModelService {
   Future<String?> getWhisperCppModelPath(String modelName) async {
     await initialize();
 
-    final modelDef = whisperCppModels[modelName];
+    final modelDef = lookupDefinition(modelName);
     if (modelDef == null) return null;
 
     final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
@@ -928,6 +1075,10 @@ class ModelDefinition {
   final String checksum;
   final String description;
   final String quantization; // 'f16', 'q4_0', 'q5_0', 'q8_0', ''
+  /// The CrispASR backend id that owns this model — see
+  /// `crispasr --list-backends`. Default 'whisper' for the vanilla GGML
+  /// Whisper models we ship.
+  final String backend;
 
   const ModelDefinition({
     required this.name,
@@ -938,6 +1089,7 @@ class ModelDefinition {
     required this.checksum,
     required this.description,
     this.quantization = 'f16',
+    this.backend = 'whisper',
   });
 }
 
@@ -951,6 +1103,11 @@ class ModelInfo {
   final String description;
   final ModelType modelType;
   final String quantization;
+  final String backend;
+  /// Human-readable runtime status — "Ready" when the bundled libwhisper
+  /// can execute this model today, or an explanation of what's missing.
+  /// Filled in by the UI based on engine capability probing.
+  final String? runtimeStatus;
 
   const ModelInfo({
     required this.name,
@@ -962,6 +1119,8 @@ class ModelInfo {
     required this.description,
     required this.modelType,
     this.quantization = 'f16',
+    this.backend = 'whisper',
+    this.runtimeStatus,
   });
 }
 

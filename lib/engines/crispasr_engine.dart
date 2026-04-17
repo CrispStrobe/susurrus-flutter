@@ -183,6 +183,21 @@ class CrispASREngine implements TranscriptionEngine {
       return true;
     }
 
+    // The FFI runtime in the shipped libwhisper only speaks Whisper today.
+    // Non-Whisper CrispASR backends (parakeet, canary, qwen3, …) have their
+    // own C++ contexts that haven't been exposed through the Dart package
+    // yet — bail with a specific error so the UI can explain.
+    final def = _modelService!.lookupDefinition(modelId);
+    if (def != null && def.backend != 'whisper') {
+      throw ModelLoadException(
+        'Model uses the ${def.backend} backend, which is not yet runtime-'
+        'supported in the bundled libwhisper. See '
+        'docs/crispasr-dart-gaps.md §2 for the upstream work required.',
+        engineId,
+        modelId,
+      );
+    }
+
     onProgress?.call(0.05);
 
     final modelPath = await _modelService!.getWhisperCppModelPath(modelId);

@@ -182,6 +182,23 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
               ),
             ),
             const SizedBox(width: 6),
+            if (model.backend.isNotEmpty && model.backend != 'whisper')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  model.backend,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo.shade900,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 4),
             if (model.quantization.isNotEmpty && model.quantization != 'f16')
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -205,6 +222,21 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           children: [
             Text('Size: ${model.size}'),
             Text(model.description),
+            if (model.backend != 'whisper')
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Runtime: backend "${model.backend}" is not yet wired '
+                  'into the bundled FFI — download works, transcription '
+                  'will error until libwhisper is rebuilt with the '
+                  'corresponding backend linked in.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ),
             if (model.isDownloaded)
               Text(
                 'Downloaded',
