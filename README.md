@@ -54,9 +54,9 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 | -------- | --------------------------------------------------------------------- |
 | macOS    | ✅ Verified — CI builds Metal-enabled `.app`, local build green        |
 | Linux    | ✅ CI-built desktop bundle with DT_NEEDED dylibs                       |
-| Windows  | ⚠️ CMake targets exist; no CI yet                                     |
-| Android  | ⚠️ APK builds with Mock engine; `libwhisper.so` wiring is manual      |
-| iOS      | ⚠️ Xcode project ready; pinned TensorFlowLiteSwift blocks `pod install` |
+| Windows  | ⚠️ Flutter runner scaffold in place; no CI job yet                    |
+| Android  | ⚠️ APK builds with Mock engine out of the box; `libwhisper.so` wiring via `CrispASR/build-android.sh` is manual |
+| iOS      | ⚠️ Xcode project + Podfile ready; `pod install` + device build not yet CI-verified |
 
 Roadmap and blockers: see [`PLAN.md`](PLAN.md).
 
@@ -144,10 +144,11 @@ Both workflows honour `CRISPASR_REPO` / `CRISPASR_REF` env vars at the top of ea
 
 The short version:
 
+- CoreML acceleration for Whisper on iOS/macOS (enable `WHISPER_USE_COREML` inside CrispASR, ship the paired `.mlmodelc` next to the `.bin`).
 - Real speaker diarization (blocked on upstream CrispASR diarization API — MFCC/k-means stopgap currently in place).
-- Windows CI job.
-- iOS `pod install` unblock: drop the stale `TensorFlowLiteSwift '~> 2.13.0'` pin.
-- Android Gradle cleanup: pick Groovy *or* KTS, port plugin registrations.
+- Windows CI job + dll bundling script.
+- Android CI: cross-build `libwhisper.so` + sibling backends, drop into `jniLibs/`, ship a real-ASR APK.
+- iOS `pod install` + device-build CI verification.
 - Finish i18n migration for widgets + older Settings strings.
 - Backend-specific UX (source/target language UI for Canary, Voxtral audio Q&A mode, Granite `--ask` flag, etc.).
 

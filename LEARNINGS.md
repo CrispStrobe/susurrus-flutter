@@ -215,6 +215,18 @@ Classic off-by-one-bit mistake. Reading the sample as unsigned and subtracting 3
 
 WAV chunks are padded to 2-byte boundaries. After reading a chunk, `if (chunkSize % 2 != 0) offset++;` — otherwise a fmt chunk with odd size (rare but legal) misaligns every subsequent chunk and you get "No data chunk found".
 
+## Architecture decisions
+
+### CoreML as an opt-in inside whisper.cpp, not a separate engine
+
+Early scaffolding had a separate `EngineType.coreML` + iOS `CoreMLWhisperPlugin` that talked to a method channel. That's the wrong shape — whisper.cpp ships its own CoreML integration (`WHISPER_USE_COREML`) which loads a `.mlmodelc` for the encoder forward pass, uses the Apple Neural Engine, and falls back to the GGML encoder on error — all through the existing `whisper_full_*` API. Net effect: CoreML acceleration rides through the *same* `CrispASREngine` path with no engine-level fork.
+
+Lesson: resist the urge to model every hardware accelerator as a separate engine. If the underlying library already has a "try accelerator X, fall back to CPU" path, expose it as a build-time flag, not a user-visible engine switch. You save the duplicated tokenizer / audio-loader / context-management code that each engine would otherwise need.
+
+### Model format ≠ engine
+
+`ModelType.whisperCpp` is a *file-format marker* (GGML / GGUF binary loadable by whisper/CrispASR context). It's NOT coupled to a hypothetical `WhisperCppEngine`. Same file lands in `CrispASREngine.loadModel()`. When renaming or culling engine types, grep carefully — the `whisperCpp` token has two unrelated meanings.
+
 ## Process / project hygiene
 
 ### Don't narrate a rename halfway

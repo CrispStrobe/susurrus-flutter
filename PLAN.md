@@ -18,16 +18,14 @@ What's done, what's partial, and what's next — with enough file paths and cont
 
 ## 1. Engine status
 
-Four engines behind the `TranscriptionEngine` interface (`lib/engines/transcription_engine.dart`):
+Two engines behind the `TranscriptionEngine` interface (`lib/engines/transcription_engine.dart`):
 
-| Engine                  | State                                                                      |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `CrispASREngine`        | ✅ Primary. Dart FFI to `libcrispasr` / `libwhisper`. Dispatches across all 10 backends via `CrispasrSession`. |
-| `MockEngine`            | ✅ Deterministic fake responses — used for UI work and CI.                 |
-| `WhisperCppEngine`      | ⚠️ Method-channel wrapper. Redundant with CrispASR; retained for plugin-only builds. |
-| `CoreMLEngine`          | ⚠️ Same pattern, iOS-only target.                                          |
+| Engine            | State                                                                      |
+| ----------------- | -------------------------------------------------------------------------- |
+| `CrispASREngine`  | ✅ Primary. Dart FFI to `libcrispasr` / `libwhisper`. Dispatches across all 10 backends via `CrispasrSession`. |
+| `MockEngine`      | ✅ Deterministic fake responses — used for UI work and CI.                 |
 
-`EngineType.sherpaOnnx` was dropped (placeholder only).
+Earlier prototypes had separate `WhisperCppEngine` and `CoreMLEngine` values (method-channel wrappers). Dropped: whisper.cpp ships inside CrispASR, and CoreML acceleration will land as an opt-in inside libwhisper (`WHISPER_USE_COREML`) rather than a separate engine. `EngineType.sherpaOnnx` was dropped earlier for being a placeholder.
 
 ## 2. Model-family status
 
@@ -55,9 +53,9 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 | -------- | ----- | -------------------------------------------------------------------------------------------- |
 | macOS    | ✅    | None. `flutter build macos` + `scripts/bundle_macos_dylibs.sh` produces a runnable `.app`.   |
 | Linux    | ✅    | None. CI `build-linux` job bundles all `.so`'s; local build needs a Linux host.              |
-| Windows  | ⚠️    | No Flutter runner scaffold yet — `windows/` only has a single `whisper_windows.cpp` stub. Run `flutter create --platforms=windows .` + wire libcrispasr.dll bundling. |
-| Android  | ⚠️    | APK builds with Mock engine. Gradle is mixed Groovy (`app/build.gradle`) + KTS (`settings.gradle.kts`). Pick one and port the plugin registrations. Separately, `libwhisper.so` is built by `CrispASR/build-android.sh` and bundled under `android/app/src/main/jniLibs/<abi>/` — but this wiring isn't automated in CI. |
-| iOS      | ⚠️    | Xcode project regenerated; `pod install` is blocked by stale `TensorFlowLiteSwift '~> 2.13.0'` pin in `ios/Podfile`. Drop the pin or refresh the pod spec. |
+| Windows  | ⚠️    | Flutter runner scaffold generated (`windows/runner/`, `windows/flutter/`). No CI job yet; libcrispasr.dll bundling script not yet written. |
+| Android  | ⚠️    | KTS gradle only (Groovy + legacy CMakeLists removed). APK builds with Mock engine out of the box; real ASR needs `libwhisper.so` cross-built via `CrispASR/build-android.sh` and dropped into `android/app/src/main/jniLibs/<abi>/`. That wiring isn't automated in CI. |
+| iOS      | ⚠️    | Podfile rewritten to a clean minimal Flutter template. `pod install` should now succeed, but hasn't been CI-verified; the Xcode project still contains a Runner-Bridging-Header.h reference that's now a no-op. |
 
 ## 4. Feature status
 
@@ -92,25 +90,32 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 **Risk:** low. Mechanical work.
 
-### 5.2 iOS Podfile unblock
+### 5.2 iOS build verification
 
-**What:** `ios/Podfile` pins `TensorFlowLiteSwift '~> 2.13.0'` from an earlier engine placeholder. The current engine matrix doesn't use TFLite. Drop the `pod 'TensorFlowLiteSwift', '~> 2.13.0'` line and run `pod install` inside `ios/`.
+**What:** the Podfile's been rewritten to a clean minimal Flutter template; `pod install` should now succeed. Still unverified:
 
-**Risk:** the line may belong to a plugin (record? sherpa_onnx leftover?) — grep first.
+- `cd ios && pod install` on a Mac with CocoaPods installed.
+- `flutter build ios --debug --no-codesign` to confirm the Runner target still links.
+- Drop the orphan `Runner-Bridging-Header.h` reference in `ios/Runner.xcodeproj/project.pbxproj` — the header is a 1-liner now and nothing Swift-side imports it. Keeping it wired is a no-op but cleaner to remove.
 
-**Verification:** `cd ios && pod install && xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Debug -destination 'generic/platform=iOS' build`.
+**Risk:** low.
 
-### 5.3 Android Gradle cleanup
+### 5.3 Android native-lib CI wiring
 
-**What:** unify on Groovy *or* KTS. Current state has `app/build.gradle.kts` (from `flutter create`) *and* legacy `app/build.gradle`. Pick KTS (matches Flutter's 2024+ scaffolding), delete the Groovy files, port any plugin registrations (e.g. `AudioProcessingPlugin`, `WhisperCppPlugin`) into the Kotlin activity's `configureFlutterEngine`.
+**What:** Gradle is pure KTS; APK builds with the Mock engine. To ship real ASR on Android, CI needs to:
 
-**Risk:** medium. Plugin registration via `MethodChannel` needs to survive the port.
+1. Checkout CrispASR (already done by the other CI jobs).
+2. Run `CrispASR/build-android.sh --vulkan` inside the runner to cross-build `libwhisper.so` + sibling backend `.so`'s for `arm64-v8a` (and optionally `x86_64` for emulator testing).
+3. Copy the `.so`'s to `android/app/src/main/jniLibs/arm64-v8a/`.
+4. `flutter build apk --release`.
 
-**Verification:** `flutter build apk --debug` locally; then test on an emulator.
+Where: add a new `build-android-native` job to `.github/workflows/release.yml` (or extend the existing one in `ci.yml`). The KTS already packages whatever's in `jniLibs/`.
 
-### 5.4 Windows scaffold + CI
+**Risk:** medium. Android NDK cross-builds are slow (~15-30 min); may want to cache the `.so`'s keyed on `CRISPASR_REF`.
 
-**What:** the `windows/` directory only has a single `whisper_windows.cpp` stub; there's no Flutter runner project. Run `flutter create --platforms=windows .` to regenerate the scaffold, then add a `build-windows` job to `.github/workflows/ci.yml`: Windows runner + MSVC 2022 + CMake + Flutter Windows toolchain. Build libwhisper + all sibling `.dll`'s; run `flutter build windows --debug`; bundle `.dll`'s into `build/windows/x64/runner/Debug/`.
+### 5.4 Windows CI + dll bundling
+
+**What:** the Flutter runner scaffold exists (`windows/runner/`). Remaining work: add a `build-windows` CI job to `.github/workflows/ci.yml` with Windows runner + MSVC 2022 + CMake + Flutter Windows toolchain. Build libcrispasr.dll + all sibling `.dll`'s in CrispASR; run `flutter build windows --debug`; bundle `.dll`'s into `build/windows/x64/runner/Debug/` (needs a bundler script analogous to `scripts/bundle_macos_dylibs.sh`).
 
 **Risk:** medium. MSVC + ggml's SIMD headers can be fiddly; CrispASR CI already validates Windows builds, so cross-reference its config.
 
