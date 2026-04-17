@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Susurrus';
+  String get appName => 'CrisperWeaver';
 
   @override
   String get appTagline => 'Audio transcription with speaker diarization';
@@ -275,10 +275,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsVersion => 'Version';
 
   @override
-  String get settingsAboutSusurrus => 'About Susurrus';
+  String get settingsAboutCrisperWeaver => 'About CrisperWeaver';
 
   @override
-  String get settingsAboutSusurrusSubtitle =>
+  String get settingsAboutCrisperWeaverSubtitle =>
       'Author, contact, disclaimer, licenses';
 
   @override
@@ -301,7 +301,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutPrivacyText =>
-      'Susurrus processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.';
+      'CrisperWeaver processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.';
 
   @override
   String get aboutDisclaimerText =>
@@ -309,7 +309,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLicenseText =>
-      'Susurrus is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of Susurrus as a network service, you must make your source code available to its users.';
+      'CrisperWeaver is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of CrisperWeaver as a network service, you must make your source code available to its users.';
 
   @override
   String get historyTitle => 'Transcription history';

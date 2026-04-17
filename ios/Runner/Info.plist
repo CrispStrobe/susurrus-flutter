@@ -6,7 +6,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Susurrus</string>
+	<string>CrisperWeaver</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -14,7 +14,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>susurrus_flutter</string>
+	<string>crisper_weaver</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -142,20 +142,20 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.susurrus.flutter</string>
+			<string>com.crispstrobe.crisperweaver</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>susurrus</string>
+				<string>crisperweaver</string>
 			</array>
 			<key>CFBundleURLIconFile</key>
 			<string></string>
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.susurrus.flutter.audio</string>
+			<string>com.crispstrobe.crisperweaver.audio</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>susurrus-audio</string>
+				<string>crisperweaver-audio</string>
 			</array>
 		</dict>
 	</array>
@@ -165,9 +165,9 @@
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>com.susurrus.transcription</string>
+			<string>com.crispstrobe.crisperweaver.transcription</string>
 			<key>UTTypeDescription</key>
-			<string>Susurrus Transcription</string>
+			<string>CrisperWeaver Transcription</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
@@ -177,11 +177,11 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>susurrus</string>
+					<string>crisperweaver</string>
 				</array>
 				<key>public.mime-type</key>
 				<array>
-					<string>application/x-susurrus-transcription</string>
+					<string>application/x-crisperweaver-transcription</string>
 				</array>
 			</dict>
 		</dict>
@@ -310,7 +310,7 @@
 	<array>
 		<string>public.audio</string>
 		<string>public.plain-text</string>
-		<string>com.susurrus.transcription</string>
+		<string>com.crispstrobe.crisperweaver.transcription</string>
 	</array>
 
 	<!-- Spotlight Search -->
@@ -320,8 +320,8 @@
 	<!-- Handoff -->
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>com.susurrus.flutter.transcription</string>
-		<string>com.susurrus.flutter.recording</string>
+		<string>com.crispstrobe.crisperweaver.transcription</string>
+		<string>com.crispstrobe.crisperweaver.recording</string>
 	</array>
 
 	<!-- Privacy Manifest (iOS 17+) -->

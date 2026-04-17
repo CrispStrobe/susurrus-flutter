@@ -6,7 +6,7 @@ import Accelerate
 public class AudioProcessingPlugin: NSObject, FlutterPlugin {
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "com.susurrus.audio_processing", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.crispstrobe.crisperweaver.audio_processing", binaryMessenger: registrar.messenger())
         let instance = AudioProcessingPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }

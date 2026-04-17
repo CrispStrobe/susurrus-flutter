@@ -1,4 +1,4 @@
-package com.susurrus.flutter
+package com.crispstrobe.crisperweaver
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -25,7 +25,7 @@ class WhisperCppPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.susurrus.whisper_cpp")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.crispstrobe.crisperweaver.whisper_cpp")
         channel.setMethodCallHandler(this)
     }
 

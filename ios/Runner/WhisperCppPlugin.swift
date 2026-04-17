@@ -15,7 +15,7 @@ public class WhisperCppPlugin: NSObject, FlutterPlugin {
     private static var isModelLoaded = false
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "com.susurrus.whisper_cpp", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.crispstrobe.crisperweaver.whisper_cpp", binaryMessenger: registrar.messenger())
         let instance = WhisperCppPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }

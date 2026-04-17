@@ -172,7 +172,7 @@ jobject createTranscriptionResult(JNIEnv* env, const std::vector<std::string>& t
 extern "C" {
 
 JNIEXPORT jboolean JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeInitModel(JNIEnv *env, jobject thiz, jstring model_path) {
+Java_com_crisper_weaver_WhisperCppPlugin_nativeInitModel(JNIEnv *env, jobject thiz, jstring model_path) {
     std::string modelPath = jstringToStdString(env, model_path);
     LOGI("Initializing Whisper model: %s", modelPath.c_str());
 
@@ -209,7 +209,7 @@ Java_com_susurrus_flutter_WhisperCppPlugin_nativeInitModel(JNIEnv *env, jobject 
 }
 
 JNIEXPORT jobject JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeTranscribe(JNIEnv *env, jobject thiz, 
+Java_com_crisper_weaver_WhisperCppPlugin_nativeTranscribe(JNIEnv *env, jobject thiz, 
                                                            jfloatArray audio_data, jstring language) {
     std::string lang = jstringToStdString(env, language);
     std::vector<float> audioSamples = jfloatArrayToVector(env, audio_data);
@@ -316,20 +316,20 @@ Java_com_susurrus_flutter_WhisperCppPlugin_nativeTranscribe(JNIEnv *env, jobject
 }
 
 JNIEXPORT void JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeFreeModel(JNIEnv *env, jobject thiz) {
+Java_com_crisper_weaver_WhisperCppPlugin_nativeFreeModel(JNIEnv *env, jobject thiz) {
     LOGI("Freeing Whisper model");
     WhisperState::getInstance().freeContext();
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeIsModelLoaded(JNIEnv *env, jobject thiz) {
+Java_com_crisper_weaver_WhisperCppPlugin_nativeIsModelLoaded(JNIEnv *env, jobject thiz) {
     bool isLoaded = WhisperState::getInstance().isModelLoaded;
     LOGD("Model loaded status: %s", isLoaded ? "true" : "false");
     return isLoaded ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeGetModelInfo(JNIEnv *env, jobject thiz) {
+Java_com_crisper_weaver_WhisperCppPlugin_nativeGetModelInfo(JNIEnv *env, jobject thiz) {
 #ifdef WHISPER_AVAILABLE
     auto* ctx = static_cast<struct whisper_context*>(WhisperState::getInstance().getContext());
     if (!ctx) {
@@ -345,7 +345,7 @@ Java_com_susurrus_flutter_WhisperCppPlugin_nativeGetModelInfo(JNIEnv *env, jobje
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeGetVersion(JNIEnv *env, jobject thiz) {
+Java_com_crisper_weaver_WhisperCppPlugin_nativeGetVersion(JNIEnv *env, jobject thiz) {
 #ifdef WHISPER_AVAILABLE
     return env->NewStringUTF("Whisper.cpp integrated");
 #else
@@ -354,7 +354,7 @@ Java_com_susurrus_flutter_WhisperCppPlugin_nativeGetVersion(JNIEnv *env, jobject
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeSetParameters(JNIEnv *env, jobject thiz, 
+Java_com_crisper_weaver_WhisperCppPlugin_nativeSetParameters(JNIEnv *env, jobject thiz, 
                                                               jint n_threads, jfloat temperature) {
     LOGI("Setting parameters: threads=%d, temperature=%.2f", n_threads, temperature);
     
@@ -367,7 +367,7 @@ Java_com_susurrus_flutter_WhisperCppPlugin_nativeSetParameters(JNIEnv *env, jobj
 
 // Language detection function
 JNIEXPORT jstring JNICALL
-Java_com_susurrus_flutter_WhisperCppPlugin_nativeDetectLanguage(JNIEnv *env, jobject thiz, 
+Java_com_crisper_weaver_WhisperCppPlugin_nativeDetectLanguage(JNIEnv *env, jobject thiz, 
                                                                jfloatArray audio_data) {
 #ifdef WHISPER_AVAILABLE
     auto* ctx = static_cast<struct whisper_context*>(WhisperState::getInstance().getContext());

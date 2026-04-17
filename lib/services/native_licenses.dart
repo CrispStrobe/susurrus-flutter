@@ -3,7 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import 'log_service.dart';
 
-/// Register licenses for the *native* dependencies Susurrus bundles —
+/// Register licenses for the *native* dependencies CrisperWeaver bundles —
 /// `showLicensePage` only surfaces pub/Dart packages by default, so CrispASR,
 /// whisper.cpp, and the ggml runtime would otherwise be invisible.
 ///
@@ -32,7 +32,7 @@ Future<void> registerNativeLicenses() async {
       '''Whisper model weights are distributed by OpenAI under the MIT License.
 See: https://github.com/openai/whisper/blob/main/LICENSE
 
-Susurrus downloads Whisper GGML conversions hosted on HuggingFace
+CrisperWeaver downloads Whisper GGML conversions hosted on HuggingFace
 (ggerganov/whisper.cpp, cstr/whisper-ggml-quants). The weights remain under
 their original licenses; only the on-disk GGML re-packing is attributable to
 the respective HuggingFace repo maintainers.''',

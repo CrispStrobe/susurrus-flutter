@@ -1,4 +1,4 @@
-package com.susurrus.flutter
+package com.crispstrobe.crisperweaver
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine

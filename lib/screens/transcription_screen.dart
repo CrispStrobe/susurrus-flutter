@@ -91,8 +91,6 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = ref.watch(appStateProvider);
-    final transcriptionService = ref.watch(transcriptionServiceProvider);
     final l = AppLocalizations.of(context);
 
     return Scaffold(

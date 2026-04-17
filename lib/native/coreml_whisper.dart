@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 // Method channel for CoreML integration
 class CoreMLWhisper {
-  static const MethodChannel _channel = MethodChannel('com.susurrus.coreml_whisper');
+  static const MethodChannel _channel = MethodChannel('com.crispstrobe.crisperweaver.coreml_whisper');
   
   static CoreMLWhisper? _instance;
   String? _loadedModelPath;

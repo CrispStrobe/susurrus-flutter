@@ -9,7 +9,7 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
-  String get appName => 'Susurrus';
+  String get appName => 'CrisperWeaver';
 
   @override
   String get appTagline => 'Audio-Transkription mit Sprecher-Diarisierung';
@@ -276,10 +276,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsVersion => 'Version';
 
   @override
-  String get settingsAboutSusurrus => 'Über Susurrus';
+  String get settingsAboutCrisperWeaver => 'Über CrisperWeaver';
 
   @override
-  String get settingsAboutSusurrusSubtitle =>
+  String get settingsAboutCrisperWeaverSubtitle =>
       'Anbieter, Kontakt, Haftungsausschluss, Lizenzen';
 
   @override
@@ -302,7 +302,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get aboutPrivacyText =>
-      'Susurrus verarbeitet alle Audio-Daten ausschließlich lokal auf Ihrem Gerät. Weder Audio noch Transkripte oder Aufnahmen werden an Server übertragen. Modell-Downloads laden GGUF-Gewichte direkt von HuggingFace über HTTPS; darüber hinaus verlässt nichts das Gerät.';
+      'CrisperWeaver verarbeitet alle Audio-Daten ausschließlich lokal auf Ihrem Gerät. Weder Audio noch Transkripte oder Aufnahmen werden an Server übertragen. Modell-Downloads laden GGUF-Gewichte direkt von HuggingFace über HTTPS; darüber hinaus verlässt nichts das Gerät.';
 
   @override
   String get aboutDisclaimerText =>
@@ -310,7 +310,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get aboutLicenseText =>
-      'Susurrus ist freie Software und wird unter der GNU Affero General Public License v3.0 (AGPL-3.0) veröffentlicht. Sie dürfen es unter den Bedingungen dieser Lizenz weitergeben und verändern. Insbesondere gilt: Wenn Sie eine veränderte Version von Susurrus als Netzwerk-Dienst betreiben, müssen Sie den zugehörigen Quellcode Ihren Nutzer:innen zugänglich machen.';
+      'CrisperWeaver ist freie Software und wird unter der GNU Affero General Public License v3.0 (AGPL-3.0) veröffentlicht. Sie dürfen es unter den Bedingungen dieser Lizenz weitergeben und verändern. Insbesondere gilt: Wenn Sie eine veränderte Version von CrisperWeaver als Netzwerk-Dienst betreiben, müssen Sie den zugehörigen Quellcode Ihren Nutzer:innen zugänglich machen.';
 
   @override
   String get historyTitle => 'Transkriptions-Verlauf';

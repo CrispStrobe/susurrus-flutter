@@ -29,7 +29,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Susurrus records audio from the microphone so it can be transcribed locally on your Mac.</string>
+	<string>CrisperWeaver records audio from the microphone so it can be transcribed locally on your Mac.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

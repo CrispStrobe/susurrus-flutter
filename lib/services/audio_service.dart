@@ -135,7 +135,7 @@ class AudioService {
 
     // 2. Legacy method channel (iOS/macOS only).
     try {
-      const platform = MethodChannel('com.susurrus.audio_processing');
+      const platform = MethodChannel('com.crispstrobe.crisperweaver.audio_processing');
       final result = await platform.invokeMethod('convertToWav', {
         'filePath': audioFile.path,
         'sampleRate': 16000,

@@ -450,7 +450,7 @@ class ModelService {
       receiveTimeout: const Duration(minutes: 30),
       sendTimeout: const Duration(minutes: 30),
       headers: {
-        'User-Agent': 'Susurrus-Flutter/1.0.0',
+        'User-Agent': 'CrisperWeaver-Flutter/1.0.0',
       },
     );
 

@@ -1,4 +1,4 @@
-name: susurrus_flutter
+name: crisper_weaver
 description: A Flutter audio transcription app with speaker diarization using whisper.cpp and CoreML
 
 publish_to: 'none'
@@ -88,9 +88,18 @@ dev_dependencies:
   build_runner: ^2.4.7
   json_annotation: ^4.8.1
   json_serializable: ^6.7.1
+  flutter_launcher_icons: ^0.13.1
 
   # For FFI bindings (if needed for desktop)
   ffigen: ^9.0.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  macos:
+    generate: true
+  image_path: "assets/images/app_logo.png"
+  min_sdk_android: 21
 
 # Pin the Linux implementation of `record` to a version that matches the
 # current platform interface contract — the transitively-resolved 0.7.2 is

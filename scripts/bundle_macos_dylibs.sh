@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copy all CrispASR sibling dylibs into a built susurrus_flutter.app
+# Copy all CrispASR sibling dylibs into a built crisper_weaver.app
 # bundle so every backend the library was linked with is resolvable
 # at runtime. Runs from either the local dev tree or CI after
 # `flutter build macos`.
@@ -14,14 +14,14 @@
 #
 # Usage:
 #   scripts/bundle_macos_dylibs.sh [path/to/.app]
-# Default app path: build/macos/Build/Products/{Debug,Release}/susurrus_flutter.app
+# Default app path: build/macos/Build/Products/{Debug,Release}/crisper_weaver.app
 
 set -euo pipefail
 
 APP="${1:-}"
 if [[ -z "$APP" ]]; then
   for cfg in Debug Release Profile; do
-    candidate="build/macos/Build/Products/$cfg/susurrus_flutter.app"
+    candidate="build/macos/Build/Products/$cfg/crisper_weaver.app"
     if [[ -d "$candidate" ]]; then APP="$candidate"; break; fi
   done
 fi

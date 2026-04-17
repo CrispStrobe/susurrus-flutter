@@ -1,5 +1,5 @@
-// android/app/src/main/kotlin/com/susurrus/flutter/AudioProcessingPlugin.kt (COMPLETE & FIXED)
-package com.susurrus.flutter
+// android/app/src/main/kotlin/com/crisperweaver/flutter/AudioProcessingPlugin.kt (COMPLETE & FIXED)
+package com.crispstrobe.crisperweaver
 
 import android.content.Context
 import android.media.MediaCodec
@@ -23,7 +23,7 @@ class AudioProcessingPlugin : FlutterPlugin, MethodCallHandler {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.susurrus.audio_processing")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.crispstrobe.crisperweaver.audio_processing")
         channel.setMethodCallHandler(this)
         context = flutterPluginBinding.applicationContext
     }

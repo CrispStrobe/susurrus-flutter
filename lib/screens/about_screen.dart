@@ -19,7 +19,7 @@ class AboutScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.settingsAboutSusurrus)),
+      appBar: AppBar(title: Text(l.settingsAboutCrisperWeaver)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -94,7 +94,7 @@ class AboutScreen extends ConsumerWidget {
               if (!context.mounted) return;
               showLicensePage(
                 context: context,
-                applicationName: 'Susurrus',
+                applicationName: 'CrisperWeaver',
                 applicationVersion: '${info.version}+${info.buildNumber}',
                 applicationLegalese:
                     '© ${DateTime.now().year} Christian Ströbele — AGPL-3.0',
@@ -150,7 +150,7 @@ class _AppHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Susurrus',
+                      Text('CrisperWeaver',
                           style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 4),
                       Text('Version $v',

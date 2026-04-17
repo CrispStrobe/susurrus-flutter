@@ -9,7 +9,7 @@ import '../services/model_service.dart';
 
 /// Production Whisper.cpp based transcription engine
 class WhisperCppEngine implements TranscriptionEngine {
-  static const MethodChannel _channel = MethodChannel('com.susurrus.whisper_cpp');
+  static const MethodChannel _channel = MethodChannel('com.crispstrobe.crisperweaver.whisper_cpp');
   
   bool _isInitialized = false;
   bool _isProcessing = false;

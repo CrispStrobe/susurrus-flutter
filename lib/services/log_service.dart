@@ -230,7 +230,7 @@ class Log {
     }
     final stamp =
         DateTime.now().toIso8601String().replaceAll(':', '').split('.').first;
-    final file = File(p.join(logsDir.path, 'susurrus-$stamp.log'));
+    final file = File(p.join(logsDir.path, 'crisperweaver-$stamp.log'));
     await file.writeAsString(dumpAll(), encoding: utf8);
     return file.path;
   }

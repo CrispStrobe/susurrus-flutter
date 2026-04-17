@@ -27,7 +27,7 @@ import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Log.instance.i('main', 'Susurrus starting — platform=${Platform.operatingSystem}');
+  Log.instance.i('main', 'CrisperWeaver starting — platform=${Platform.operatingSystem}');
   FlutterError.onError = (details) {
     Log.instance.e(
       'flutter',
@@ -42,7 +42,7 @@ void main() async {
   await _initializeServices();
   await registerNativeLicenses();
 
-  runApp(const ProviderScope(child: SusurrusApp()));
+  runApp(const ProviderScope(child: CrisperWeaverApp()));
 }
 
 Future<void> _requestPermissions() async {
@@ -73,14 +73,14 @@ Future<void> _initializeServices() async {
   }
 }
 
-class SusurrusApp extends ConsumerStatefulWidget {
-  const SusurrusApp({super.key});
+class CrisperWeaverApp extends ConsumerStatefulWidget {
+  const CrisperWeaverApp({super.key});
 
   @override
-  ConsumerState<SusurrusApp> createState() => _SusurrusAppState();
+  ConsumerState<CrisperWeaverApp> createState() => _CrisperWeaverAppState();
 }
 
-class _SusurrusAppState extends ConsumerState<SusurrusApp> {
+class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
   @override
   void initState() {
     super.initState();
@@ -131,7 +131,7 @@ class _SusurrusAppState extends ConsumerState<SusurrusApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Susurrus',
+      title: 'CrisperWeaver',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

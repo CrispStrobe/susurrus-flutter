@@ -1,6 +1,6 @@
 class AppConstants {
   // App Information
-  static const String appName = 'Susurrus';
+  static const String appName = 'CrisperWeaver';
   static const String appDescription = 'Audio Transcription with Speaker Diarization';
   static const String appVersion = '1.0.0';
   static const String appBuildNumber = '1';
@@ -199,11 +199,11 @@ class AppConstants {
   static const String successCacheCleared = 'Cache cleared successfully';
   
   // Help URLs
-  static const String helpUrl = 'https://github.com/susurrus/flutter-app/wiki';
-  static const String documentationUrl = 'https://github.com/susurrus/flutter-app/blob/main/README.md';
-  static const String issuesUrl = 'https://github.com/susurrus/flutter-app/issues';
-  static const String privacyPolicyUrl = 'https://github.com/susurrus/flutter-app/blob/main/PRIVACY.md';
-  static const String licenseUrl = 'https://github.com/susurrus/flutter-app/blob/main/LICENSE';
+  static const String helpUrl = 'https://github.com/crisperweaver/flutter-app/wiki';
+  static const String documentationUrl = 'https://github.com/crisperweaver/flutter-app/blob/main/README.md';
+  static const String issuesUrl = 'https://github.com/crisperweaver/flutter-app/issues';
+  static const String privacyPolicyUrl = 'https://github.com/crisperweaver/flutter-app/blob/main/PRIVACY.md';
+  static const String licenseUrl = 'https://github.com/crisperweaver/flutter-app/blob/main/LICENSE';
   
   // Model Download URLs
   static const String whisperCppModelsUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/';
@@ -246,11 +246,11 @@ class AppConstants {
   static const bool isReleaseMode = bool.fromEnvironment('RELEASE', defaultValue: true);
   
   // Platform-specific Constants
-  static const String iosAppId = 'com.susurrus.flutter';
-  static const String androidPackageName = 'com.susurrus.flutter';
-  static const String windowsAppId = 'Susurrus.Flutter';
-  static const String macosAppId = 'com.susurrus.flutter';
-  static const String linuxAppId = 'com.susurrus.flutter';
+  static const String iosAppId = 'com.crispstrobe.crisperweaver';
+  static const String androidPackageName = 'com.crispstrobe.crisperweaver';
+  static const String windowsAppId = 'CrisperWeaver.Flutter';
+  static const String macosAppId = 'com.crispstrobe.crisperweaver';
+  static const String linuxAppId = 'com.crispstrobe.crisperweaver';
   
   // Minimum Platform Versions
   static const String minIosVersion = '13.0';
@@ -280,7 +280,7 @@ class AppConstants {
   
   // Update Check
   static const Duration updateCheckInterval = Duration(days: 7);
-  static const String updateCheckUrl = 'https://api.github.com/repos/susurrus/flutter-app/releases/latest';
+  static const String updateCheckUrl = 'https://api.github.com/repos/crisperweaver/flutter-app/releases/latest';
   
   // Utility Methods
   static String getModelFileName(String modelName) {

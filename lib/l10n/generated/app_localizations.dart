@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Susurrus'**
+  /// **'CrisperWeaver'**
   String get appName;
 
   /// No description provided for @appTagline.
@@ -608,17 +608,17 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get settingsVersion;
 
-  /// No description provided for @settingsAboutSusurrus.
+  /// No description provided for @settingsAboutCrisperWeaver.
   ///
   /// In en, this message translates to:
-  /// **'About Susurrus'**
-  String get settingsAboutSusurrus;
+  /// **'About CrisperWeaver'**
+  String get settingsAboutCrisperWeaver;
 
-  /// No description provided for @settingsAboutSusurrusSubtitle.
+  /// No description provided for @settingsAboutCrisperWeaverSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Author, contact, disclaimer, licenses'**
-  String get settingsAboutSusurrusSubtitle;
+  String get settingsAboutCrisperWeaverSubtitle;
 
   /// No description provided for @aboutServiceProvider.
   ///
@@ -659,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutPrivacyText.
   ///
   /// In en, this message translates to:
-  /// **'Susurrus processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.'**
+  /// **'CrisperWeaver processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.'**
   String get aboutPrivacyText;
 
   /// No description provided for @aboutDisclaimerText.
@@ -671,7 +671,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLicenseText.
   ///
   /// In en, this message translates to:
-  /// **'Susurrus is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of Susurrus as a network service, you must make your source code available to its users.'**
+  /// **'CrisperWeaver is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of CrisperWeaver as a network service, you must make your source code available to its users.'**
   String get aboutLicenseText;
 
   /// No description provided for @historyTitle.

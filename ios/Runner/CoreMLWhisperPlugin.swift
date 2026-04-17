@@ -12,7 +12,7 @@ public class CoreMLWhisperPlugin: NSObject, FlutterPlugin {
     private var tokenizer: Tokenizer?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "com.susurrus.coreml_whisper", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.crispstrobe.crisperweaver.coreml_whisper", binaryMessenger: registrar.messenger())
         let instance = CoreMLWhisperPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }

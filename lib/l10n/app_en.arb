@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
 
-  "appName": "Susurrus",
+  "appName": "CrisperWeaver",
   "appTagline": "Audio transcription with speaker diarization",
 
   "menuHistory": "History",
@@ -98,8 +98,8 @@
   "settingsSystemInfo": "System information",
   "settingsAbout": "About",
   "settingsVersion": "Version",
-  "settingsAboutSusurrus": "About Susurrus",
-  "settingsAboutSusurrusSubtitle": "Author, contact, disclaimer, licenses",
+  "settingsAboutCrisperWeaver": "About CrisperWeaver",
+  "settingsAboutCrisperWeaverSubtitle": "Author, contact, disclaimer, licenses",
 
   "aboutServiceProvider": "Service Provider",
   "aboutContact": "Contact",
@@ -107,9 +107,9 @@
   "aboutDisclaimer": "Disclaimer",
   "aboutLicense": "License",
   "aboutOpenSourceLicenses": "Open-source licenses",
-  "aboutPrivacyText": "Susurrus processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.",
+  "aboutPrivacyText": "CrisperWeaver processes all audio locally on your device. No audio data, transcripts, or recordings are sent to any server. Model downloads fetch GGUF weights directly from HuggingFace over HTTPS; nothing else leaves the device.",
   "aboutDisclaimerText": "This software is provided \"as is\", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors be liable for any claim, damages or other liability arising from, out of or in connection with the software or its use.",
-  "aboutLicenseText": "Susurrus is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of Susurrus as a network service, you must make your source code available to its users.",
+  "aboutLicenseText": "CrisperWeaver is free software, licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may redistribute and modify it under the terms of that license. In particular, if you run a modified version of CrisperWeaver as a network service, you must make your source code available to its users.",
 
   "historyTitle": "Transcription history",
   "historyEmpty": "No transcriptions yet",

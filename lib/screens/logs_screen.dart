@@ -196,7 +196,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
         break;
       case 'share':
         final path = await Log.instance.exportToFile();
-        await Share.shareXFiles([XFile(path)], subject: 'Susurrus logs');
+        await Share.shareXFiles([XFile(path)], subject: 'CrisperWeaver logs');
         break;
       case 'clear':
         await Log.instance.clear();

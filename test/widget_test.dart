@@ -1,16 +1,16 @@
-// Basic smoke tests for the Susurrus Flutter app.
+// Basic smoke tests for the CrisperWeaver Flutter app.
 //
-// These intentionally avoid pumping the full `SusurrusApp` — that triggers
+// These intentionally avoid pumping the full `CrisperWeaverApp` — that triggers
 // platform-channel calls, file IO, and FFI which cannot run under
 // `flutter test`. Instead we cover pure-Dart building blocks.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:susurrus_flutter/engines/engine_factory.dart';
-import 'package:susurrus_flutter/engines/transcription_engine.dart';
-import 'package:susurrus_flutter/services/log_service.dart';
-import 'package:susurrus_flutter/theme/app_theme.dart';
+import 'package:crisper_weaver/engines/engine_factory.dart';
+import 'package:crisper_weaver/engines/transcription_engine.dart';
+import 'package:crisper_weaver/services/log_service.dart';
+import 'package:crisper_weaver/theme/app_theme.dart';
 
 void main() {
   test('MockEngine initializes and returns models', () async {

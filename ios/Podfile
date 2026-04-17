@@ -1,4 +1,4 @@
-# ios/Podfile - Complete Configuration for Susurrus
+# ios/Podfile - Complete Configuration for CrisperWeaver
 # Minimum iOS version for modern CoreML and Metal support
 platform :ios, '13.0'
 

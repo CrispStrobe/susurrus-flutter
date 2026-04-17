@@ -12,7 +12,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
     
     <application
-        android:label="Susurrus"
+        android:label="CrisperWeaver"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true"
@@ -49,14 +49,14 @@
                 <data android:mimeType="audio/*" />
             </intent-filter>
 
-            <!-- Share-to-Susurrus: receive a single audio file from the share sheet -->
+            <!-- Share-to-CrisperWeaver: receive a single audio file from the share sheet -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="audio/*" />
             </intent-filter>
 
-            <!-- Share-to-Susurrus: receive multiple audio files -->
+            <!-- Share-to-CrisperWeaver: receive multiple audio files -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Flutter Audio Transcription App Build Script
-# This script sets up and builds the Susurrus Flutter app
+# This script sets up and builds the CrisperWeaver Flutter app
 
 set -e
 
-echo "Building Susurrus Flutter Audio Transcription App..."
+echo "Building CrisperWeaver Flutter Audio Transcription App..."
 
 # Check if Flutter is installed
 if ! command -v flutter &> /dev/null; then

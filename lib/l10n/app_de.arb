@@ -1,7 +1,7 @@
 {
   "@@locale": "de",
 
-  "appName": "Susurrus",
+  "appName": "CrisperWeaver",
   "appTagline": "Audio-Transkription mit Sprecher-Diarisierung",
 
   "menuHistory": "Verlauf",
@@ -98,8 +98,8 @@
   "settingsSystemInfo": "Systeminformation",
   "settingsAbout": "Über",
   "settingsVersion": "Version",
-  "settingsAboutSusurrus": "Über Susurrus",
-  "settingsAboutSusurrusSubtitle": "Anbieter, Kontakt, Haftungsausschluss, Lizenzen",
+  "settingsAboutCrisperWeaver": "Über CrisperWeaver",
+  "settingsAboutCrisperWeaverSubtitle": "Anbieter, Kontakt, Haftungsausschluss, Lizenzen",
 
   "aboutServiceProvider": "Anbieter",
   "aboutContact": "Kontakt",
@@ -107,9 +107,9 @@
   "aboutDisclaimer": "Haftungsausschluss",
   "aboutLicense": "Lizenz",
   "aboutOpenSourceLicenses": "Open-Source-Lizenzen",
-  "aboutPrivacyText": "Susurrus verarbeitet alle Audio-Daten ausschließlich lokal auf Ihrem Gerät. Weder Audio noch Transkripte oder Aufnahmen werden an Server übertragen. Modell-Downloads laden GGUF-Gewichte direkt von HuggingFace über HTTPS; darüber hinaus verlässt nichts das Gerät.",
+  "aboutPrivacyText": "CrisperWeaver verarbeitet alle Audio-Daten ausschließlich lokal auf Ihrem Gerät. Weder Audio noch Transkripte oder Aufnahmen werden an Server übertragen. Modell-Downloads laden GGUF-Gewichte direkt von HuggingFace über HTTPS; darüber hinaus verlässt nichts das Gerät.",
   "aboutDisclaimerText": "Diese Software wird „wie besehen“ zur Verfügung gestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung, insbesondere der Marktgängigkeit, Eignung für einen bestimmten Zweck oder der Nichtverletzung von Rechten Dritter. In keinem Fall haften die Autor:innen für Ansprüche, Schäden oder sonstige Haftungen, die sich aus oder im Zusammenhang mit der Software oder deren Nutzung ergeben.",
-  "aboutLicenseText": "Susurrus ist freie Software und wird unter der GNU Affero General Public License v3.0 (AGPL-3.0) veröffentlicht. Sie dürfen es unter den Bedingungen dieser Lizenz weitergeben und verändern. Insbesondere gilt: Wenn Sie eine veränderte Version von Susurrus als Netzwerk-Dienst betreiben, müssen Sie den zugehörigen Quellcode Ihren Nutzer:innen zugänglich machen.",
+  "aboutLicenseText": "CrisperWeaver ist freie Software und wird unter der GNU Affero General Public License v3.0 (AGPL-3.0) veröffentlicht. Sie dürfen es unter den Bedingungen dieser Lizenz weitergeben und verändern. Insbesondere gilt: Wenn Sie eine veränderte Version von CrisperWeaver als Netzwerk-Dienst betreiben, müssen Sie den zugehörigen Quellcode Ihren Nutzer:innen zugänglich machen.",
 
   "historyTitle": "Transkriptions-Verlauf",
   "historyEmpty": "Noch keine Transkriptionen",

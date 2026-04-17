@@ -365,7 +365,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         ListTile(
-          title: const Text('About Susurrus'),
+          title: const Text('About CrisperWeaver'),
           subtitle: const Text('Author, contact, disclaimer, licenses'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/about'),
@@ -537,7 +537,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Privacy Policy'),
         content: const SingleChildScrollView(
           child: Text(
-            'Susurrus processes all audio locally on your device. '
+            'CrisperWeaver processes all audio locally on your device. '
             'No audio data is sent to external servers. '
             'Transcriptions are stored locally and can be deleted at any time.',
           ),

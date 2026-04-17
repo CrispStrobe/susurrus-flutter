@@ -1,7 +1,7 @@
 #!/bin/bash
 # build_all.sh
 
-echo "Building Susurrus for all platforms..."
+echo "Building CrisperWeaver for all platforms..."
 
 # Check if whisper.cpp exists
 if [ ! -d "android/app/src/main/cpp/whisper.cpp" ]; then

@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.susurrus.flutter"
+    namespace "com.crispstrobe.crisperweaver"
     compileSdk 34
     ndkVersion "25.1.8937393"
 
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.susurrus.flutter"
+        applicationId "com.crispstrobe.crisperweaver"
         minSdkVersion flutter.minSdkVersion
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
@@ -61,7 +61,7 @@ android {
 
         // Required for audio processing
         manifestPlaceholders = [
-            'appAuthRedirectScheme': 'com.susurrus.flutter'
+            'appAuthRedirectScheme': 'com.crispstrobe.crisperweaver'
         ]
     }
 

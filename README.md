@@ -1,6 +1,6 @@
-# Susurrus — on-device speech recognition
+# CrisperWeaver — on-device speech recognition
 
-A Flutter app for fully-offline audio transcription. Bring an audio file, paste a URL, or record with the mic; Susurrus runs Whisper (and, via [CrispASR][crispasr], a growing family of other open-weight ASR models) locally with GGML/ggml quantization — no audio leaves the device.
+A Flutter app for fully-offline audio transcription. Bring an audio file, paste a URL, or record with the mic; CrisperWeaver runs Whisper (and, via [CrispASR][crispasr], a growing family of other open-weight ASR models) locally with GGML/ggml quantization — no audio leaves the device.
 
 [crispasr]: https://github.com/CrispStrobe/CrispASR
 
@@ -78,7 +78,7 @@ dispatcher is shared with the Python (`crispasr.Session`) and Rust
    `libwhisper.dylib` + `libcanary.dylib` into the app bundle's
    `Contents/Frameworks/`.
 
-Susurrus picks up new backends automatically through
+CrisperWeaver picks up new backends automatically through
 `CrispasrSession.availableBackends()` — no Dart changes needed. If the
 user picks a backend the bundled libwhisper wasn't linked with, the load
 error names exactly which backends ARE available and what to do.
@@ -108,7 +108,7 @@ required for parity with mobile.
 ## Repo layout
 
 ```
-susurrus-flutter/             ← this repo
+crisperweaver-flutter/             ← this repo
   lib/
     engines/                  ← TranscriptionEngine + impls (CrispASR, Mock, ...)
     screens/                  ← transcription, history, models, logs, about, settings
@@ -137,9 +137,9 @@ CrispASR/                     ← sibling checkout required at build time
 ### Clone both repos side-by-side
 
 ```bash
-mkdir susurrus && cd susurrus
+mkdir crisperweaver && cd crisperweaver
 git clone https://github.com/CrispStrobe/CrispASR.git
-git clone https://github.com/<you>/susurrus-flutter.git
+git clone https://github.com/<you>/crisperweaver-flutter.git
 ```
 
 ### Build libwhisper (macOS / Linux)
@@ -155,7 +155,7 @@ cmake --build build --parallel --target whisper
 ### Run the Flutter app
 
 ```bash
-cd ../susurrus-flutter
+cd ../crisperweaver-flutter
 flutter pub get
 flutter run -d macos          # or: flutter run -d linux, flutter run -d android, ...
 ```
@@ -164,7 +164,7 @@ flutter run -d macos          # or: flutter run -d linux, flutter run -d android
 
 ```bash
 flutter build macos --release
-APP=build/macos/Build/Products/Release/susurrus_flutter.app
+APP=build/macos/Build/Products/Release/crisper_weaver.app
 cp ../CrispASR/build/src/libwhisper.*.dylib "$APP/Contents/Frameworks/libwhisper.dylib"
 codesign --force --deep --sign - "$APP"
 ```
@@ -200,6 +200,6 @@ Both assume `CrispStrobe/CrispASR` on `main` as the sibling repo — override vi
 
 ## License & author
 
-Susurrus is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0). Full text in [`LICENSE`](LICENSE); see the `About` screen inside the app for an in-product summary plus the auto-aggregated third-party license list (via `showLicensePage`).
+CrisperWeaver is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0). Full text in [`LICENSE`](LICENSE); see the `About` screen inside the app for an in-product summary plus the auto-aggregated third-party license list (via `showLicensePage`).
 
 Copyright © Christian Ströbele · Stuttgart, Germany.

@@ -2,9 +2,9 @@
 
 This document enumerates what `package:crispasr` (at
 `../CrispASR/flutter/crispasr/`) would need to expose through Dart FFI so
-Susurrus can surface the matching feature in the UI. Until these land
+CrisperWeaver can surface the matching feature in the UI. Until these land
 upstream, the status matrix in the README will have ⚠️ / ❌ entries
-regardless of how much work we do in `susurrus-flutter`.
+regardless of how much work we do in `crisperweaver-flutter`.
 
 ## What the Dart package exposes today
 
@@ -137,9 +137,9 @@ doing anything.
    `CrispASR.streaming()`, `CrispASR.diarize()`, `CrispASR.detectLanguage()`,
    `CrispASR.vad()` constructors/methods. Keep existing `transcribePcm`
    behaviour byte-identical for backward compat.
-3. Susurrus-side: add `CrispASRStreamingEngine`, upgrade
+3. CrisperWeaver-side: add `CrispASRStreamingEngine`, upgrade
    `DiarizationService` to call `CrispASR.diarize()` when available, feed
    VAD spans into the transcribe loop for memory capping.
 
-No Susurrus-side shortcut I know of; the "upgrade CrispASR Dart first"
+No CrisperWeaver-side shortcut I know of; the "upgrade CrispASR Dart first"
 gate is real.
