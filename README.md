@@ -46,14 +46,19 @@ the backend's static/shared library for its context to be reachable.
 | -------------------- | :------: | :-------------------------------------------: | ------------------------------------------ |
 | Whisper (tiny → large-v3 + quants) | ✅ | ✅                                    | Default; full features (word-ts, lang-detect, streaming, VAD) |
 | Parakeet (NVIDIA TDT)| ✅       | ✅ via `CrispasrSession` (macOS verified)     | Fast English ASR, native word timestamps   |
-| Canary (NVIDIA)      | ✅       | ⚠️ Add `target_link_libraries(whisper PUBLIC canary)` + re-run `cmake --build build` | Speech translation (X↔en) |
-| Cohere Transcribe    | ✅       | ⚠️ Same one-line CMake change                 | High-accuracy Conformer decoder            |
-| Voxtral Mini 3B      | ✅       | ⚠️ Same                                       | Speech translation, LLM-grade              |
-| Voxtral Mini 4B      | ✅       | ⚠️ Same                                       | Realtime variant                           |
-| Qwen3-ASR            | ✅       | ⚠️ Same                                       | 30+ langs incl. Chinese dialects           |
-| Granite Speech (IBM) | ✅       | ⚠️ Same                                       | Instruction-tuned speech model             |
-| FastConformer-CTC    | ✅       | ⚠️ Same                                       | Low-latency CTC backbone                   |
-| Wav2Vec2             | ✅       | ⚠️ Same                                       | Self-supervised speech                     |
+| Canary (NVIDIA)      | ✅       | ✅ via `CrispasrSession`                      | Speech translation (X↔en); defaults en→en  |
+| Qwen3-ASR            | ✅       | ✅ via `CrispasrSession`                      | 30+ langs incl. Chinese dialects           |
+| Cohere Transcribe    | ✅       | ✅ via `CrispasrSession`                      | High-accuracy Conformer decoder            |
+| Granite Speech (IBM) | ✅       | ✅ via `CrispasrSession`                      | Instruction-tuned speech model             |
+| Voxtral Mini 3B      | ✅       | ⚠️ LLM-style API — dispatch stub pending      | Speech translation                         |
+| Voxtral Mini 4B      | ✅       | ⚠️ LLM-style API — dispatch stub pending      | Realtime variant                           |
+| FastConformer-CTC    | ✅       | ⚠️ CTC-align integration pending              | Low-latency CTC backbone                   |
+| Wav2Vec2             | ✅       | ⚠️ CTC-align integration pending              | Self-supervised                            |
+
+6 of 10 backends runtime-ready today. `CrispasrSession.availableBackends()`
+reports them live at startup. Remaining four are LLM-style (Voxtral family)
+or CTC-only (FastConformer/Wav2Vec2) — different transcribe shapes that
+need a bit more than one-line wrapper each.
 
 ### Adding a new backend at runtime — three-step recipe
 
