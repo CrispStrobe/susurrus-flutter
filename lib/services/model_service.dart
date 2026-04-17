@@ -138,6 +138,15 @@ class ModelService {
       checksum: 'ad82bf6a9043ceed055076d0fd39f5f186ff8062',
       description: 'Latest large model with enhanced performance (~1.5 GB)',
     ),
+    'large-v3-turbo': ModelDefinition(
+      name: 'large-v3-turbo',
+      displayName: 'Whisper Large v3 Turbo',
+      fileName: 'ggml-large-v3-turbo.bin',
+      url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin',
+      sizeBytes: 1550 * 1024 * 1024,
+      checksum: '',
+      description: 'Faster large-v3 variant — ~1.5 GB',
+    ),
 
     // ----- Quantized variants (cstr mirrors) -----
     // These are rough size estimates. Checksums are intentionally empty —
@@ -192,6 +201,26 @@ class ModelService {
       description: '5-bit quantized large-v3 — ~1.1 GB',
       quantization: 'q5_0',
     ),
+    'large-v3-q4_0': ModelDefinition(
+      name: 'large-v3-q4_0',
+      displayName: 'Whisper Large v3 (q4_0)',
+      fileName: 'ggml-large-v3-q4_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q4_0.bin',
+      sizeBytes: 880 * 1024 * 1024,
+      checksum: '',
+      description: '4-bit quantized large-v3 — ~880 MB',
+      quantization: 'q4_0',
+    ),
+    'large-v3-q2_k': ModelDefinition(
+      name: 'large-v3-q2_k',
+      displayName: 'Whisper Large v3 (q2_k)',
+      fileName: 'ggml-large-v3-q2_k.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q2_k.bin',
+      sizeBytes: 500 * 1024 * 1024,
+      checksum: '',
+      description: '2-bit quantized large-v3 — ~500 MB',
+      quantization: 'q2_k',
+    ),
     'base-q4_0': ModelDefinition(
       name: 'base-q4_0',
       displayName: 'Whisper Base (q4_0)',
@@ -210,16 +239,6 @@ class ModelService {
       sizeBytes: 150 * 1024 * 1024,
       checksum: '',
       description: '4-bit quantized small — ~150 MB',
-      quantization: 'q4_0',
-    ),
-    'large-v3-q4_0': ModelDefinition(
-      name: 'large-v3-q4_0',
-      displayName: 'Whisper Large v3 (q4_0)',
-      fileName: 'ggml-large-v3-q4_0.bin',
-      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q4_0.bin',
-      sizeBytes: 880 * 1024 * 1024,
-      checksum: '',
-      description: '4-bit quantized large-v3 — ~880 MB',
       quantization: 'q4_0',
     ),
     'base-q8_0': ModelDefinition(
@@ -241,6 +260,15 @@ class ModelService {
       checksum: '',
       description: '8-bit quantized large-v3 — ~1.65 GB',
       quantization: 'q8_0',
+    ),
+    'large-v3-turbo-german': ModelDefinition(
+      name: 'large-v3-turbo-german',
+      displayName: 'Whisper Large v3 Turbo (German)',
+      fileName: 'ggml-large-v3-turbo-german.bin',
+      url: 'https://huggingface.co/cstr/whisper-large-v3-turbo-german-ggml/resolve/main/ggml-model.bin',
+      sizeBytes: 1550 * 1024 * 1024,
+      checksum: '',
+      description: 'Fine-tuned German turbo model — ~1.5 GB',
     ),
   };
 
@@ -357,6 +385,28 @@ class ModelService {
       description: 'Self-supervised (facebook/wav2vec2) — ~100 MB',
       quantization: 'q4_k',
       backend: 'wav2vec2',
+    ),
+    'qwen2-audio-7b-q4_k': ModelDefinition(
+      name: 'qwen2-audio-7b-q4_k',
+      displayName: 'Qwen2-Audio 7B (q4_k)',
+      fileName: 'qwen2-audio-7b-q4_k.gguf',
+      url: '$cstrCrispBaseUrl/qwen2-audio-7b-q4_k.gguf',
+      sizeBytes: 4500 * 1024 * 1024,
+      checksum: '',
+      description: 'Large multilingual audio-LLM — ~4.5 GB',
+      quantization: 'q4_k',
+      backend: 'qwen2-audio',
+    ),
+    'canary-1b-v2-f16': ModelDefinition(
+      name: 'canary-1b-v2-f16',
+      displayName: 'Canary 1B v2 (f16)',
+      fileName: 'canary-1b-v2-f16.gguf',
+      url: '$cstrCrispBaseUrl/canary-1b-v2-f16.gguf',
+      sizeBytes: 2000 * 1024 * 1024,
+      checksum: '',
+      description: 'High-precision Canary 1B — ~2.0 GB',
+      quantization: 'f16',
+      backend: 'canary',
     ),
   };
 

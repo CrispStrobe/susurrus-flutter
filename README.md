@@ -52,16 +52,15 @@ the backend's static/shared library for its context to be reachable.
 | Granite Speech (IBM) | ✅       | ✅ via `CrispasrSession`                      | Instruction-tuned speech model             |
 | FastConformer-CTC    | ✅       | ✅ via `CrispasrSession`                      | Low-latency CTC backbone                   |
 | Canary-CTC           | ✅       | ✅ via `CrispasrSession`                      | Same canary_ctc_* pipeline under a CTC GGUF |
-| Voxtral Mini 3B      | ✅       | ⚠️ Generation loop pending — `voxtral_run_llm_kv` + sampling in wrapper | Speech translation |
-| Voxtral Mini 4B      | ✅       | ⚠️ Same generation-loop work                  | Realtime variant                           |
-| Wav2Vec2             | ✅       | ⚠️ Genuinely blocked: only `wav2vec2_load` is public — upstream needs to promote encode/CTC internals | Self-supervised |
+| Voxtral Mini 3B      | ✅       | ✅ via `CrispasrSession`                      | Speech translation; shared VoxtralFamilyOps generation loop |
+| Voxtral Mini 4B      | ✅       | ✅ via `CrispasrSession`                      | Realtime variant, same generation loop     |
+| Wav2Vec2             | ✅       | ✅ via `CrispasrSession`                      | Self-supervised; public C++ API sufficed after all |
 
-**8 of 10 backends runtime-ready today** via `CrispasrSession`.
-`CrispasrSession.availableBackends()` reports them live at startup.
-Voxtral family needs ~100 lines of generation loop in the helpers
-(tokenize prompt → mel → encode → kv-init → run_llm_kv + sampling loop);
-doable in the wrapper, not upstream. Wav2Vec2 is the only one that
-really needs upstream C work.
+**All 10 backends runtime-ready today** via `CrispasrSession`.
+`CrispasrSession.availableBackends()` reports live at startup which of
+them the bundled `libcrispasr` was compiled with. The same unified
+dispatcher is shared with the Python (`crispasr.Session`) and Rust
+(`crispasr::Session`) wrappers — one C-ABI, three languages.
 
 ### Adding a new backend at runtime — three-step recipe
 

@@ -124,7 +124,7 @@ class CoreMLEngine implements TranscriptionEngine {
   }
 
   @override
-  Future<bool> loadModel(String modelId, {Function(double progress)? onProgress}) async {
+  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress}) async {
     if (!_isInitialized || _coreMLWhisper == null) {
       throw EngineInitializationException(
         'Engine not initialized',
@@ -179,8 +179,8 @@ class CoreMLEngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
-    Function(TranscriptionSegment segment)? onSegment,
-    Function(double progress)? onProgress,
+    void Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
   }) async {
     if (!_isInitialized || _coreMLWhisper == null) {
       throw EngineInitializationException(

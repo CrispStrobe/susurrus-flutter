@@ -17,12 +17,12 @@ import '../services/model_service.dart';
 /// abstraction.
 class CrispASREngine implements TranscriptionEngine {
   crispasr.CrispASR? _model;
+  crispasr.CrispasrSession? _session;
   bool _isInitialized = false;
   bool _isProcessing = false;
   bool _cancelRequested = false;
   String? _currentModelId;
   String? _currentModelPath;
-  String? _libPath;
   Map<String, dynamic> _config = {};
   ModelService? _modelService;
 
@@ -33,10 +33,10 @@ class CrispASREngine implements TranscriptionEngine {
   String get engineName => 'CrispASR (ggml)';
 
   @override
-  String get version => '0.1.0';
+  String get version => '0.4.0';
 
   @override
-  bool get supportsStreaming => _model?.supportsStreaming ?? false;
+  bool get supportsStreaming => _model?.supportsStreaming ?? _session != null;
 
   @override
   bool get supportsLanguageDetection => true;
@@ -77,11 +77,10 @@ class CrispASREngine implements TranscriptionEngine {
   Future<bool> initialize({Map<String, dynamic>? config}) async {
     try {
       _config = Map<String, dynamic>.from(config ?? const {});
-      _libPath = _config['libPath'] as String? ?? _autoDetectLibPath();
       _modelService = ModelService();
       await _modelService!.initialize();
       _isInitialized = true;
-      Log.instance.i('crispasr', 'Initialized (libPath=${_libPath ?? "platform-default"})');
+      Log.instance.i('crispasr', 'Initialized (lib=${crispasr.CrispASR.defaultLibName()})');
       return true;
     } catch (e, st) {
       Log.instance.e('crispasr', 'Initialize failed', error: e, stack: st);
@@ -91,44 +90,6 @@ class CrispASREngine implements TranscriptionEngine {
         e,
       );
     }
-  }
-
-  /// Check a handful of well-known dylib/framework locations so the engine
-  /// works out-of-the-box during macOS/Linux dev without the user having to
-  /// set `libPath` explicitly.
-  String? _autoDetectLibPath() {
-    final candidates = <String>[];
-    if (Platform.isMacOS) {
-      final exeDir = File(Platform.resolvedExecutable).parent.path;
-      candidates.addAll([
-        '$exeDir/../Frameworks/libwhisper.dylib',
-        '$exeDir/../Resources/libwhisper.dylib',
-        '${Platform.environment['HOME']}/code/CrispASR/build/src/libwhisper.dylib',
-        '/usr/local/lib/libwhisper.dylib',
-      ]);
-    } else if (Platform.isLinux) {
-      final exeDir = File(Platform.resolvedExecutable).parent.path;
-      candidates.addAll([
-        // Flutter bundles native libs under `bundle/lib/` next to the binary.
-        '$exeDir/lib/libwhisper.so',
-        '$exeDir/libwhisper.so',
-        '${Platform.environment['HOME']}/code/CrispASR/build/src/libwhisper.so',
-        '/usr/local/lib/libwhisper.so',
-      ]);
-    } else if (Platform.isWindows) {
-      final exeDir = File(Platform.resolvedExecutable).parent.path;
-      candidates.addAll([
-        '$exeDir\\whisper.dll',
-        '${Platform.environment['USERPROFILE']}\\code\\CrispASR\\build\\src\\whisper.dll',
-      ]);
-    }
-    for (final path in candidates) {
-      if (File(path).existsSync()) {
-        Log.instance.d('crispasr', 'Found libwhisper at $path');
-        return path;
-      }
-    }
-    return null;
   }
 
   @override
@@ -161,7 +122,7 @@ class CrispASREngine implements TranscriptionEngine {
               metadata: {
                 'framework': 'crispasr',
                 'runtime': 'ggml',
-                'backend': 'whisper',
+                'backend': m.backend,
               },
             ))
         .toList();
@@ -178,31 +139,30 @@ class CrispASREngine implements TranscriptionEngine {
         'crispasr',
       );
     }
-    if (_currentModelId == modelId && _model != null) {
+    if (_currentModelId == modelId && (_model != null || _session != null)) {
       onProgress?.call(1.0);
       return true;
     }
 
-    // As of CrispASR 0.4.0 libwhisper can dispatch to any backend it was
-    // linked against (see `CrispasrSession.availableBackends`). We still
-    // throw a specific error when the model's backend isn't in that list,
-    // so the UI can explain that libwhisper needs to be rebuilt with that
-    // backend for runtime support (download has already succeeded).
     final def = _modelService!.lookupDefinition(modelId);
-    if (def != null) {
-      final available = crispasr.CrispasrSession.availableBackends(
-        libPath: _libPath,
+    if (def == null) {
+      throw ModelLoadException(
+        'Model definition not found for $modelId',
+        engineId,
+        modelId,
       );
-      if (!available.contains(def.backend)) {
-        throw ModelLoadException(
-          'Model uses the ${def.backend} backend. The bundled libwhisper '
-          'was built with {${available.join(", ")}}. Rebuild CrispASR '
-          'with the ${def.backend} backend linked in — see '
-          'src/CMakeLists.txt "Dart FFI multi-backend linkage" section.',
-          engineId,
-          modelId,
-        );
-      }
+    }
+
+    // Check if the backend is available in the bundled dylib.
+    final available = crispasr.CrispasrSession.availableBackends();
+    if (!available.contains(def.backend)) {
+      throw ModelLoadException(
+        'Model uses the ${def.backend} backend. The bundled libwhisper '
+        'was built with {${available.join(", ")}}. Rebuild CrispASR '
+        'with the ${def.backend} backend linked in.',
+        engineId,
+        modelId,
+      );
     }
 
     onProgress?.call(0.05);
@@ -227,13 +187,16 @@ class CrispASREngine implements TranscriptionEngine {
     onProgress?.call(0.4);
 
     // Free previous model before loading a new one.
-    _model?.dispose();
-    _model = null;
+    await unloadModel();
 
     final loadStart = DateTime.now();
     try {
-      Log.instance.d('crispasr', 'Loading model $modelId from $modelPath');
-      _model = crispasr.CrispASR(modelPath, libPath: _libPath);
+      Log.instance.d('crispasr', 'Loading model $modelId (backend=${def.backend}) from $modelPath');
+      if (def.backend == 'whisper') {
+        _model = crispasr.CrispASR(modelPath);
+      } else {
+        _session = crispasr.CrispasrSession.open(modelPath, backend: def.backend);
+      }
       _currentModelId = modelId;
       _currentModelPath = modelPath;
       onProgress?.call(1.0);
@@ -242,6 +205,7 @@ class CrispASREngine implements TranscriptionEngine {
       return true;
     } catch (e, st) {
       _model = null;
+      _session = null;
       _currentModelId = null;
       _currentModelPath = null;
       Log.instance.e('crispasr', 'Model load failed for $modelId', error: e, stack: st);
@@ -258,6 +222,8 @@ class CrispASREngine implements TranscriptionEngine {
   Future<void> unloadModel() async {
     _model?.dispose();
     _model = null;
+    _session?.close();
+    _session = null;
     _currentModelId = null;
     _currentModelPath = null;
   }
@@ -267,7 +233,7 @@ class CrispASREngine implements TranscriptionEngine {
   /// is from the pre-0.2.0 era (or the detection fails internally) — the
   /// caller should treat "null" as "keep whatever language was configured".
   Future<String?> detectLanguage(Float32List audio) async {
-    if (_model == null) return null;
+    if (_model == null) return null; // Only whisper class supports LID currently
     if (!_model!.supportsExtended) return null;
     final det = _model!.detectLanguage(audio);
     if (!det.ok) {
@@ -295,7 +261,7 @@ class CrispASREngine implements TranscriptionEngine {
         'crispasr',
       );
     }
-    if (_model == null) {
+    if (_model == null && _session == null) {
       throw const ModelLoadException(
         'No model loaded — call loadModel() first',
         'crispasr',
@@ -315,53 +281,23 @@ class CrispASREngine implements TranscriptionEngine {
     onProgress?.call(0.05);
 
     try {
-      // CrispASR native call is synchronous and CPU-bound. Running it directly
-      // blocks the UI thread; for a better UX use `Isolate.run` when available.
-      final nativeSegments = await _runTranscription(
-        audioData,
-        language: language,
-        wordTimestamps: enableWordTimestamps,
-      );
-      onProgress?.call(0.9);
+      final List<TranscriptionSegment> segments;
 
-      final segments = <TranscriptionSegment>[];
-      for (var i = 0; i < nativeSegments.length; i++) {
-        if (_cancelRequested) break;
-        final s = nativeSegments[i];
-        final confidence = (1.0 - s.noSpeechProb).clamp(0.0, 1.0).toDouble();
-
-        // Map CrispASR's per-token `Word` onto the app's `TranscriptionWord`
-        // shape. Only populated when `enableWordTimestamps` was requested
-        // and the loaded dylib is >= 0.2.0 (empty list otherwise).
-        List<TranscriptionWord>? words;
-        if (enableWordTimestamps && s.words.isNotEmpty) {
-          words = s.words
-              .map((w) => TranscriptionWord(
-                    word: w.text,
-                    startTime: w.start,
-                    endTime: w.end,
-                    confidence: w.p.clamp(0.0, 1.0).toDouble(),
-                  ))
-              .toList();
-        }
-
-        final seg = TranscriptionSegment(
-          text: s.text.trim(),
-          startTime: s.start,
-          endTime: s.end,
-          confidence: confidence,
-          words: words,
-          metadata: {
-            'engine': engineId,
-            'model': _currentModelId,
-            'segmentIndex': i,
-            'noSpeechProb': s.noSpeechProb,
-          },
+      if (_model != null) {
+        // Whisper-specific path
+        final nativeSegments = await _runTranscription(
+          audioData,
+          language: language,
+          wordTimestamps: enableWordTimestamps,
         );
-        segments.add(seg);
-        onSegment?.call(seg);
+        segments = _mapWhisperSegments(nativeSegments, enableWordTimestamps, onSegment);
+      } else {
+        // Unified session path (Parakeet, Canary, etc.)
+        final sessionSegments = await _runSessionTranscription(audioData);
+        segments = _mapSessionSegments(sessionSegments, onSegment);
       }
 
+      onProgress?.call(0.95);
       onProgress?.call(1.0);
 
       final fullText = segments.map((s) => s.text).join(' ').trim();
@@ -406,8 +342,9 @@ class CrispASREngine implements TranscriptionEngine {
           'wordsPerSecond': wps,
         },
       );
-    } catch (e) {
+    } catch (e, st) {
       if (e is EngineException) rethrow;
+      Log.instance.e('crispasr', 'Transcription failed', error: e, stack: st);
       throw TranscriptionException('CrispASR transcription failed: $e', engineId, e);
     } finally {
       _isProcessing = false;
@@ -432,6 +369,96 @@ class CrispASREngine implements TranscriptionEngine {
         silent: true,
       ),
     );
+  }
+
+  Future<List<crispasr.SessionSegment>> _runSessionTranscription(Float32List pcm) async {
+    await Future<void>.delayed(Duration.zero);
+    return _session!.transcribe(pcm);
+  }
+
+  List<TranscriptionSegment> _mapWhisperSegments(
+    List<crispasr.Segment> nativeSegments,
+    bool enableWordTimestamps,
+    void Function(TranscriptionSegment segment)? onSegment,
+  ) {
+    final segments = <TranscriptionSegment>[];
+    for (var i = 0; i < nativeSegments.length; i++) {
+      if (_cancelRequested) break;
+      final s = nativeSegments[i];
+      final confidence = (1.0 - s.noSpeechProb).clamp(0.0, 1.0).toDouble();
+
+      // Map CrispASR's per-token `Word` onto the app's `TranscriptionWord`
+      // shape. Only populated when `enableWordTimestamps` was requested
+      // and the loaded dylib is >= 0.2.0 (empty list otherwise).
+      List<TranscriptionWord>? words;
+      if (enableWordTimestamps && s.words.isNotEmpty) {
+        words = s.words
+            .map((w) => TranscriptionWord(
+                  word: w.text,
+                  startTime: w.start,
+                  endTime: w.end,
+                  confidence: w.p.clamp(0.0, 1.0).toDouble(),
+                ))
+            .toList();
+      }
+
+      final seg = TranscriptionSegment(
+        text: s.text.trim(),
+        startTime: s.start,
+        endTime: s.end,
+        confidence: confidence,
+        words: words,
+        metadata: {
+          'engine': engineId,
+          'model': _currentModelId,
+          'segmentIndex': i,
+          'noSpeechProb': s.noSpeechProb,
+        },
+      );
+      segments.add(seg);
+      onSegment?.call(seg);
+    }
+    return segments;
+  }
+
+  List<TranscriptionSegment> _mapSessionSegments(
+    List<crispasr.SessionSegment> sessionSegments,
+    void Function(TranscriptionSegment segment)? onSegment,
+  ) {
+    final segments = <TranscriptionSegment>[];
+    for (var i = 0; i < sessionSegments.length; i++) {
+      if (_cancelRequested) break;
+      final s = sessionSegments[i];
+
+      List<TranscriptionWord>? words;
+      if (s.words.isNotEmpty) {
+        words = s.words
+            .map((w) => TranscriptionWord(
+                  word: w.text,
+                  startTime: w.start,
+                  endTime: w.end,
+                  confidence: 1.0,
+                ))
+            .toList();
+      }
+
+      final seg = TranscriptionSegment(
+        text: s.text.trim(),
+        startTime: s.start,
+        endTime: s.end,
+        confidence: 1.0,
+        words: words,
+        metadata: {
+          'engine': engineId,
+          'model': _currentModelId,
+          'segmentIndex': i,
+          'backend': _session?.backend,
+        },
+      );
+      segments.add(seg);
+      onSegment?.call(seg);
+    }
+    return segments;
   }
 
   @override
@@ -528,8 +555,5 @@ class CrispASREngine implements TranscriptionEngine {
   @override
   Future<void> updateConfig(Map<String, dynamic> config) async {
     _config.addAll(config);
-    if (config.containsKey('libPath')) {
-      _libPath = config['libPath'] as String?;
-    }
   }
 }

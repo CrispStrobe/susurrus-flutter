@@ -57,7 +57,6 @@ class AudioService {
     try {
       // For now, we'll use a simple approach
       // In production, you might want to use FFmpeg through FFI
-      final bytes = await audioFile.readAsBytes();
       
       // Load with just_audio to get duration and sample rate info
       await _player.setFilePath(audioFile.path);
@@ -129,58 +128,85 @@ class AudioService {
   /// Basic WAV file processing fallback
   Future<WavData> _basicWavProcessing(File audioFile) async {
     final bytes = await audioFile.readAsBytes();
-    
+    final byteData = ByteData.sublistView(bytes);
+
     // Simple WAV header parsing
-    if (bytes.length < 44) {
+    if (bytes.length < 12) {
       throw AudioProcessingException('Invalid WAV file: too short');
     }
-    
+
     // Check WAV signature
     final riff = String.fromCharCodes(bytes.sublist(0, 4));
     final wave = String.fromCharCodes(bytes.sublist(8, 12));
-    
+
     if (riff != 'RIFF' || wave != 'WAVE') {
       throw AudioProcessingException('Not a valid WAV file');
     }
-    
-    // Extract format information
-    final channels = bytes[22] | (bytes[23] << 8);
-    final sampleRate = bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
-    final bitsPerSample = bytes[34] | (bytes[35] << 8);
-    
-    // Find data chunk
-    int dataOffset = 44;
-    while (dataOffset < bytes.length - 8) {
-      final chunkId = String.fromCharCodes(bytes.sublist(dataOffset, dataOffset + 4));
-      final chunkSize = bytes[dataOffset + 4] | (bytes[dataOffset + 5] << 8) | 
-                       (bytes[dataOffset + 6] << 16) | (bytes[dataOffset + 7] << 24);
-      
-      if (chunkId == 'data') {
-        dataOffset += 8;
-        break;
+
+    int channels = 0;
+    int sampleRate = 0;
+    int bitsPerSample = 0;
+    int dataOffset = -1;
+    int dataSize = 0;
+
+    // Iterate through chunks starting from offset 12
+    int offset = 12;
+    while (offset + 8 <= bytes.length) {
+      final chunkId = String.fromCharCodes(bytes.sublist(offset, offset + 4));
+      final chunkSize = byteData.getUint32(offset + 4, Endian.little);
+      offset += 8;
+
+      if (chunkId == 'fmt ') {
+        if (chunkSize < 16) {
+          throw AudioProcessingException('Invalid fmt chunk size');
+        }
+        channels = byteData.getUint16(offset + 2, Endian.little);
+        sampleRate = byteData.getUint32(offset + 4, Endian.little);
+        bitsPerSample = byteData.getUint16(offset + 14, Endian.little);
+      } else if (chunkId == 'data') {
+        dataOffset = offset;
+        dataSize = chunkSize;
+        // We found data, but we might still need fmt if it comes later (rare but possible)
+        // or we can break if we already have fmt.
+        if (channels > 0) break;
       }
-      
-      dataOffset += 8 + chunkSize;
+
+      offset += chunkSize;
+      // WAV chunks are padded to 2 bytes
+      if (chunkSize % 2 != 0) offset++;
     }
+
+    if (dataOffset == -1) {
+      throw AudioProcessingException('No data chunk found in WAV file');
+    }
+    if (channels == 0) {
+      throw AudioProcessingException('No fmt chunk found in WAV file');
+    }
+
+    // Ensure we don't read past the end of the file
+    final actualDataSize = (bytes.length - dataOffset);
+    final sizeToRead = dataSize < actualDataSize ? dataSize : actualDataSize;
     
-    // Extract audio samples
-    final audioData = bytes.sublist(dataOffset);
-    final samples = Float32List(audioData.length ~/ (bitsPerSample ~/ 8));
-    
+    final samplesCount = sizeToRead ~/ (bitsPerSample ~/ 8);
+    final samples = Float32List(samplesCount);
+
     if (bitsPerSample == 16) {
-      // Little-endian signed 16-bit PCM.
-      for (int i = 0; i < samples.length; i++) {
-        var raw = audioData[i * 2] | (audioData[i * 2 + 1] << 8);
-        if (raw >= 0x8000) raw -= 0x10000;
+      for (int i = 0; i < samplesCount; i++) {
+        final pos = dataOffset + i * 2;
+        if (pos + 1 >= bytes.length) break;
+        var raw = byteData.getInt16(pos, Endian.little);
         samples[i] = raw / 32768.0;
       }
     } else if (bitsPerSample == 32) {
-      final byteData = ByteData.sublistView(Uint8List.fromList(audioData));
-      for (int i = 0; i < samples.length; i++) {
-        samples[i] = byteData.getFloat32(i * 4, Endian.little);
+      for (int i = 0; i < samplesCount; i++) {
+        final pos = dataOffset + i * 4;
+        if (pos + 3 >= bytes.length) break;
+        samples[i] = byteData.getFloat32(pos, Endian.little);
       }
+    } else {
+      throw AudioProcessingException('Unsupported bits per sample: $bitsPerSample');
     }
-    
+
     return WavData(
       samples: samples,
       sampleRate: sampleRate,

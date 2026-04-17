@@ -143,7 +143,7 @@ class WhisperCppEngine implements TranscriptionEngine {
   }
 
   @override
-  Future<bool> loadModel(String modelId, {Function(double progress)? onProgress}) async {
+  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress}) async {
     if (!_isInitialized) {
       throw EngineInitializationException('Engine not initialized', engineId);
     }
@@ -236,7 +236,7 @@ class WhisperCppEngine implements TranscriptionEngine {
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
     Function(TranscriptionSegment segment)? onSegment,
-    Function(double progress)? onProgress,
+    void Function(double progress)? onProgress,
   }) async {
     if (!_isInitialized) {
       throw EngineInitializationException('Engine not initialized', engineId);

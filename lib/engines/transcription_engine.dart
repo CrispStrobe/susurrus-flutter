@@ -25,7 +25,7 @@ abstract class TranscriptionEngine {
 
   /// Model management
   Future<List<EngineModel>> getAvailableModels();
-  Future<bool> loadModel(String modelId, {Function(double progress)? onProgress});
+  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress});
   Future<void> unloadModel();
   String? get currentModelId;
 
@@ -35,8 +35,8 @@ abstract class TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
-    Function(TranscriptionSegment segment)? onSegment,
-    Function(double progress)? onProgress,
+    void Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
   });
 
   /// Streaming transcription (if supported)

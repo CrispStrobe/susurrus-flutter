@@ -345,8 +345,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Wrap(
+        alignment: WrapAlignment.spaceEvenly,
+        spacing: 16,
+        runSpacing: 16,
         children: [
           // Transcribe Button
           ElevatedButton.icon(
@@ -373,6 +375,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               ),
             ),
 
