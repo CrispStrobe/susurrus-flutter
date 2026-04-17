@@ -27,8 +27,11 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 | Performance readout (RTF, WPS)    | ✅                                       |
 | Logging + log viewer              | ✅                                       |
 | Inbound share (audio → app)       | ✅ Android intent filters + iOS doc types; macOS UTI open-in |
-| Streaming transcription           | ❌ Blocked on upstream CrispASR Dart pkg — see `docs/crispasr-dart-gaps.md` |
-| Real speaker diarization          | ❌ Blocked on upstream CrispASR Dart pkg — current MFCC/k-means fallback is a stopgap |
+| Word-level timestamps             | ✅ via CrispASR 0.2.0 helpers — `whisper_full_get_token_data` wrapper + `token_timestamps=true` through new param setters |
+| Language auto-detection (standalone) | ✅ via CrispASR 0.2.0 `crispasr_detect_language` (mel + encode + `whisper_lang_auto_detect`) |
+| VAD (Silero) Dart binding         | ✅ via CrispASR 0.2.0 `crispasr_vad_segments` — needs a separate VAD GGML model bundled or downloaded |
+| Streaming transcription           | ❌ Still blocked on upstream streaming-state API — see `docs/crispasr-dart-gaps.md` §1 |
+| Real speaker diarization          | ❌ Blocked on upstream CrispASR diarization API — current MFCC/k-means fallback is a stopgap |
 | Non-Whisper backends (Parakeet, Canary, Qwen3-ASR, Voxtral, …) | ❌ Blocked on upstream CrispASR Dart pkg backend dispatch |
 
 ## What's inside

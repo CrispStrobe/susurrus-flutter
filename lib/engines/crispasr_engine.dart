@@ -239,6 +239,24 @@ class CrispASREngine implements TranscriptionEngine {
     _currentModelPath = null;
   }
 
+  /// Detect the spoken language of a PCM buffer via CrispASR's
+  /// `crispasr_detect_language` helper. Returns null when the loaded dylib
+  /// is from the pre-0.2.0 era (or the detection fails internally) — the
+  /// caller should treat "null" as "keep whatever language was configured".
+  Future<String?> detectLanguage(Float32List audio) async {
+    if (_model == null) return null;
+    if (!_model!.supportsExtended) return null;
+    final det = _model!.detectLanguage(audio);
+    if (!det.ok) {
+      Log.instance.w('crispasr',
+          'Language detection unavailable (probability=${det.probability})');
+      return null;
+    }
+    Log.instance.i('crispasr',
+        'Detected language: ${det.code} (${(det.probability * 100).toStringAsFixed(1)}%)');
+    return det.code;
+  }
+
   @override
   Future<TranscriptionResult> transcribe(
     Float32List audioData, {
@@ -276,7 +294,11 @@ class CrispASREngine implements TranscriptionEngine {
     try {
       // CrispASR native call is synchronous and CPU-bound. Running it directly
       // blocks the UI thread; for a better UX use `Isolate.run` when available.
-      final nativeSegments = await _runTranscription(audioData);
+      final nativeSegments = await _runTranscription(
+        audioData,
+        language: language,
+        wordTimestamps: enableWordTimestamps,
+      );
       onProgress?.call(0.9);
 
       final segments = <TranscriptionSegment>[];
@@ -284,11 +306,28 @@ class CrispASREngine implements TranscriptionEngine {
         if (_cancelRequested) break;
         final s = nativeSegments[i];
         final confidence = (1.0 - s.noSpeechProb).clamp(0.0, 1.0).toDouble();
+
+        // Map CrispASR's per-token `Word` onto the app's `TranscriptionWord`
+        // shape. Only populated when `enableWordTimestamps` was requested
+        // and the loaded dylib is >= 0.2.0 (empty list otherwise).
+        List<TranscriptionWord>? words;
+        if (enableWordTimestamps && s.words.isNotEmpty) {
+          words = s.words
+              .map((w) => TranscriptionWord(
+                    word: w.text,
+                    startTime: w.start,
+                    endTime: w.end,
+                    confidence: w.p.clamp(0.0, 1.0).toDouble(),
+                  ))
+              .toList();
+        }
+
         final seg = TranscriptionSegment(
           text: s.text.trim(),
           startTime: s.start,
           endTime: s.end,
           confidence: confidence,
+          words: words,
           metadata: {
             'engine': engineId,
             'model': _currentModelId,
@@ -352,12 +391,24 @@ class CrispASREngine implements TranscriptionEngine {
     }
   }
 
-  Future<List<crispasr.Segment>> _runTranscription(Float32List pcm) async {
+  Future<List<crispasr.Segment>> _runTranscription(
+    Float32List pcm, {
+    String? language,
+    bool wordTimestamps = false,
+  }) async {
     // Keep FFI call off the UI thread where possible. `Isolate.run` requires
     // sending the model handle across isolates which FFI can't do, so we
     // instead yield briefly to pump the event loop before the blocking call.
     await Future<void>.delayed(Duration.zero);
-    return _model!.transcribePcm(pcm);
+    return _model!.transcribePcm(
+      pcm,
+      options: crispasr.TranscribeOptions(
+        language: (language == null || language == 'auto') ? null : language,
+        detectLanguage: language == null || language == 'auto',
+        wordTimestamps: wordTimestamps,
+        silent: true,
+      ),
+    );
   }
 
   @override
