@@ -70,13 +70,14 @@ class CoreMLWhisper {
       });
       
       final segments = <CoreMLTranscriptionSegment>[];
-      final resultList = result as List<dynamic>;
-      
+      final resultList = (result as List).cast<dynamic>();
+
       for (final segmentData in resultList) {
-        final segment = Map<String, dynamic>.from(segmentData);
+        final segment =
+            Map<String, dynamic>.from(segmentData as Map);
         segments.add(CoreMLTranscriptionSegment.fromMap(segment));
       }
-      
+
       return segments;
     } catch (e) {
       print('Error during CoreML transcription: $e');
@@ -90,7 +91,7 @@ class CoreMLWhisper {
     
     try {
       final result = await _channel.invokeMethod('getAvailableModels');
-      return List<String>.from(result);
+      return List<String>.from(result as List);
     } catch (e) {
       return [];
     }
@@ -159,8 +160,9 @@ class CoreMLTranscriptionSegment {
       endTime: (map['endTime'] as num).toDouble(),
       confidence: (map['confidence'] as num).toDouble(),
       words: map['words'] != null
-          ? (map['words'] as List<dynamic>)
-              .map((w) => CoreMLWord.fromMap(Map<String, dynamic>.from(w)))
+          ? (map['words'] as List)
+              .cast<dynamic>()
+              .map((w) => CoreMLWord.fromMap(Map<String, dynamic>.from(w as Map)))
               .toList()
           : null,
     );

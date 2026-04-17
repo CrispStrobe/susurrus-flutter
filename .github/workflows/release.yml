@@ -1,0 +1,145 @@
+name: Release
+
+# Triggered by pushing a tag like `v1.2.3`. Builds release artifacts and
+# attaches them to the matching GitHub Release. The Release itself is
+# auto-created if it doesn't already exist.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (e.g. v0.1.0). If omitted, uses the current HEAD."
+        required: false
+        default: ""
+
+env:
+  FLUTTER_VERSION: "3.38.5"
+  CRISPASR_REPO: CrispStrobe/CrispASR
+  CRISPASR_REF: main
+
+jobs:
+  build-macos:
+    name: macOS (.app.zip)
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out susurrus-flutter
+        uses: actions/checkout@v4
+        with:
+          path: repos/susurrus-flutter
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check out sibling CrispASR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+          submodules: recursive
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build libwhisper.dylib (Release + Metal)
+        working-directory: repos/CrispASR
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
+          cmake --build build --config Release --parallel --target whisper
+          ls -lh build/src/libwhisper*.dylib
+
+      - name: Pub get
+        working-directory: repos/susurrus-flutter
+        run: flutter pub get
+
+      - name: Build macOS (Release)
+        working-directory: repos/susurrus-flutter
+        run: flutter build macos --release
+
+      - name: Bundle dylib + ad-hoc sign
+        working-directory: repos/susurrus-flutter
+        run: |
+          APP=build/macos/Build/Products/Release/susurrus_flutter.app
+          DYLIB=$(ls ../CrispASR/build/src/libwhisper.[0-9]*.dylib 2>/dev/null | head -1)
+          if [ -z "$DYLIB" ]; then
+            DYLIB=../CrispASR/build/src/libwhisper.dylib
+          fi
+          cp "$DYLIB" "$APP/Contents/Frameworks/libwhisper.dylib"
+          codesign --force --deep --sign - "$APP"
+
+      - name: Zip .app
+        working-directory: repos/susurrus-flutter/build/macos/Build/Products/Release
+        run: |
+          ditto -c -k --keepParent susurrus_flutter.app susurrus_flutter-macos.zip
+          shasum -a 256 susurrus_flutter-macos.zip | tee susurrus_flutter-macos.zip.sha256
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            repos/susurrus-flutter/build/macos/Build/Products/Release/susurrus_flutter-macos.zip
+            repos/susurrus-flutter/build/macos/Build/Products/Release/susurrus_flutter-macos.zip.sha256
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+
+  build-android:
+    name: Android (APK)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out susurrus-flutter
+        uses: actions/checkout@v4
+        with:
+          path: repos/susurrus-flutter
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check out sibling CrispASR (Dart package only)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        working-directory: repos/susurrus-flutter
+        run: flutter pub get
+
+      # NOTE: This build produces an APK that runs with the Mock engine
+      # only — CrispASR on Android needs `libwhisper.so` cross-compiled via
+      # `CrispASR/build-android.sh` and bundled through jniLibs. See the
+      # README for the manual steps; we skip it here to keep CI fast.
+      - name: Build APK (release, unsigned)
+        working-directory: repos/susurrus-flutter
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: repos/susurrus-flutter/build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true

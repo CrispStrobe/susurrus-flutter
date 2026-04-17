@@ -19,7 +19,6 @@ class TranscriptionOutputWidget extends StatefulWidget {
 
 class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     with TickerProviderStateMixin {
-  bool _showSegments = true;
   bool _showTimestamps = true;
   bool _showSpeakers = true;
   bool _showConfidence = false;
@@ -66,19 +65,21 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
   Widget _buildControls() {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Tab bar
+          // Text-only tabs to keep the output chrome compact — icons + text
+          // tabs pushed the header past ~130px and overflowed short windows.
           TabBar(
             controller: _tabController,
             tabs: const [
-              Tab(text: 'Segments', icon: Icon(Icons.format_list_bulleted)),
-              Tab(text: 'Full Text', icon: Icon(Icons.article)),
+              Tab(text: 'Segments'),
+              Tab(text: 'Full Text'),
             ],
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
           // Search and options
           Row(
@@ -88,11 +89,14 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                 child: TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
-                    hintText: 'Search transcription...',
-                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search transcription…',
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    isDense: true,
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
+                  style: const TextStyle(fontSize: 13),
                   onChanged: (value) {
                     setState(() {
                       _searchQuery = value.toLowerCase();

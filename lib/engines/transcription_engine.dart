@@ -172,3 +172,9 @@ class TranscriptionException extends EngineException {
   const TranscriptionException(String message, String engineId, [dynamic originalError])
       : super(message, engineId, originalError);
 }
+
+/// A concrete fallback for engine errors that don't fit a more specific type.
+class GenericEngineException extends EngineException {
+  const GenericEngineException(String message, String engineId, [dynamic originalError])
+      : super(message, engineId, originalError);
+}

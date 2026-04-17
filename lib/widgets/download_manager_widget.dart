@@ -1,5 +1,6 @@
 // lib/widgets/download_manager_widget.dart
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -255,7 +256,7 @@ class _DownloadManagerWidgetState extends ConsumerState<DownloadManagerWidget>
             const SizedBox(height: 12),
 
             // Progress indicator (if downloading)
-            if (isDownloading && progress != null) ...[
+            if (isDownloading) ...[
               LinearPercentIndicator(
                 lineHeight: 8.0,
                 percent: progress.progress.clamp(0.0, 1.0),

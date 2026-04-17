@@ -134,7 +134,7 @@ class WhisperCppEngine implements TranscriptionEngine {
         },
       )).toList();
     } catch (e) {
-      throw EngineException(
+      throw GenericEngineException(
         'Failed to get available models: $e',
         engineId,
         e,

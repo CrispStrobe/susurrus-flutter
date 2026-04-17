@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../main.dart';
-import '../services/audio_service.dart';
 
 class AudioRecorderWidget extends ConsumerStatefulWidget {
   const AudioRecorderWidget({super.key});
@@ -330,21 +330,9 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
 
   void _useRecording() {
     if (_recordingPath == null) return;
-    
-    // Update the main app state with the recorded file
-    // This would need to be implemented based on your app's state management
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Use Recording'),
-        content: const Text('This recording will be used for transcription.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+    ref.read(selectedAudioPathProvider.notifier).state = _recordingPath;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Recording queued for transcription.')),
     );
   }
 

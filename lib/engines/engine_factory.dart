@@ -5,11 +5,13 @@ import 'transcription_engine.dart';
 import 'mock_engine.dart';
 import 'whisper_cpp_engine.dart';
 import 'coreml_engine.dart';
+import 'crispasr_engine.dart';
 
 /// Available transcription engine types
 enum EngineType {
   mock('mock', 'Mock Engine', 'Testing engine with simulated responses'),
-  whisperCpp('whisper_cpp', 'Whisper.cpp', 'Cross-platform Whisper implementation'),
+  crispasr('crispasr', 'CrispASR (ggml)', 'On-device ASR via the CrispASR FFI runtime'),
+  whisperCpp('whisper_cpp', 'Whisper.cpp', 'Cross-platform Whisper implementation (method channel)'),
   coreML('coreml', 'CoreML Whisper', 'Apple CoreML optimized engine'),
   sherpaOnnx('sherpa_onnx', 'Sherpa ONNX', 'ONNX-based speech recognition');
 
@@ -24,6 +26,7 @@ enum EngineType {
 class EngineFactory {
   static final Map<EngineType, TranscriptionEngine Function()> _creators = {
     EngineType.mock: () => MockEngine(),
+    EngineType.crispasr: () => CrispASREngine(),
     EngineType.whisperCpp: () => WhisperCppEngine(),
     EngineType.coreML: () => CoreMLEngine(),
     // EngineType.sherpaOnnx: () => SherpaOnnxEngine(), // Future implementation
@@ -40,7 +43,9 @@ class EngineFactory {
 
   /// Get available engines for current platform
   static List<EngineType> getAvailableEngines() {
-    final available = <EngineType>[EngineType.mock]; // Mock always available
+    // CrispASR and Mock work everywhere; native-plugin engines are
+    // gated on the platform that provides their plugin.
+    final available = <EngineType>[EngineType.crispasr, EngineType.mock];
 
     if (Platform.isIOS) {
       available.addAll([
@@ -49,6 +54,8 @@ class EngineFactory {
       ]);
     } else if (Platform.isAndroid) {
       available.add(EngineType.whisperCpp);
+    } else if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
+      // Desktop runs the CrispASR FFI runtime; no extra engines yet.
     }
 
     return available;
@@ -61,12 +68,9 @@ class EngineFactory {
 
   /// Get recommended engine for current platform
   static EngineType getRecommendedEngine() {
-    if (Platform.isIOS) {
-      return EngineType.coreML; // Prefer CoreML on iOS
-    } else if (Platform.isAndroid) {
-      return EngineType.whisperCpp;
-    }
-    return EngineType.mock; // Fallback
+    // CrispASR is the default cross-platform engine; we fall back to the
+    // platform-specific plugins when the app is built with them.
+    return EngineType.crispasr;
   }
 }
 

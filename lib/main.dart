@@ -1,6 +1,7 @@
-// lib/main.dart - FIXED VERSION
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,33 +10,57 @@ import 'package:permission_handler/permission_handler.dart';
 import 'screens/transcription_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/model_management_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/logs_screen.dart';
+import 'screens/about_screen.dart';
 import 'services/audio_service.dart';
+import 'services/history_service.dart';
+import 'services/log_service.dart';
+import 'services/native_licenses.dart';
+import 'services/share_intake_service.dart';
 import 'services/transcription_service.dart';
 import 'theme/app_theme.dart';
-import 'engines/engine_factory.dart';
 import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  Log.instance.i('main', 'Susurrus starting — platform=${Platform.operatingSystem}');
+  FlutterError.onError = (details) {
+    Log.instance.e(
+      'flutter',
+      details.exceptionAsString(),
+      error: details.exception,
+      stack: details.stack,
+    );
+    FlutterError.presentError(details);
+  };
+
   await _requestPermissions();
   await _initializeServices();
+  await registerNativeLicenses();
 
-  runApp(ProviderScope(child: SusurrusApp()));
+  runApp(const ProviderScope(child: SusurrusApp()));
 }
 
 Future<void> _requestPermissions() async {
-  final permissions = [
-    Permission.microphone,
-    Permission.storage,
-  ];
+  // Only request mobile-only permissions on mobile platforms. On desktop the
+  // permission_handler plugin simply returns granted or unknown, so asking
+  // is cheap but unnecessary.
+  if (!(Platform.isIOS || Platform.isAndroid)) return;
 
-  // Request additional permissions on Android
-  if (Theme.of(WidgetsBinding.instance.platformDispatcher.platformBrightness.index == 0 ?
-      TargetPlatform.android : TargetPlatform.iOS) == TargetPlatform.android) {
-    permissions.add(Permission.manageExternalStorage);
+  final permissions = <Permission>[
+    Permission.microphone,
+  ];
+  if (Platform.isAndroid) {
+    permissions.add(Permission.storage);
   }
 
-  await permissions.request();
+  try {
+    await permissions.request();
+  } catch (e) {
+    debugPrint('Permission request failed: $e');
+  }
 }
 
 Future<void> _initializeServices() async {
@@ -46,32 +71,63 @@ Future<void> _initializeServices() async {
   }
 }
 
-class SusurrusApp extends ConsumerWidget {
-  SusurrusApp({super.key});
+class SusurrusApp extends ConsumerStatefulWidget {
+  const SusurrusApp({super.key});
 
-  final _router = GoRouter(
+  @override
+  ConsumerState<SusurrusApp> createState() => _SusurrusAppState();
+}
+
+class _SusurrusAppState extends ConsumerState<SusurrusApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Kick off OS-level share intake after the first frame so Riverpod's
+    // provider graph is fully built.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shareIntakeServiceProvider).start();
+    });
+  }
+
+
+  static final GoRouter _router = GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
         name: 'home',
-        builder: (context, state) => const TranscriptionScreen()
+        builder: (context, state) => const TranscriptionScreen(),
       ),
       GoRoute(
         path: '/settings',
         name: 'settings',
-        builder: (context, state) => const SettingsScreen()
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/models',
         name: 'models',
-        builder: (context, state) => const ModelManagementScreen()
+        builder: (context, state) => const ModelManagementScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        name: 'history',
+        builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: '/logs',
+        name: 'logs',
+        builder: (context, state) => const LogsScreen(),
+      ),
+      GoRoute(
+        path: '/about',
+        name: 'about',
+        builder: (context, state) => const AboutScreen(),
       ),
     ],
   );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Susurrus',
       debugShowCheckedModeBanner: false,
@@ -86,10 +142,17 @@ class SusurrusApp extends ConsumerWidget {
 // Global providers
 final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
 
+final historyServiceProvider =
+    Provider<HistoryService>((ref) => HistoryService());
+
 final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
   final audioService = ref.watch(audioServiceProvider);
   return TranscriptionService(audioService);
 });
+
+/// Path to the audio file the user has selected or just recorded — used to
+/// hand off a recording from the recorder widget to the transcription screen.
+final selectedAudioPathProvider = StateProvider<String?>((ref) => null);
 
 // App state using engine TranscriptionSegment
 class AppState {
@@ -97,7 +160,8 @@ class AppState {
   final bool isTranscribing;
   final double progress;
   final String? errorMessage;
-  final List<TranscriptionSegment> segments; // From engines/transcription_engine.dart
+  final List<TranscriptionSegment> segments;
+  final PerformanceStats? performance;
 
   const AppState({
     this.currentTranscription,
@@ -105,6 +169,7 @@ class AppState {
     this.progress = 0.0,
     this.errorMessage,
     this.segments = const [],
+    this.performance,
   });
 
   AppState copyWith({
@@ -113,6 +178,7 @@ class AppState {
     double? progress,
     String? errorMessage,
     List<TranscriptionSegment>? segments,
+    PerformanceStats? performance,
   }) {
     return AppState(
       currentTranscription: currentTranscription ?? this.currentTranscription,
@@ -120,6 +186,51 @@ class AppState {
       progress: progress ?? this.progress,
       errorMessage: errorMessage ?? this.errorMessage,
       segments: segments ?? this.segments,
+      performance: performance ?? this.performance,
+    );
+  }
+}
+
+/// Performance snapshot for the most recent transcription run.
+class PerformanceStats {
+  final double audioSeconds;
+  final double wallSeconds;
+  final double rtf;
+  final int wordCount;
+  final double wordsPerSecond;
+  final String? engineId;
+  final String? modelId;
+
+  const PerformanceStats({
+    required this.audioSeconds,
+    required this.wallSeconds,
+    required this.rtf,
+    required this.wordCount,
+    required this.wordsPerSecond,
+    this.engineId,
+    this.modelId,
+  });
+
+  static PerformanceStats? fromMetadata(
+    Map<String, dynamic>? md, {
+    String? engineId,
+    String? modelId,
+  }) {
+    if (md == null) return null;
+    final a = (md['audioSeconds'] as num?)?.toDouble();
+    final w = (md['wallSeconds'] as num?)?.toDouble();
+    final r = (md['rtf'] as num?)?.toDouble();
+    final wc = (md['wordCount'] as num?)?.toInt();
+    final wps = (md['wordsPerSecond'] as num?)?.toDouble();
+    if (a == null || w == null) return null;
+    return PerformanceStats(
+      audioSeconds: a,
+      wallSeconds: w,
+      rtf: r ?? 0.0,
+      wordCount: wc ?? 0,
+      wordsPerSecond: wps ?? 0.0,
+      engineId: engineId ?? md['engine'] as String?,
+      modelId: modelId ?? md['model'] as String?,
     );
   }
 }
@@ -153,7 +264,10 @@ class AppStateNotifier extends StateNotifier<AppState> {
     );
   }
 
-  void completeTranscription(List<TranscriptionSegment> segments) {
+  void completeTranscription(
+    List<TranscriptionSegment> segments, {
+    PerformanceStats? performance,
+  }) {
     final fullText = segments.map((s) => s.text).join(' ');
     state = state.copyWith(
       isTranscribing: false,
@@ -161,6 +275,7 @@ class AppStateNotifier extends StateNotifier<AppState> {
       currentTranscription: fullText,
       progress: 1.0,
       errorMessage: null,
+      performance: performance,
     );
   }
 

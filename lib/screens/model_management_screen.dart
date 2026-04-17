@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/model_service.dart';
-import '../engines/engine_factory.dart'; // Use EngineType instead of TranscriptionBackend
 
 class ModelManagementScreen extends ConsumerStatefulWidget {
   const ModelManagementScreen({super.key});
@@ -173,9 +172,33 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
                 : Colors.grey.shade600,
           ),
         ),
-        title: Text(
-          model.displayName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                model.displayName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (model.quantization.isNotEmpty && model.quantization != 'f16')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  model.quantization,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple.shade800,
+                  ),
+                ),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +257,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.models, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.memory, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             'No models available',

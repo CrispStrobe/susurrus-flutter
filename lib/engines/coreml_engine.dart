@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'transcription_engine.dart';
 import '../native/coreml_whisper.dart';
+import '../services/model_service.dart';
 
 /// CoreML-based transcription engine for iOS
 class CoreMLEngine implements TranscriptionEngine {
   CoreMLWhisper? _coreMLWhisper;
+  ModelService? _modelService;
   bool _isInitialized = false;
   bool _isProcessing = false;
   String? _currentModelId;
@@ -113,7 +115,7 @@ class CoreMLEngine implements TranscriptionEngine {
         },
       )).toList();
     } catch (e) {
-      throw EngineException(
+      throw GenericEngineException(
         'Failed to get available models: $e',
         engineId,
         e,
@@ -276,6 +278,41 @@ class CoreMLEngine implements TranscriptionEngine {
     } finally {
       _isProcessing = false;
     }
+  }
+
+  @override
+  Stream<TranscriptionSegment>? transcribeStream(
+    Stream<Float32List> audioStream, {
+    String? language,
+    bool enableWordTimestamps = false,
+  }) {
+    return null;
+  }
+
+  @override
+  Future<void> cancel() async {
+    _isProcessing = false;
+  }
+
+  @override
+  Future<void> updateConfig(Map<String, dynamic> config) async {
+    _config.addAll(config);
+  }
+
+  @override
+  Future<void> unloadModel() async {
+    if (_currentModelId != null) {
+      await _coreMLWhisper?.unloadModel();
+      _currentModelId = null;
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    await unloadModel();
+    _isInitialized = false;
+    _isProcessing = false;
+    _config.clear();
   }
 
   // Audio preprocessing for CoreML

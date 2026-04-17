@@ -9,6 +9,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import '../engines/engine_factory.dart'; // Use EngineType instead of TranscriptionBackend
 import '../native/coreml_whisper.dart';
 import '../main.dart';
+import '../services/log_service.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -30,6 +32,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _keepAudioFiles = false;
   double _audioQuality = 0.8;
   bool _enableDiarizationByDefault = false;
+
+  // Debug / developer settings
+  LogLevel _logLevel = Log.instance.minLevel;
+  bool _logToFile = false;
+  bool _skipChecksum = false;
 
   @override
   void initState() {
@@ -55,6 +62,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _keepAudioFiles = _prefs.getBool('keep_audio_files') ?? false;
       _audioQuality = _prefs.getDouble('audio_quality') ?? 0.8;
       _enableDiarizationByDefault = _prefs.getBool('enable_diarization_by_default') ?? false;
+
+      // Debug / advanced
+      final storedLogLevel = _prefs.getString('log_level');
+      if (storedLogLevel != null) {
+        _logLevel = LogLevel.values.firstWhere(
+          (l) => l.name == storedLogLevel,
+          orElse: () => Log.instance.minLevel,
+        );
+        Log.instance.setMinLevel(_logLevel);
+      }
+      _logToFile = _prefs.getBool('log_to_file') ?? false;
+      if (_logToFile) {
+        // Fire-and-forget: enabling the sink is async but safe to kick off.
+        Log.instance.enableFileSink(true);
+      }
+      _skipChecksum = _prefs.getBool('skip_checksum') ?? false;
+
       _isLoading = false;
     });
   }
@@ -88,9 +112,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildAudioSettings(),
           _buildDiarizationSettings(),
           _buildStorageSettings(),
+          _buildDeveloperSettings(),
           _buildSystemInfo(),
           _buildAboutSection(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperSettings() {
+    return _buildSettingsSection(
+      title: 'Debugging & development',
+      icon: Icons.bug_report,
+      children: [
+        ListTile(
+          title: const Text('Log level'),
+          subtitle: Text('Currently ${_logLevel.tag}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showLogLevelSelector,
+        ),
+        SwitchListTile(
+          title: const Text('Mirror logs to file'),
+          subtitle: const Text(
+              'Writes to logs/session.log in the app documents directory'),
+          value: _logToFile,
+          onChanged: (value) async {
+            setState(() => _logToFile = value);
+            await _saveSetting('log_to_file', value);
+            await Log.instance.enableFileSink(value);
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Skip checksum verification'),
+          subtitle: const Text(
+              'Accept downloaded models even if SHA-1 does not match'),
+          value: _skipChecksum,
+          onChanged: (value) {
+            setState(() => _skipChecksum = value);
+            _saveSetting('skip_checksum', value);
+            Log.instance.i('settings',
+                value ? 'Checksum verification disabled' : 'Checksum verification enabled');
+          },
+        ),
+        ListTile(
+          title: const Text('Open log viewer'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/logs'),
+        ),
+      ],
+    );
+  }
+
+  void _showLogLevelSelector() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log level'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: LogLevel.values
+              .map(
+                (l) => RadioListTile<LogLevel>(
+                  title: Text('${l.tag} — ${l.name}'),
+                  value: l,
+                  groupValue: _logLevel,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() => _logLevel = v);
+                    _saveSetting('log_level', v.name);
+                    Log.instance.setMinLevel(v);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }
@@ -269,10 +365,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         ListTile(
-          title: const Text('Privacy Policy'),
-          subtitle: const Text('All processing happens on-device'),
+          title: const Text('About Susurrus'),
+          subtitle: const Text('Author, contact, disclaimer, licenses'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: _showPrivacyPolicy,
+          onTap: () => context.push('/about'),
         ),
       ],
     );
@@ -305,7 +401,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showEngineSelector() {
     final availableEngines = EngineFactory.getAvailableEngines();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -318,11 +414,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: Text(_getEngineDescription(engine)),
               value: engine,
               groupValue: _preferredEngine,
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _preferredEngine = value);
-                  _saveSetting('preferred_engine', value.id);
-                  Navigator.of(context).pop();
+              onChanged: (value) async {
+                if (value == null) return;
+                setState(() => _preferredEngine = value);
+                _saveSetting('preferred_engine', value.id);
+                Navigator.of(context).pop();
+
+                // Try to swap engines immediately so the next transcription
+                // picks up the change without a restart.
+                final service = ref.read(transcriptionServiceProvider);
+                try {
+                  final ok = await service.switchEngine(value);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok
+                          ? 'Switched to ${value.displayName}'
+                          : 'Engine switch failed'),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Engine switch failed: $e')),
+                  );
                 }
               },
             );
@@ -333,17 +448,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showModelSelector() {
+    const models = {
+      'tiny': 'Tiny (fast, 39 MB)',
+      'base': 'Base (balanced, 74 MB)',
+      'small': 'Small (244 MB)',
+      'medium': 'Medium (769 MB)',
+      'large': 'Large (1.5 GB)',
+      'large-v2': 'Large v2 (1.5 GB)',
+      'large-v3': 'Large v3 (1.5 GB)',
+    };
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Select Default Model'),
-        content: const Text('Model selection will be implemented with engine integration'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: models.entries
+                .map(
+                  (e) => RadioListTile<String>(
+                    title: Text(e.value),
+                    value: e.key,
+                    groupValue: _defaultModel,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _defaultModel = value);
+                      _saveSetting('default_model', value);
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                )
+                .toList(),
           ),
-        ],
+        ),
       ),
     );
   }

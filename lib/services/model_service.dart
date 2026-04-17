@@ -10,9 +10,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
 
+import 'log_service.dart';
+
 class ModelService {
-  static const String whisperCppBaseUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main';
-  static const String coreMLBaseUrl = 'https://huggingface.co/openai/whisper-large-v3/resolve/main';
+  /// Upstream ggerganov repo — the canonical source for F16 GGML Whisper models.
+  static const String whisperCppBaseUrl =
+      'https://huggingface.co/ggerganov/whisper.cpp/resolve/main';
+
+  /// Secondary repo under the cstr namespace — used for quantized Whisper
+  /// variants (q4_0 / q5_0 / q8_0) and mirrors.
+  static const String cstrWhisperCppBaseUrl =
+      'https://huggingface.co/cstr/whisper-ggml-quants/resolve/main';
+
+  /// A general-purpose cstr GGUF repo (CrispASR-compatible backends).
+  static const String cstrCrispBaseUrl =
+      'https://huggingface.co/cstr/crispasr-gguf/resolve/main';
+
+  static const String coreMLBaseUrl =
+      'https://huggingface.co/openai/whisper-large-v3/resolve/main';
 
   final Dio _dio = Dio();
   late String _modelsDir;
@@ -120,6 +135,110 @@ class ModelService {
       checksum: 'ad82bf6a9043ceed055076d0fd39f5f186ff8062',
       description: 'Latest large model with enhanced performance (~1.5 GB)',
     ),
+
+    // ----- Quantized variants (cstr mirrors) -----
+    // These are rough size estimates. Checksums are intentionally empty —
+    // size-only validation is used until we have authoritative SHAs.
+    'tiny-q5_0': ModelDefinition(
+      name: 'tiny-q5_0',
+      displayName: 'Whisper Tiny (q5_0)',
+      fileName: 'ggml-tiny-q5_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-tiny-q5_0.bin',
+      sizeBytes: 33 * 1024 * 1024,
+      checksum: '',
+      description: '5-bit quantized tiny — smaller, ~same accuracy',
+      quantization: 'q5_0',
+    ),
+    'base-q5_0': ModelDefinition(
+      name: 'base-q5_0',
+      displayName: 'Whisper Base (q5_0)',
+      fileName: 'ggml-base-q5_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-base-q5_0.bin',
+      sizeBytes: 60 * 1024 * 1024,
+      checksum: '',
+      description: '5-bit quantized base — ~60 MB',
+      quantization: 'q5_0',
+    ),
+    'small-q5_0': ModelDefinition(
+      name: 'small-q5_0',
+      displayName: 'Whisper Small (q5_0)',
+      fileName: 'ggml-small-q5_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-small-q5_0.bin',
+      sizeBytes: 190 * 1024 * 1024,
+      checksum: '',
+      description: '5-bit quantized small — ~190 MB',
+      quantization: 'q5_0',
+    ),
+    'medium-q5_0': ModelDefinition(
+      name: 'medium-q5_0',
+      displayName: 'Whisper Medium (q5_0)',
+      fileName: 'ggml-medium-q5_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-medium-q5_0.bin',
+      sizeBytes: 540 * 1024 * 1024,
+      checksum: '',
+      description: '5-bit quantized medium — ~540 MB',
+      quantization: 'q5_0',
+    ),
+    'large-v3-q5_0': ModelDefinition(
+      name: 'large-v3-q5_0',
+      displayName: 'Whisper Large v3 (q5_0)',
+      fileName: 'ggml-large-v3-q5_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q5_0.bin',
+      sizeBytes: 1100 * 1024 * 1024,
+      checksum: '',
+      description: '5-bit quantized large-v3 — ~1.1 GB',
+      quantization: 'q5_0',
+    ),
+    'base-q4_0': ModelDefinition(
+      name: 'base-q4_0',
+      displayName: 'Whisper Base (q4_0)',
+      fileName: 'ggml-base-q4_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-base-q4_0.bin',
+      sizeBytes: 46 * 1024 * 1024,
+      checksum: '',
+      description: '4-bit quantized base — ~46 MB',
+      quantization: 'q4_0',
+    ),
+    'small-q4_0': ModelDefinition(
+      name: 'small-q4_0',
+      displayName: 'Whisper Small (q4_0)',
+      fileName: 'ggml-small-q4_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-small-q4_0.bin',
+      sizeBytes: 150 * 1024 * 1024,
+      checksum: '',
+      description: '4-bit quantized small — ~150 MB',
+      quantization: 'q4_0',
+    ),
+    'large-v3-q4_0': ModelDefinition(
+      name: 'large-v3-q4_0',
+      displayName: 'Whisper Large v3 (q4_0)',
+      fileName: 'ggml-large-v3-q4_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q4_0.bin',
+      sizeBytes: 880 * 1024 * 1024,
+      checksum: '',
+      description: '4-bit quantized large-v3 — ~880 MB',
+      quantization: 'q4_0',
+    ),
+    'base-q8_0': ModelDefinition(
+      name: 'base-q8_0',
+      displayName: 'Whisper Base (q8_0)',
+      fileName: 'ggml-base-q8_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-base-q8_0.bin',
+      sizeBytes: 78 * 1024 * 1024,
+      checksum: '',
+      description: '8-bit quantized base — ~78 MB',
+      quantization: 'q8_0',
+    ),
+    'large-v3-q8_0': ModelDefinition(
+      name: 'large-v3-q8_0',
+      displayName: 'Whisper Large v3 (q8_0)',
+      fileName: 'ggml-large-v3-q8_0.bin',
+      url: '$cstrWhisperCppBaseUrl/ggml-large-v3-q8_0.bin',
+      sizeBytes: 1650 * 1024 * 1024,
+      checksum: '',
+      description: '8-bit quantized large-v3 — ~1.65 GB',
+      quantization: 'q8_0',
+    ),
   };
 
   static const Map<String, ModelDefinition> coreMLModels = {
@@ -212,11 +331,15 @@ class ModelService {
         localPath: isDownloaded ? localPath : null,
         description: modelDef.description,
         modelType: ModelType.whisperCpp,
+        quantization: modelDef.quantization,
       ));
     }
 
     return modelInfos;
   }
+
+  /// Whether the user has disabled SHA-1 checksum validation for downloads.
+  bool get skipChecksum => _prefs?.getBool('skip_checksum') ?? false;
 
   /// Get available CoreML models (iOS only)
   Future<List<ModelInfo>> getCoreMLModels() async {
@@ -307,12 +430,17 @@ class ModelService {
       onProgress?.call(0.95);
 
       // Verify download
-      if (modelDef.checksum.isNotEmpty) {
+      if (modelDef.checksum.isNotEmpty && !skipChecksum) {
         final isValid = await _verifyChecksum(tempPath, modelDef.checksum);
         if (!isValid) {
           await File(tempPath).delete();
-          throw ModelException('Download verification failed. File may be corrupted.');
+          Log.instance.w('model', 'Checksum mismatch for $modelName');
+          throw ModelException(
+              'Download verification failed. File may be corrupted. '
+              'Enable "Skip checksum verification" in Settings → Debugging to bypass.');
         }
+      } else if (skipChecksum) {
+        Log.instance.i('model', 'Skipping checksum for $modelName (user override)');
       }
 
       // Move temp file to final location
@@ -496,18 +624,16 @@ class ModelService {
     }
   }
 
+  DateTime? _speedStart;
+  int _speedStartBytes = 0;
+
   String _calculateDownloadSpeed(int bytesDownloaded, DateTime currentTime) {
-    // Simple speed calculation - in production you'd want a rolling average
-    static DateTime? startTime;
-    static int? startBytes;
+    _speedStart ??= currentTime;
 
-    startTime ??= currentTime;
-    startBytes ??= 0;
+    final elapsed = currentTime.difference(_speedStart!).inSeconds;
+    if (elapsed <= 0) return '';
 
-    final elapsed = currentTime.difference(startTime!).inSeconds;
-    if (elapsed == 0) return '';
-
-    final speed = (bytesDownloaded - startBytes!) / elapsed; // bytes per second
+    final speed = (bytesDownloaded - _speedStartBytes) / elapsed;
     if (speed < 1024) {
       return '${speed.toStringAsFixed(0)} B/s';
     } else if (speed < 1024 * 1024) {
@@ -689,8 +815,11 @@ class ModelService {
 
     if (sizeDiff > tolerance) return false;
 
-    // For critical models, verify checksum
-    if (modelDef.checksum.isNotEmpty && modelDef.sizeBytes > 100 * 1024 * 1024) {
+    // For critical models, verify checksum — unless the user has explicitly
+    // opted into skipping verification.
+    if (!skipChecksum &&
+        modelDef.checksum.isNotEmpty &&
+        modelDef.sizeBytes > 100 * 1024 * 1024) {
       return await _verifyChecksum(localPath, modelDef.checksum);
     }
 
@@ -798,6 +927,7 @@ class ModelDefinition {
   final int sizeBytes;
   final String checksum;
   final String description;
+  final String quantization; // 'f16', 'q4_0', 'q5_0', 'q8_0', ''
 
   const ModelDefinition({
     required this.name,
@@ -807,6 +937,7 @@ class ModelDefinition {
     required this.sizeBytes,
     required this.checksum,
     required this.description,
+    this.quantization = 'f16',
   });
 }
 
@@ -819,6 +950,7 @@ class ModelInfo {
   final String? localPath;
   final String description;
   final ModelType modelType;
+  final String quantization;
 
   const ModelInfo({
     required this.name,
@@ -829,6 +961,7 @@ class ModelInfo {
     this.localPath,
     required this.description,
     required this.modelType,
+    this.quantization = 'f16',
   });
 }
 

@@ -19,6 +19,12 @@ class TranscriptionService {
   bool _isTranscribing = false;
   StreamSubscription<TranscriptionSegment>? _streamSubscription;
 
+  /// The full result (including metadata) from the most recent successful
+  /// transcription — populated after [transcribeFile] / [transcribeUrl]
+  /// returns. Exposed so the UI can surface perf metrics and language
+  /// detection without plumbing a new return type through every layer.
+  TranscriptionResult? lastResult;
+
   TranscriptionService(this._audioService);
 
   bool get isTranscribing => _isTranscribing;
@@ -73,11 +79,11 @@ class TranscriptionService {
     Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionException('Already transcribing. Stop current transcription first.');
+      throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
     }
 
     if (currentEngine == null) {
-      throw TranscriptionException('No transcription engine available. Please initialize first.');
+      throw TranscriptionServiceException('No transcription engine available. Please initialize first.');
     }
 
     _isTranscribing = true;
@@ -120,7 +126,7 @@ class TranscriptionService {
       return segments;
 
     } catch (e) {
-      throw TranscriptionException('File transcription failed: $e');
+      throw TranscriptionServiceException('File transcription failed: $e');
     } finally {
       _isTranscribing = false;
     }
@@ -138,7 +144,7 @@ class TranscriptionService {
     Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionException('Already transcribing. Stop current transcription first.');
+      throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
     }
 
     try {
@@ -161,7 +167,7 @@ class TranscriptionService {
         onSegment: onSegment,
       );
     } catch (e) {
-      throw TranscriptionException('URL transcription failed: $e');
+      throw TranscriptionServiceException('URL transcription failed: $e');
     }
   }
 
@@ -173,7 +179,7 @@ class TranscriptionService {
   }) {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionException('No transcription engine available');
+      throw TranscriptionServiceException('No transcription engine available');
     }
 
     if (!engine.supportsStreaming) {
@@ -206,7 +212,7 @@ class TranscriptionService {
   /// Switch to a different transcription engine
   Future<bool> switchEngine(EngineType engineType, {Map<String, dynamic>? config}) async {
     if (_isTranscribing) {
-      throw TranscriptionException('Cannot change engine while transcribing');
+      throw TranscriptionServiceException('Cannot change engine while transcribing');
     }
 
     try {
@@ -221,13 +227,13 @@ class TranscriptionService {
   Future<List<EngineModel>> getAvailableModels() async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionException('No engine initialized');
+      throw TranscriptionServiceException('No engine initialized');
     }
 
     try {
       return await engine.getAvailableModels();
     } catch (e) {
-      throw TranscriptionException('Failed to get available models: $e');
+      throw TranscriptionServiceException('Failed to get available models: $e');
     }
   }
 
@@ -235,17 +241,17 @@ class TranscriptionService {
   Future<bool> loadModel(String modelId, {Function(double progress)? onProgress}) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionException('No engine initialized');
+      throw TranscriptionServiceException('No engine initialized');
     }
 
     if (_isTranscribing) {
-      throw TranscriptionException('Cannot load model while transcribing');
+      throw TranscriptionServiceException('Cannot load model while transcribing');
     }
 
     try {
       return await engine.loadModel(modelId, onProgress: onProgress);
     } catch (e) {
-      throw TranscriptionException('Failed to load model $modelId: $e');
+      throw TranscriptionServiceException('Failed to load model $modelId: $e');
     }
   }
 
@@ -255,7 +261,7 @@ class TranscriptionService {
     if (engine == null) return;
 
     if (_isTranscribing) {
-      throw TranscriptionException('Cannot unload model while transcribing');
+      throw TranscriptionServiceException('Cannot unload model while transcribing');
     }
 
     try {
@@ -269,13 +275,13 @@ class TranscriptionService {
   Future<void> updateEngineConfig(Map<String, dynamic> config) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionException('No engine initialized');
+      throw TranscriptionServiceException('No engine initialized');
     }
 
     try {
       await engine.updateConfig(config);
     } catch (e) {
-      throw TranscriptionException('Failed to update engine config: $e');
+      throw TranscriptionServiceException('Failed to update engine config: $e');
     }
   }
 
@@ -326,7 +332,7 @@ class TranscriptionService {
   }) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionException('No engine available for transcription');
+      throw TranscriptionServiceException('No engine available for transcription');
     }
 
     try {
@@ -338,10 +344,10 @@ class TranscriptionService {
         onSegment: onSegment,
         onProgress: onProgress,
       );
-
+      lastResult = result;
       return result.segments;
     } catch (e) {
-      throw TranscriptionException('Engine transcription failed: $e');
+      throw TranscriptionServiceException('Engine transcription failed: $e');
     }
   }
 
@@ -386,18 +392,22 @@ class EngineStatus {
   }
 }
 
-/// Transcription service exceptions
-class TranscriptionException implements Exception {
+/// Service-level transcription failure.
+///
+/// The per-engine [TranscriptionException] type from
+/// `transcription_engine.dart` wraps engine-originated errors; this one is
+/// thrown by the orchestrating service itself.
+class TranscriptionServiceException implements Exception {
   final String message;
   final dynamic originalError;
 
-  const TranscriptionException(this.message, [this.originalError]);
+  const TranscriptionServiceException(this.message, [this.originalError]);
 
   @override
   String toString() {
     if (originalError != null) {
-      return 'TranscriptionException: $message (caused by: $originalError)';
+      return 'TranscriptionServiceException: $message (caused by: $originalError)';
     }
-    return 'TranscriptionException: $message';
+    return 'TranscriptionServiceException: $message';
   }
 }

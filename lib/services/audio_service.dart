@@ -168,9 +168,11 @@ class AudioService {
     final samples = Float32List(audioData.length ~/ (bitsPerSample ~/ 8));
     
     if (bitsPerSample == 16) {
+      // Little-endian signed 16-bit PCM.
       for (int i = 0; i < samples.length; i++) {
-        final sample = audioData[i * 2] | (audioData[i * 2 + 1] << 8);
-        samples[i] = (sample - 32768) / 32768.0; // Convert to float
+        var raw = audioData[i * 2] | (audioData[i * 2 + 1] << 8);
+        if (raw >= 0x8000) raw -= 0x10000;
+        samples[i] = raw / 32768.0;
       }
     } else if (bitsPerSample == 32) {
       final byteData = ByteData.sublistView(Uint8List.fromList(audioData));

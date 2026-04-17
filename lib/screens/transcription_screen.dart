@@ -7,7 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../main.dart';
+import '../engines/engine_factory.dart';
+import '../engines/transcription_engine.dart';
 import '../services/transcription_service.dart';
+import '../utils/file_utils.dart';
 import '../widgets/audio_recorder_widget.dart';
 import '../widgets/transcription_output_widget.dart';
 import '../widgets/diarization_settings_widget.dart';
@@ -24,11 +27,48 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   String? _selectedFilePath;
   bool _showAdvancedOptions = false;
   bool _enableDiarization = false;
+  String _language = 'auto';
+  String _modelName = 'base';
+  bool _engineReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Kick off engine initialization after the first frame so the error
+    // dialog (if it occurs) has a context to attach to.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureEngineReady());
+  }
 
   @override
   void dispose() {
     _urlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _ensureEngineReady() async {
+    if (_engineReady) return;
+    final service = ref.read(transcriptionServiceProvider);
+    try {
+      final ok = await service.initialize(
+        preferredEngine: EngineFactory.getRecommendedEngine(),
+      );
+      // Try to load the chosen model; users can download it from /models if
+      // it's missing — loading will simply throw, which we report below.
+      if (ok) {
+        try {
+          await service.loadModel(_modelName);
+        } catch (_) {
+          // Non-fatal: transcription will fail with a clearer error later.
+        }
+      }
+      if (mounted) setState(() => _engineReady = ok);
+    } catch (e) {
+      if (mounted) {
+        ref.read(appStateProvider.notifier).setError(
+              'Engine init failed: $e',
+            );
+      }
+    }
   }
 
   @override
@@ -38,51 +78,102 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Susurrus'),
-        subtitle: const Text('Audio Transcription with Speaker Diarization'),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Susurrus'),
+            Text(
+              'Audio Transcription with Speaker Diarization',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'History',
+            onPressed: () => context.push('/history'),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
           IconButton(
             icon: const Icon(Icons.download),
+            tooltip: 'Models',
             onPressed: () => context.push('/models'),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Input Section
-          Expanded(
-            flex: 2,
-            child: _buildInputSection(),
-          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Narrow (mobile/portrait) layouts flow top-to-bottom with a scroll;
+          // wide layouts put input/controls on the left and output on the
+          // right so the output isn't crushed by a tall input section.
+          final wide = constraints.maxWidth >= 900;
+          final input = _buildInputSection();
+          final controls =
+              _buildControlsSection(appState, transcriptionService);
+          final output = _buildOutputSection(appState);
 
-          // Controls Section
-          _buildControlsSection(appState, transcriptionService),
-
-          // Output Section
-          Expanded(
-            flex: 3,
-            child: _buildOutputSection(appState),
-          ),
-        ],
+          if (wide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 420,
+                  child: Column(
+                    children: [
+                      Expanded(child: SingleChildScrollView(child: input)),
+                      controls,
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: output),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              Expanded(
+                flex: 2,
+                child: SingleChildScrollView(child: input),
+              ),
+              controls,
+              Expanded(flex: 3, child: output),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildInputSection() {
+    final recordedPath = ref.watch(selectedAudioPathProvider);
+    final displayPath = _selectedFilePath ?? recordedPath;
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Audio Input',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Text(
+                  'Audio Input',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const Spacer(),
+                if (!_engineReady)
+                  const _EngineStatusChip(ready: false)
+                else
+                  const _EngineStatusChip(ready: true),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -97,7 +188,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _selectedFilePath?.split('/').last ?? 'No file selected',
+                      displayPath?.split('/').last ?? 'No file selected',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -194,8 +285,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   DropdownMenuItem(value: 'ja', child: Text('Japanese')),
                   DropdownMenuItem(value: 'ko', child: Text('Korean')),
                 ],
-                value: 'auto',
-                onChanged: (value) {},
+                value: _language,
+                onChanged: (value) {
+                  if (value != null) setState(() => _language = value);
+                },
               ),
             ),
           ],
@@ -221,8 +314,25 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   DropdownMenuItem(value: 'medium', child: Text('Medium (high quality)')),
                   DropdownMenuItem(value: 'large', child: Text('Large (best quality)')),
                 ],
-                value: 'base',
-                onChanged: (value) {},
+                value: _modelName,
+                onChanged: (value) async {
+                  if (value == null || value == _modelName) return;
+                  setState(() => _modelName = value);
+                  try {
+                    await ref.read(transcriptionServiceProvider).loadModel(value);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Loaded $value')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Load failed: $e')),
+                      );
+                    }
+                  }
+                },
               ),
             ),
           ],
@@ -282,21 +392,49 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   value: 'share',
                   child: ListTile(
                     leading: Icon(Icons.share),
-                    title: Text('Share'),
+                    title: Text('Share plain text'),
+                    dense: true,
                   ),
                 ),
                 const PopupMenuItem(
                   value: 'copy',
                   child: ListTile(
                     leading: Icon(Icons.copy),
-                    title: Text('Copy to Clipboard'),
+                    title: Text('Copy to clipboard'),
+                    dense: true,
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'save_txt',
+                  child: ListTile(
+                    leading: Icon(Icons.description),
+                    title: Text('Save as .txt'),
+                    dense: true,
                   ),
                 ),
                 const PopupMenuItem(
-                  value: 'save',
+                  value: 'save_srt',
                   child: ListTile(
-                    leading: Icon(Icons.save),
-                    title: Text('Save to File'),
+                    leading: Icon(Icons.subtitles),
+                    title: Text('Save as .srt'),
+                    dense: true,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'save_vtt',
+                  child: ListTile(
+                    leading: Icon(Icons.closed_caption),
+                    title: Text('Save as .vtt'),
+                    dense: true,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'save_json',
+                  child: ListTile(
+                    leading: Icon(Icons.data_object),
+                    title: Text('Save as .json'),
+                    dense: true,
                   ),
                 ),
               ],
@@ -311,14 +449,15 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       margin: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: Row(
               children: [
                 Text(
                   'Transcription Output',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
                 if (appState.isTranscribing)
@@ -333,6 +472,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           // Progress Bar
           if (appState.isTranscribing)
             LinearProgressIndicator(value: appState.progress),
+
+          // Performance readout (once a run has completed)
+          if (!appState.isTranscribing && appState.performance != null)
+            _PerformanceCard(stats: appState.performance!),
 
           // Error Message
           if (appState.errorMessage != null)
@@ -373,44 +516,74 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       setState(() {
         _selectedFilePath = result.files.first.path;
       });
+      // Clear any previously-kept recording so the user's most recent
+      // explicit pick wins.
+      ref.read(selectedAudioPathProvider.notifier).state = null;
     }
   }
 
   Future<void> _startTranscription() async {
     final transcriptionService = ref.read(transcriptionServiceProvider);
     final appStateNotifier = ref.read(appStateProvider.notifier);
+    final recordedPath = ref.read(selectedAudioPathProvider);
+    final filePath = _selectedFilePath ?? recordedPath;
 
-    // Validate input
-    if (_selectedFilePath == null && _urlController.text.isEmpty) {
-      _showErrorDialog('Please select an audio file or enter a URL');
+    if (filePath == null && _urlController.text.isEmpty) {
+      _showErrorDialog('Please select an audio file, enter a URL, or make a recording.');
       return;
+    }
+
+    if (!_engineReady) {
+      await _ensureEngineReady();
     }
 
     try {
       appStateNotifier.startTranscription();
 
-      if (_selectedFilePath != null) {
-        await transcriptionService.transcribeFile(
-          File(_selectedFilePath!),
+      final started = DateTime.now();
+      List<TranscriptionSegment> segments = [];
+      final language = _language == 'auto' ? null : _language;
+
+      if (filePath != null) {
+        segments = await transcriptionService.transcribeFile(
+          File(filePath),
+          language: language,
           enableDiarization: _enableDiarization,
-          onProgress: (progress) {
-            appStateNotifier.updateProgress(progress);
-          },
-          onSegment: (segment) {
-            appStateNotifier.addSegment(segment);
-          },
+          onProgress: appStateNotifier.updateProgress,
+          onSegment: appStateNotifier.addSegment,
         );
-      } else if (_urlController.text.isNotEmpty) {
-        await transcriptionService.transcribeUrl(
+      } else {
+        segments = await transcriptionService.transcribeUrl(
           _urlController.text,
+          language: language,
           enableDiarization: _enableDiarization,
-          onProgress: (progress) {
-            appStateNotifier.updateProgress(progress);
-          },
-          onSegment: (segment) {
-            appStateNotifier.addSegment(segment);
-          },
+          onProgress: appStateNotifier.updateProgress,
+          onSegment: appStateNotifier.addSegment,
         );
+      }
+
+      final engine = transcriptionService.currentEngine;
+      final perf = PerformanceStats.fromMetadata(
+        transcriptionService.lastResult?.metadata,
+        engineId: engine?.engineId,
+        modelId: engine?.currentModelId,
+      );
+      appStateNotifier.completeTranscription(segments, performance: perf);
+
+      // Persist to history.
+      try {
+        await ref.read(historyServiceProvider).save(
+              engineId: engine?.engineId ?? 'unknown',
+              segments: segments,
+              sourcePath: filePath,
+              sourceUrl: filePath == null ? _urlController.text : null,
+              modelId: engine?.currentModelId ?? _modelName,
+              language: _language,
+              diarizationEnabled: _enableDiarization,
+              processingTime: DateTime.now().difference(started),
+            );
+      } catch (e, st) {
+        debugPrint('History save failed: $e\n$st');
       }
     } catch (e) {
       appStateNotifier.setError(e.toString());
@@ -441,12 +614,41 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           const SnackBar(content: Text('Copied to clipboard')),
         );
         break;
-      case 'save':
-        // TODO: Implement file save functionality
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Save functionality coming soon')),
-        );
+      case 'save_txt':
+        _saveAs(appState, TranscriptFormat.txt);
         break;
+      case 'save_srt':
+        _saveAs(appState, TranscriptFormat.srt);
+        break;
+      case 'save_vtt':
+        _saveAs(appState, TranscriptFormat.vtt);
+        break;
+      case 'save_json':
+        _saveAs(appState, TranscriptFormat.json);
+        break;
+    }
+  }
+
+  Future<void> _saveAs(AppState state, TranscriptFormat format) async {
+    try {
+      final baseName =
+          'transcription-${DateTime.now().millisecondsSinceEpoch}';
+      final file = await FileUtils.saveTranscription(
+        state.currentTranscription ?? '',
+        baseName,
+        format: format,
+        segments: state.segments,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved ${file.path}')),
+      );
+      await FileUtils.shareFile(file.path, subject: baseName);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: $e')),
+      );
     }
   }
 
@@ -462,6 +664,83 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             child: const Text('OK'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PerformanceCard extends StatelessWidget {
+  const _PerformanceCard({required this.stats});
+  final PerformanceStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final rtfGood = stats.rtf >= 1.0;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: rtfGood ? Colors.green.shade50 : Colors.orange.shade50,
+        border: Border.all(
+          color: rtfGood ? Colors.green.shade200 : Colors.orange.shade200,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DefaultTextStyle(
+        style: TextStyle(
+          fontSize: 12,
+          color: rtfGood ? Colors.green.shade900 : Colors.orange.shade900,
+        ),
+        child: Wrap(
+          spacing: 14,
+          runSpacing: 4,
+          children: [
+            _metric('RTF', '${stats.rtf.toStringAsFixed(2)}×',
+                rtfGood ? 'faster than real-time' : 'slower than real-time'),
+            _metric('Audio', '${stats.audioSeconds.toStringAsFixed(1)} s'),
+            _metric('Wall', '${stats.wallSeconds.toStringAsFixed(2)} s'),
+            _metric('Words', '${stats.wordCount}'),
+            _metric('WPS', stats.wordsPerSecond.toStringAsFixed(1)),
+            if (stats.engineId != null) _metric('Engine', stats.engineId!),
+            if (stats.modelId != null) _metric('Model', stats.modelId!),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metric(String key, String value, [String? hint]) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$key: ',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(value),
+        if (hint != null)
+          Text(' ($hint)',
+              style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 11)),
+      ],
+    );
+  }
+}
+
+class _EngineStatusChip extends StatelessWidget {
+  const _EngineStatusChip({required this.ready});
+  final bool ready;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      visualDensity: VisualDensity.compact,
+      backgroundColor:
+          ready ? Colors.green.shade100 : Colors.orange.shade100,
+      label: Text(
+        ready ? 'Engine ready' : 'Engine starting…',
+        style: TextStyle(
+          fontSize: 11,
+          color: ready ? Colors.green.shade900 : Colors.orange.shade900,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

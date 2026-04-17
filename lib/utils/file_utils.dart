@@ -5,7 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../main.dart'; // Import for TranscriptionSegment
+import '../engines/transcription_engine.dart';
 
 class FileUtils {
   static const String transcriptionsFolder = 'transcriptions';

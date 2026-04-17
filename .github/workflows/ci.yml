@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.38.5"
+  # Where we expect the sibling CrispASR checkout to live. The Dart pubspec
+  # references the Flutter package inside it at `../CrispASR/flutter/crispasr`.
+  CRISPASR_REPO: CrispStrobe/CrispASR
+  CRISPASR_REF: main
+
+jobs:
+  analyze-and-test:
+    name: Analyze + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Check out susurrus-flutter
+        uses: actions/checkout@v4
+        with:
+          path: repos/susurrus-flutter
+
+      - name: Check out sibling CrispASR (Dart FFI package)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        working-directory: repos/susurrus-flutter
+        run: flutter pub get
+
+      - name: Dart analyze (treat errors as failures only)
+        working-directory: repos/susurrus-flutter
+        # `flutter analyze` exits non-zero on infos/warnings too. We only want
+        # to fail on errors; infos/warnings are surfaced in the log.
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "::error::flutter analyze reported errors"
+            exit $status
+          fi
+
+      - name: Tests
+        working-directory: repos/susurrus-flutter
+        run: flutter test --reporter expanded
+
+  build-macos:
+    name: Build macOS (.app)
+    runs-on: macos-latest
+    needs: analyze-and-test
+    steps:
+      - name: Check out susurrus-flutter
+        uses: actions/checkout@v4
+        with:
+          path: repos/susurrus-flutter
+
+      - name: Check out sibling CrispASR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+          submodules: recursive
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build libwhisper.dylib
+        working-directory: repos/CrispASR
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
+          cmake --build build --config Release --parallel --target whisper
+          ls -lh build/src/libwhisper*.dylib
+
+      - name: Pub get
+        working-directory: repos/susurrus-flutter
+        run: flutter pub get
+
+      - name: Build macOS app (debug)
+        working-directory: repos/susurrus-flutter
+        run: flutter build macos --debug
+
+      - name: Bundle libwhisper into .app and ad-hoc sign
+        working-directory: repos/susurrus-flutter
+        run: |
+          APP=build/macos/Build/Products/Debug/susurrus_flutter.app
+          DYLIB=$(ls ../CrispASR/build/src/libwhisper.[0-9]*.dylib 2>/dev/null | head -1)
+          if [ -z "$DYLIB" ]; then
+            DYLIB=../CrispASR/build/src/libwhisper.dylib
+          fi
+          cp "$DYLIB" "$APP/Contents/Frameworks/libwhisper.dylib"
+          codesign --force --deep --sign - "$APP"
+          ls -lh "$APP/Contents/Frameworks/libwhisper.dylib"
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: susurrus_flutter-macos-debug
+          path: repos/susurrus-flutter/build/macos/Build/Products/Debug/susurrus_flutter.app
+          if-no-files-found: error
+          retention-days: 14
