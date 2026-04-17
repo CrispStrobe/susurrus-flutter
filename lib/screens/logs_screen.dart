@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../services/log_service.dart';
 
 class LogsScreen extends ConsumerStatefulWidget {
@@ -78,9 +79,10 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _visible;
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logs'),
+        title: Text(l.logsTitle),
         actions: [
           PopupMenuButton<LogLevel>(
             tooltip: 'Display level',
@@ -118,9 +120,9 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: TextField(
               controller: _filter,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Filter by message, tag, or error…',
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: l.logsFilterHint,
                 isDense: true,
               ),
               onChanged: (_) => setState(() {}),

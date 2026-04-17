@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 /// About / legal info screen — mirrors the layout used by our sibling
 /// CrispSorter app: service provider, contact, disclaimer, then the
 /// auto-aggregated open-source license list Flutter collects from every
@@ -13,24 +15,11 @@ class AboutScreen extends ConsumerWidget {
   static const _email = 'postmaster@crispstro.be';
   static const _phone = '+49 176 6421 8601';
 
-  static const _disclaimer =
-      'This software is provided "as is", without warranty of any kind, '
-      'express or implied, including but not limited to the warranties of '
-      'merchantability, fitness for a particular purpose and '
-      'noninfringement. In no event shall the authors be liable for any '
-      'claim, damages or other liability arising from, out of or in '
-      'connection with the software or its use.';
-
-  static const _privacy =
-      'Susurrus processes all audio locally on your device. No audio data, '
-      'transcripts, or recordings are sent to any server. Model downloads '
-      'fetch GGUF weights directly from HuggingFace over HTTPS; nothing else '
-      'leaves the device.';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('About Susurrus')),
+      appBar: AppBar(title: Text(l.settingsAboutSusurrus)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -38,12 +27,12 @@ class AboutScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           _SectionCard(
             icon: Icons.business,
-            label: 'Service Provider',
+            label: l.aboutServiceProvider,
             child: const Text(_providerJoin),
           ),
           _SectionCard(
             icon: Icons.alternate_email,
-            label: 'Contact',
+            label: l.aboutContact,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -67,28 +56,21 @@ class AboutScreen extends ConsumerWidget {
           ),
           _SectionCard(
             icon: Icons.privacy_tip_outlined,
-            label: 'Privacy',
-            child: const Text(_privacy),
+            label: l.aboutPrivacy,
+            child: Text(l.aboutPrivacyText),
           ),
           _SectionCard(
             icon: Icons.gavel,
-            label: 'Disclaimer',
-            child: const Text(_disclaimer),
+            label: l.aboutDisclaimer,
+            child: Text(l.aboutDisclaimerText),
           ),
           _SectionCard(
             icon: Icons.copyright,
-            label: 'License',
+            label: l.aboutLicense,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Susurrus is free software, licensed under the '
-                  'GNU Affero General Public License v3.0 (AGPL-3.0). '
-                  'You may redistribute and modify it under the terms of that '
-                  'license. In particular, if you run a modified version of '
-                  'Susurrus as a network service, you must make your source '
-                  'code available to its users.',
-                ),
+                Text(l.aboutLicenseText),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () => _open('https://www.gnu.org/licenses/agpl-3.0.html'),
@@ -106,7 +88,7 @@ class AboutScreen extends ConsumerWidget {
           const SizedBox(height: 4),
           OutlinedButton.icon(
             icon: const Icon(Icons.description_outlined),
-            label: const Text('Open-source licenses'),
+            label: Text(l.aboutOpenSourceLicenses),
             onPressed: () async {
               final info = await PackageInfo.fromPlatform();
               if (!context.mounted) return;

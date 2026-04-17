@@ -7,13 +7,17 @@ import 'whisper_cpp_engine.dart';
 import 'coreml_engine.dart';
 import 'crispasr_engine.dart';
 
-/// Available transcription engine types
+/// Available transcription engine types.
+///
+/// `Sherpa ONNX` was previously listed here but was never implemented; it's
+/// been removed to avoid advertising capabilities the app doesn't have. If
+/// we want ONNX-based ASR in the future, add it back here + create an
+/// `EngineFactory._creators` entry + a concrete `TranscriptionEngine` impl.
 enum EngineType {
   mock('mock', 'Mock Engine', 'Testing engine with simulated responses'),
   crispasr('crispasr', 'CrispASR (ggml)', 'On-device ASR via the CrispASR FFI runtime'),
   whisperCpp('whisper_cpp', 'Whisper.cpp', 'Cross-platform Whisper implementation (method channel)'),
-  coreML('coreml', 'CoreML Whisper', 'Apple CoreML optimized engine'),
-  sherpaOnnx('sherpa_onnx', 'Sherpa ONNX', 'ONNX-based speech recognition');
+  coreML('coreml', 'CoreML Whisper', 'Apple CoreML optimized engine');
 
   const EngineType(this.id, this.displayName, this.description);
   
@@ -29,7 +33,6 @@ class EngineFactory {
     EngineType.crispasr: () => CrispASREngine(),
     EngineType.whisperCpp: () => WhisperCppEngine(),
     EngineType.coreML: () => CoreMLEngine(),
-    // EngineType.sherpaOnnx: () => SherpaOnnxEngine(), // Future implementation
   };
 
   /// Create an engine instance

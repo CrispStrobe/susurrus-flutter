@@ -66,3 +66,9 @@ windows/flutter/ephemeral/
 
 # Claude / IDE session state
 .claude/
+
+# Prebuilt native libraries are produced by building CrispASR and are too
+# large / platform-specific to live in git. See README "Android / iOS".
+android/app/src/main/jniLibs/**/*.so
+ios/Runner/Frameworks/*.xcframework
+macos/Runner/Frameworks/libwhisper.dylib

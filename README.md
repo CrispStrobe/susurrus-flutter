@@ -10,13 +10,15 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 | --------------------------------- | --------------------------------------- |
 | CrispASR FFI engine (Whisper GGML)| ✅ Works                                 |
 | Mock engine (tests / demo)        | ✅ Works                                 |
-| Whisper.cpp method-channel engine | ⚠️ Stubs present; plugin not registered  |
+| Whisper.cpp method-channel engine | ⚠️ Redundant with CrispASR; left in matrix for plugin-only builds |
 | CoreML method-channel engine      | ⚠️ Same                                  |
-| Sherpa ONNX                       | ❌ Placeholder in enum only              |
-| macOS build                       | ✅ Verified via `flutter build macos`    |
-| Android build                     | ⚠️ APK builds; Mock engine only in CI    |
-| iOS build                         | ⚠️ Xcode project not regenerated yet     |
-| Linux / Windows                   | ⚠️ Scaffolded but unverified             |
+| Sherpa ONNX                       | ✅ Retired from enum (was placeholder only) |
+| macOS build                       | ✅ Verified via `flutter build macos`; dylib auto-detected from `Contents/Frameworks/` |
+| Linux build                       | ✅ CI job (`build-linux` on `ubuntu-latest`); local build blocked by host (macOS dev machine) |
+| Windows build                     | ⚠️ CMake targets present but no CI job yet |
+| iOS build                         | ⚠️ Xcode project regenerated; `pod install` blocked by stale `TensorFlowLiteSwift '~> 2.13.0'` pin in `ios/Podfile` — drop pin or refresh pod spec |
+| Android build                     | ⚠️ `libwhisper.so` is built + bundled under `android/app/src/main/jniLibs/arm64-v8a/`; Gradle now mixes legacy Groovy (`app/build.gradle`) with regenerated KTS (`settings.gradle.kts` / `app/build.gradle.kts`). Pick one and port the plugin registrations. |
+| i18n (en + de)                    | ✅ Scaffold via `flutter_localizations` + `lib/l10n/*.arb`; main screens migrated, widgets + older settings strings still hardcoded |
 | Model download + resume           | ✅                                       |
 | Quantized variants (q4_0/q5_0/q8_0)| ✅ from `cstr/whisper-ggml-quants`      |
 | Checksum skip toggle              | ✅ in Settings → Debugging               |
@@ -25,8 +27,9 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 | Performance readout (RTF, WPS)    | ✅                                       |
 | Logging + log viewer              | ✅                                       |
 | Inbound share (audio → app)       | ✅ Android intent filters + iOS doc types; macOS UTI open-in |
-| Streaming transcription           | ❌ CrispASR engine is batch-only         |
-| Real speaker diarization          | ⚠️ Pure-Dart MFCC + k-means fallback only|
+| Streaming transcription           | ❌ Blocked on upstream CrispASR Dart pkg — see `docs/crispasr-dart-gaps.md` |
+| Real speaker diarization          | ❌ Blocked on upstream CrispASR Dart pkg — current MFCC/k-means fallback is a stopgap |
+| Non-Whisper backends (Parakeet, Canary, Qwen3-ASR, Voxtral, …) | ❌ Blocked on upstream CrispASR Dart pkg backend dispatch |
 
 ## What's inside
 

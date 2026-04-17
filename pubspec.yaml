@@ -12,6 +12,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Localization runtime + Flutter's bundled Material / Cupertino / Widget
+  # delegates for the 80+ built-in locales.
+  flutter_localizations:
+    sdk: flutter
 
   # UI and state management
   cupertino_icons: ^1.0.6
@@ -47,7 +51,7 @@ dependencies:
   # Utility
   uuid: ^4.3.3
   shared_preferences: ^2.2.2
-  intl: ^0.19.0
+  intl: ">=0.19.0 <0.21.0"
 
   # Additional required dependencies
   share_plus: ^7.2.1
@@ -91,6 +95,8 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  # Codegen for ARB → Dart localizations. Configured via l10n.yaml.
+  generate: true
 
   assets:
     - assets/models/

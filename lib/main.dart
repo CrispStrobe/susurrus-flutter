@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
@@ -135,6 +137,12 @@ class _SusurrusAppState extends ConsumerState<SusurrusApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       routerConfig: _router,
+      // i18n: English (fallback) + German. Flutter picks the closest match
+      // to the system locale automatically.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      // Make the title locale-aware too.
+      onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appName,
     );
   }
 }

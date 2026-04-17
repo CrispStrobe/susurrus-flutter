@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../main.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../services/history_service.dart';
 import '../utils/file_utils.dart';
 
@@ -29,22 +30,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Future<void> _deleteAll() async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear all history?'),
-        content: const Text(
-          'Remove every saved transcription from this device. This cannot be undone.',
-        ),
+        title: Text(l.historyClearAll),
+        content: Text(l.historyClearAllPrompt),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l.cancel),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Clear all'),
+            child: Text(l.historyClearAll),
           ),
         ],
       ),
@@ -56,17 +56,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transcription History'),
+        title: Text(l.historyTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.historyRefresh,
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(_reload),
           ),
           IconButton(
-            tooltip: 'Clear all',
+            tooltip: l.historyClearAll,
             icon: const Icon(Icons.delete_sweep),
             onPressed: _deleteAll,
           ),
@@ -107,6 +108,7 @@ class _EmptyHistory extends StatelessWidget {
   const _EmptyHistory();
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -114,12 +116,12 @@ class _EmptyHistory extends StatelessWidget {
           Icon(Icons.history, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(
-            'No transcriptions yet',
+            l.historyEmpty,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            'Run a transcription and it will show up here.',
+            l.historyEmptyHint,
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium

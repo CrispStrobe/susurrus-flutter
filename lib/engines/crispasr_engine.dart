@@ -106,12 +106,18 @@ class CrispASREngine implements TranscriptionEngine {
         '/usr/local/lib/libwhisper.dylib',
       ]);
     } else if (Platform.isLinux) {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
       candidates.addAll([
+        // Flutter bundles native libs under `bundle/lib/` next to the binary.
+        '$exeDir/lib/libwhisper.so',
+        '$exeDir/libwhisper.so',
         '${Platform.environment['HOME']}/code/CrispASR/build/src/libwhisper.so',
         '/usr/local/lib/libwhisper.so',
       ]);
     } else if (Platform.isWindows) {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
       candidates.addAll([
+        '$exeDir\\whisper.dll',
         '${Platform.environment['USERPROFILE']}\\code\\CrispASR\\build\\src\\whisper.dll',
       ]);
     }

@@ -1,0 +1,11 @@
+# Config for `flutter gen-l10n` — invoked automatically by the build when
+# `flutter.generate: true` is set in pubspec.yaml.
+# Flutter's synthetic-package mode was removed; generate into the project
+# source tree instead.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+synthetic-package: false
+nullable-getter: false

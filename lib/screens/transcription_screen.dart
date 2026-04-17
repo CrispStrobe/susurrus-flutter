@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../main.dart';
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../services/transcription_service.dart';
 import '../utils/file_utils.dart';
 import '../widgets/audio_recorder_widget.dart';
@@ -75,34 +76,35 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Widget build(BuildContext context) {
     final appState = ref.watch(appStateProvider);
     final transcriptionService = ref.watch(transcriptionServiceProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Susurrus'),
+            Text(l.appName),
             Text(
-              'Audio Transcription with Speaker Diarization',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+              l.appTagline,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'History',
+            tooltip: l.menuHistory,
             onPressed: () => context.push('/history'),
           ),
           IconButton(
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l.menuSettings,
             onPressed: () => context.push('/settings'),
           ),
           IconButton(
             icon: const Icon(Icons.download),
-            tooltip: 'Models',
+            tooltip: l.menuModels,
             onPressed: () => context.push('/models'),
           ),
         ],
@@ -152,6 +154,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Widget _buildInputSection() {
+    final l = AppLocalizations.of(context);
     final recordedPath = ref.watch(selectedAudioPathProvider);
     final displayPath = _selectedFilePath ?? recordedPath;
     return Card(
@@ -165,14 +168,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             Row(
               children: [
                 Text(
-                  'Audio Input',
+                  l.audioInput,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const Spacer(),
-                if (!_engineReady)
-                  const _EngineStatusChip(ready: false)
-                else
-                  const _EngineStatusChip(ready: true),
+                _EngineStatusChip(ready: _engineReady),
               ],
             ),
             const SizedBox(height: 16),
@@ -188,7 +188,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      displayPath?.split('/').last ?? 'No file selected',
+                      displayPath?.split('/').last ?? l.noFileSelected,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -196,7 +196,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.folder_open),
-                  label: const Text('Browse'),
+                  label: Text(l.browse),
                   onPressed: _selectAudioFile,
                 ),
               ],
@@ -207,11 +207,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             // URL Input
             TextField(
               controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Or enter audio URL',
-                hintText: 'https://example.com/audio.mp3',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.link),
+              decoration: InputDecoration(
+                labelText: l.urlInputLabel,
+                hintText: l.urlInputHint,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.link),
               ),
             ),
 
@@ -228,7 +228,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 ? Icons.expand_less
                 : Icons.expand_more
               ),
-              label: const Text('Advanced Options'),
+              label: Text(l.advancedOptions),
               onPressed: () {
                 setState(() {
                   _showAdvancedOptions = !_showAdvancedOptions;
@@ -342,6 +342,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Widget _buildControlsSection(AppState appState, TranscriptionService transcriptionService) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -356,7 +357,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.play_arrow),
-            label: Text(appState.isTranscribing ? 'Transcribing...' : 'Transcribe'),
+            label: Text(appState.isTranscribing ? l.transcribing : l.transcribe),
             onPressed: appState.isTranscribing ? null : _startTranscription,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -367,7 +368,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           if (appState.isTranscribing)
             ElevatedButton.icon(
               icon: const Icon(Icons.stop),
-              label: const Text('Stop'),
+              label: Text(l.stop),
               onPressed: _stopTranscription,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -378,7 +379,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           // Clear Button
           ElevatedButton.icon(
             icon: const Icon(Icons.clear),
-            label: const Text('Clear'),
+            label: Text(l.clear),
             onPressed: appState.segments.isNotEmpty ? _clearTranscription : null,
           ),
 
@@ -445,6 +446,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Widget _buildOutputSection(AppState appState) {
+    final l = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.all(16),
       child: Column(
@@ -456,7 +458,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             child: Row(
               children: [
                 Text(
-                  'Transcription Output',
+                  l.transcriptionOutput,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
@@ -730,12 +732,13 @@ class _EngineStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Chip(
       visualDensity: VisualDensity.compact,
       backgroundColor:
           ready ? Colors.green.shade100 : Colors.orange.shade100,
       label: Text(
-        ready ? 'Engine ready' : 'Engine starting…',
+        ready ? l.engineReady : l.engineStarting,
         style: TextStyle(
           fontSize: 11,
           color: ready ? Colors.green.shade900 : Colors.orange.shade900,
