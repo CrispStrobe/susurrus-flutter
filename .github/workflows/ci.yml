@@ -28,10 +28,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - name: Check out susurrus-flutter
+      - name: Check out CrisperWeaver
         uses: actions/checkout@v4
         with:
-          path: repos/susurrus-flutter
+          path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR (Dart FFI package)
         uses: actions/checkout@v4
@@ -48,11 +48,11 @@ jobs:
           cache: true
 
       - name: Pub get
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter pub get
 
       - name: Dart analyze (treat errors as failures only)
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         # `flutter analyze` exits non-zero on infos/warnings too. We only want
         # to fail on errors; infos/warnings are surfaced in the log.
         run: |
@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Tests
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter test --reporter expanded
 
   build-macos:
@@ -73,10 +73,10 @@ jobs:
     runs-on: macos-latest
     needs: analyze-and-test
     steps:
-      - name: Check out susurrus-flutter
+      - name: Check out CrisperWeaver
         uses: actions/checkout@v4
         with:
-          path: repos/susurrus-flutter
+          path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR
         uses: actions/checkout@v4
@@ -102,25 +102,25 @@ jobs:
           ls -lh build/src/libwhisper*.dylib
 
       - name: Pub get
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter pub get
 
       - name: Build macOS app (debug)
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter build macos --debug
 
       - name: Bundle all CrispASR dylibs + ad-hoc sign
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: |
           CRISPASR_DIR="$GITHUB_WORKSPACE/repos/CrispASR" \
-            APP=build/macos/Build/Products/Debug/susurrus_flutter.app \
+            APP=build/macos/Build/Products/Debug/crisper_weaver.app \
             ./scripts/bundle_macos_dylibs.sh
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: susurrus_flutter-macos-debug
-          path: repos/susurrus-flutter/build/macos/Build/Products/Debug/susurrus_flutter.app
+          name: crisper_weaver-macos-debug
+          path: repos/CrisperWeaver/build/macos/Build/Products/Debug/crisper_weaver.app
           if-no-files-found: error
           retention-days: 14
 
@@ -129,10 +129,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: analyze-and-test
     steps:
-      - name: Check out susurrus-flutter
+      - name: Check out CrisperWeaver
         uses: actions/checkout@v4
         with:
-          path: repos/susurrus-flutter
+          path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR
         uses: actions/checkout@v4
@@ -165,17 +165,17 @@ jobs:
           ls -lh build/src/libwhisper*.so*
 
       - name: Enable linux desktop + pub get
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: |
           flutter config --enable-linux-desktop
           flutter pub get
 
       - name: Build Linux (debug)
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter build linux --debug
 
       - name: Bundle all CrispASR .so's into bundle/lib/
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: |
           BUNDLE=build/linux/x64/debug/bundle
           mkdir -p "$BUNDLE/lib"
@@ -203,7 +203,7 @@ jobs:
       - name: Upload Linux bundle
         uses: actions/upload-artifact@v4
         with:
-          name: susurrus_flutter-linux-debug
-          path: repos/susurrus-flutter/build/linux/x64/debug/bundle
+          name: crisper_weaver-linux-debug
+          path: repos/CrisperWeaver/build/linux/x64/debug/bundle
           if-no-files-found: error
           retention-days: 14

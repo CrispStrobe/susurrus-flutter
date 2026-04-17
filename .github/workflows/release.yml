@@ -26,10 +26,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Check out susurrus-flutter
+      - name: Check out CrisperWeaver
         uses: actions/checkout@v4
         with:
-          path: repos/susurrus-flutter
+          path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
@@ -56,33 +56,33 @@ jobs:
           ls -lh build/src/libwhisper*.dylib
 
       - name: Pub get
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter pub get
 
       - name: Build macOS (Release)
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter build macos --release
 
       - name: Bundle all CrispASR dylibs + ad-hoc sign
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: |
           CRISPASR_DIR="$GITHUB_WORKSPACE/repos/CrispASR" \
-            APP=build/macos/Build/Products/Release/susurrus_flutter.app \
+            APP=build/macos/Build/Products/Release/crisper_weaver.app \
             ./scripts/bundle_macos_dylibs.sh
 
       - name: Zip .app
-        working-directory: repos/susurrus-flutter/build/macos/Build/Products/Release
+        working-directory: repos/CrisperWeaver/build/macos/Build/Products/Release
         run: |
-          ditto -c -k --keepParent susurrus_flutter.app susurrus_flutter-macos.zip
-          shasum -a 256 susurrus_flutter-macos.zip | tee susurrus_flutter-macos.zip.sha256
+          ditto -c -k --keepParent crisper_weaver.app crisper_weaver-macos.zip
+          shasum -a 256 crisper_weaver-macos.zip | tee crisper_weaver-macos.zip.sha256
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
-            repos/susurrus-flutter/build/macos/Build/Products/Release/susurrus_flutter-macos.zip
-            repos/susurrus-flutter/build/macos/Build/Products/Release/susurrus_flutter-macos.zip.sha256
+            repos/CrisperWeaver/build/macos/Build/Products/Release/crisper_weaver-macos.zip
+            repos/CrisperWeaver/build/macos/Build/Products/Release/crisper_weaver-macos.zip.sha256
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
@@ -93,10 +93,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Check out susurrus-flutter
+      - name: Check out CrisperWeaver
         uses: actions/checkout@v4
         with:
-          path: repos/susurrus-flutter
+          path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR (Dart package only)
@@ -120,7 +120,7 @@ jobs:
           cache: true
 
       - name: Pub get
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter pub get
 
       # NOTE: This build produces an APK that runs with the Mock engine
@@ -128,14 +128,14 @@ jobs:
       # `CrispASR/build-android.sh` and bundled through jniLibs. See the
       # README for the manual steps; we skip it here to keep CI fast.
       - name: Build APK (release, unsigned)
-        working-directory: repos/susurrus-flutter
+        working-directory: repos/CrisperWeaver
         run: flutter build apk --release
 
       - name: Upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          files: repos/susurrus-flutter/build/app/outputs/flutter-apk/app-release.apk
+          files: repos/CrisperWeaver/build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
