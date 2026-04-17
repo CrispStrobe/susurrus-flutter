@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crispasr/crispasr.dart' as crispasr;
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
+
+import 'log_service.dart';
 
 class AudioService {
   final AudioRecorder _recorder = AudioRecorder();
@@ -98,31 +101,60 @@ class AudioService {
     }
   }
   
-  /// Convert audio file to WAV format using native processing
+  /// Convert an arbitrary audio file to mono 16 kHz float32 PCM.
+  ///
+  /// Tiered approach, fastest-first:
+  ///   1. **CrispASR FFI decoder** — `crispasr_audio_load`, shipped inside
+  ///      libcrispasr. Handles WAV / MP3 / FLAC with internal resample
+  ///      + down-mix. Cross-platform everywhere libwhisper runs.
+  ///   2. **Legacy iOS/macOS method channel** — only if the FFI decoder
+  ///      isn't in the bundled library (pre-0.4.1 CrispASR).
+  ///   3. **Pure-Dart WAV parser** — last-resort for .wav files.
   Future<WavData> _convertToWav(File audioFile) async {
+    // 1. FFI decoder. Runs on any platform that loaded libcrispasr.
     try {
-      // Use method channel to call native audio processing
+      final decoded = crispasr.decodeAudioFile(audioFile.path);
+      Log.instance.d('audio',
+          'Decoded ${path.basename(audioFile.path)} via FFI: '
+          '${decoded.samples.length} samples @${decoded.sampleRate} Hz');
+      return WavData(
+        samples: decoded.samples,
+        sampleRate: decoded.sampleRate,
+        channels: 1,
+      );
+    } on UnsupportedError catch (e) {
+      // FFI binding missing — older dylib. Fall through to tier 2.
+      Log.instance.w('audio', 'FFI decoder not available: $e');
+    } catch (e, st) {
+      // Decoder present but the file failed to load — could be an unsupported
+      // container (Ogg Vorbis) or a corrupt file. Fall back to legacy path.
+      Log.instance.w('audio',
+          'FFI decoder rejected ${audioFile.path}; trying fallbacks',
+          error: e, stack: st);
+    }
+
+    // 2. Legacy method channel (iOS/macOS only).
+    try {
       const platform = MethodChannel('com.susurrus.audio_processing');
-      
       final result = await platform.invokeMethod('convertToWav', {
         'filePath': audioFile.path,
         'sampleRate': 16000,
         'channels': 1,
       });
-      
       final samples = Float32List.fromList(
-        (result['samples'] as List<dynamic>).cast<double>()
+        (result['samples'] as List).cast<double>(),
       );
-      
       return WavData(
         samples: samples,
         sampleRate: result['sampleRate'] as int,
         channels: result['channels'] as int,
       );
-    } catch (e) {
-      // Fallback: basic WAV processing
-      return await _basicWavProcessing(audioFile);
+    } catch (_) {
+      // Method channel missing / rejected — fall through.
     }
+
+    // 3. Pure-Dart WAV header parser. Only succeeds for actual .wav files.
+    return await _basicWavProcessing(audioFile);
   }
   
   /// Basic WAV file processing fallback

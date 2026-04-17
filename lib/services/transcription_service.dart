@@ -75,8 +75,8 @@ class TranscriptionService {
     bool enableWordTimestamps = false,
     int? minSpeakers,
     int? maxSpeakers,
-    Function(double progress)? onProgress,
-    Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
+    void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
       throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
@@ -140,8 +140,8 @@ class TranscriptionService {
     bool enableWordTimestamps = false,
     int? minSpeakers,
     int? maxSpeakers,
-    Function(double progress)? onProgress,
-    Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
+    void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
       throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
@@ -238,7 +238,7 @@ class TranscriptionService {
   }
 
   /// Load a specific model for the current engine
-  Future<bool> loadModel(String modelId, {Function(double progress)? onProgress}) async {
+  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress}) async {
     final engine = currentEngine;
     if (engine == null) {
       throw TranscriptionServiceException('No engine initialized');
@@ -327,8 +327,8 @@ class TranscriptionService {
     Float32List audioSamples, {
     String? language,
     bool enableWordTimestamps = false,
-    Function(double progress)? onProgress,
-    Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
+    void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     final engine = currentEngine;
     if (engine == null) {

@@ -63,16 +63,12 @@ jobs:
         working-directory: repos/susurrus-flutter
         run: flutter build macos --release
 
-      - name: Bundle dylib + ad-hoc sign
+      - name: Bundle all CrispASR dylibs + ad-hoc sign
         working-directory: repos/susurrus-flutter
         run: |
-          APP=build/macos/Build/Products/Release/susurrus_flutter.app
-          DYLIB=$(ls ../CrispASR/build/src/libwhisper.[0-9]*.dylib 2>/dev/null | head -1)
-          if [ -z "$DYLIB" ]; then
-            DYLIB=../CrispASR/build/src/libwhisper.dylib
-          fi
-          cp "$DYLIB" "$APP/Contents/Frameworks/libwhisper.dylib"
-          codesign --force --deep --sign - "$APP"
+          CRISPASR_DIR="$GITHUB_WORKSPACE/repos/CrispASR" \
+            APP=build/macos/Build/Products/Release/susurrus_flutter.app \
+            ./scripts/bundle_macos_dylibs.sh
 
       - name: Zip .app
         working-directory: repos/susurrus-flutter/build/macos/Build/Products/Release

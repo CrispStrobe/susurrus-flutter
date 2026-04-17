@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../utils/audio_utils.dart';
 
 import '../main.dart';
 import '../engines/engine_factory.dart';
@@ -31,6 +34,15 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   String _language = 'auto';
   String _modelName = 'base';
   bool _engineReady = false;
+  // Memoized init future — the first `_ensureEngineReady()` call kicks it
+  // off and any subsequent callers await the same future rather than
+  // racing a second init through the service. Without this, tapping
+  // "Transcribe" while the first-frame post-callback is still running
+  // could spawn a parallel init.
+  Future<bool>? _initFuture;
+  // Drop-target state — true while a compatible file is hovering over
+  // the window so we can paint a tinted overlay.
+  bool _dropHover = false;
 
   @override
   void initState() {
@@ -48,28 +60,33 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
   Future<void> _ensureEngineReady() async {
     if (_engineReady) return;
-    final service = ref.read(transcriptionServiceProvider);
+    _initFuture ??= _doInitialize();
     try {
-      final ok = await service.initialize(
-        preferredEngine: EngineFactory.getRecommendedEngine(),
-      );
-      // Try to load the chosen model; users can download it from /models if
-      // it's missing — loading will simply throw, which we report below.
-      if (ok) {
-        try {
-          await service.loadModel(_modelName);
-        } catch (_) {
-          // Non-fatal: transcription will fail with a clearer error later.
-        }
-      }
-      if (mounted) setState(() => _engineReady = ok);
+      await _initFuture;
     } catch (e) {
       if (mounted) {
-        ref.read(appStateProvider.notifier).setError(
-              'Engine init failed: $e',
-            );
+        ref.read(appStateProvider.notifier).setError('Engine init failed: $e');
       }
     }
+  }
+
+  Future<bool> _doInitialize() async {
+    final service = ref.read(transcriptionServiceProvider);
+    final ok = await service.initialize(
+      preferredEngine: EngineFactory.getRecommendedEngine(),
+    );
+    if (ok) {
+      // Try to load the chosen model; users can download it from /models
+      // if it's missing — loading will simply throw, which we report
+      // lazily at transcribe-time.
+      try {
+        await service.loadModel(_modelName);
+      } catch (_) {
+        // Non-fatal — the transcribe call will surface a clearer error.
+      }
+    }
+    if (mounted) setState(() => _engineReady = ok);
+    return ok;
   }
 
   @override
@@ -109,8 +126,75 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
+      body: DropTarget(
+        onDragEntered: (_) => setState(() => _dropHover = true),
+        onDragExited: (_) => setState(() => _dropHover = false),
+        onDragDone: _onFilesDropped,
+        child: Stack(children: [_buildBody(), if (_dropHover) _buildDropOverlay()]),
+      ),
+    );
+  }
+
+  /// Called when the OS hands us one or more files dropped on the window.
+  void _onFilesDropped(DropDoneDetails details) {
+    setState(() => _dropHover = false);
+    if (details.files.isEmpty) return;
+
+    // Prefer the first file whose extension is an audio format we can
+    // plausibly decode. If none match, fall back to the first file and
+    // let the audio decoder produce a clear error.
+    final first = details.files.firstWhere(
+      (f) => AudioUtils.isSupportedAudioFile(f.path),
+      orElse: () => details.files.first,
+    );
+    if (!AudioUtils.isSupportedAudioFile(first.path)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported file type: ${first.name}')),
+      );
+      return;
+    }
+
+    setState(() => _selectedFilePath = first.path);
+    ref.read(selectedAudioPathProvider.notifier).state = null;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Loaded ${first.name}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Tinted overlay shown while a file is hovering over the window. The
+  /// actual drop handling is on the outer DropTarget — this is purely
+  /// visual feedback.
+  Widget _buildDropOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Drop audio file to transcribe',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    final appState = ref.watch(appStateProvider);
+    final transcriptionService = ref.watch(transcriptionServiceProvider);
+    return LayoutBuilder(
+      builder: (context, constraints) {
           // Narrow (mobile/portrait) layouts flow top-to-bottom with a scroll;
           // wide layouts put input/controls on the left and output on the
           // right so the output isn't crushed by a tall input section.
@@ -149,7 +233,6 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             ],
           );
         },
-      ),
     );
   }
 

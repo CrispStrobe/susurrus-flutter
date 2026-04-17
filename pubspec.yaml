@@ -76,6 +76,11 @@ dependencies:
   # sheet (Android) or document picker (iOS/macOS).
   receive_sharing_intent: ^1.8.0
 
+  # Drop target — desktop drag-and-drop of audio files onto the app
+  # window. macOS / Windows / Linux are fully supported; mobile is a
+  # no-op (DnD across apps isn't a thing on iOS/Android).
+  desktop_drop: ^0.4.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

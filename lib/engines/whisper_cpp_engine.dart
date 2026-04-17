@@ -235,7 +235,7 @@ class WhisperCppEngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
-    Function(TranscriptionSegment segment)? onSegment,
+    void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
     if (!_isInitialized) {
@@ -352,29 +352,32 @@ class WhisperCppEngine implements TranscriptionEngine {
 
   Future<List<TranscriptionSegment>> _parseNativeResult(
     dynamic result,
-    Function(TranscriptionSegment segment)? onSegment,
+    void Function(TranscriptionSegment segment)? onSegment,
   ) async {
     final segments = <TranscriptionSegment>[];
+    if (result is! List) return segments;
 
-    if (result is List) {
-      for (int i = 0; i < result.length; i++) {
-        final segmentData = result[i] as Map<dynamic, dynamic>;
-        
-        final segment = TranscriptionSegment(
-          text: segmentData['text'] as String? ?? '',
-          startTime: (segmentData['startTime'] as num?)?.toDouble() ?? 0.0,
-          endTime: (segmentData['endTime'] as num?)?.toDouble() ?? 0.0,
-          confidence: (segmentData['confidence'] as num?)?.toDouble() ?? 0.9,
-          metadata: {
-            'engine': engineId,
-            'model': _currentModelId,
-            'segmentIndex': i,
-          },
-        );
+    for (int i = 0; i < result.length; i++) {
+      // Defensive: a misbehaving native plugin could hand back nulls or
+      // strings. Skip the entry rather than throwing `CastError` and
+      // hiding the real problem from the log.
+      final raw = result[i];
+      if (raw is! Map) continue;
 
-        segments.add(segment);
-        onSegment?.call(segment);
-      }
+      final segment = TranscriptionSegment(
+        text: raw['text'] as String? ?? '',
+        startTime: (raw['startTime'] as num?)?.toDouble() ?? 0.0,
+        endTime: (raw['endTime'] as num?)?.toDouble() ?? 0.0,
+        confidence: (raw['confidence'] as num?)?.toDouble() ?? 0.9,
+        metadata: {
+          'engine': engineId,
+          'model': _currentModelId,
+          'segmentIndex': i,
+        },
+      );
+
+      segments.add(segment);
+      onSegment?.call(segment);
     }
 
     return segments;

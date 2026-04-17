@@ -16,7 +16,7 @@ class DiarizationService {
     List<TranscriptionSegment> segments, {
     int? minSpeakers,
     int? maxSpeakers,
-    Function(double progress)? onProgress,
+    void Function(double progress)? onProgress,
   }) async {
     if (segments.isEmpty) return segments;
 
@@ -70,7 +70,7 @@ class DiarizationService {
   Future<List<List<double>>> _extractSegmentEmbeddings(
     Float32List audioSamples,
     List<TranscriptionSegment> segments, {
-    Function(double progress)? onProgress,
+    void Function(double progress)? onProgress,
   }) async {
     final embeddings = <List<double>>[];
 

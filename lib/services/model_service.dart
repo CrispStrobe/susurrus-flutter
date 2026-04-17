@@ -569,8 +569,8 @@ class ModelService {
   /// Download a Whisper.cpp model with comprehensive error handling
   Future<bool> downloadWhisperCppModel(
     String modelName, {
-    Function(double progress)? onProgress,
-    Function(String status)? onStatusChange,
+    void Function(double progress)? onProgress,
+    void Function(String status)? onStatusChange,
   }) async {
     await initialize();
 
@@ -675,8 +675,8 @@ class ModelService {
   /// Download a CoreML model (iOS only)
   Future<bool> downloadCoreMLModel(
     String modelName, {
-    Function(double progress)? onProgress,
-    Function(String status)? onStatusChange,
+    void Function(double progress)? onProgress,
+    void Function(String status)? onStatusChange,
   }) async {
     if (!Platform.isIOS) {
       throw ModelException('CoreML models are only available on iOS');
@@ -757,8 +757,8 @@ class ModelService {
     String url,
     String savePath, {
     required int expectedSize,
-    Function(double progress)? onProgress,
-    Function(String status)? onStatusChange,
+    void Function(double progress)? onProgress,
+    void Function(String status)? onStatusChange,
     CancelToken? cancelToken,
   }) async {
     final file = File(savePath);

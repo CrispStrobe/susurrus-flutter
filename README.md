@@ -27,6 +27,8 @@ A Flutter app for fully-offline audio transcription. Bring an audio file, paste 
 | Performance readout (RTF, WPS)    | ✅                                       |
 | Logging + log viewer              | ✅                                       |
 | Inbound share (audio → app)       | ✅ Android intent filters + iOS doc types; macOS UTI open-in |
+| Desktop drag-and-drop of files    | ✅ `desktop_drop` on transcription screen (macOS / Windows / Linux) |
+| Audio decoding (WAV / MP3 / FLAC) | ✅ via `crispasr_audio_load` FFI (miniaudio inside libcrispasr) — no ffmpeg dep |
 | Word-level timestamps             | ✅ via CrispASR 0.2.0 helpers — `whisper_full_get_token_data` wrapper + `token_timestamps=true` through new param setters |
 | Language auto-detection (standalone) | ✅ via CrispASR 0.2.0 `crispasr_detect_language` (mel + encode + `whisper_lang_auto_detect`) |
 | VAD (Silero) Dart binding         | ✅ via CrispASR 0.2.0 `crispasr_vad_segments` — needs a separate VAD GGML model bundled or downloaded |
