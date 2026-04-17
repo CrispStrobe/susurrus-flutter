@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -35,7 +36,7 @@ class CrispASREngine implements TranscriptionEngine {
   String get version => '0.1.0';
 
   @override
-  bool get supportsStreaming => false;
+  bool get supportsStreaming => _model?.supportsStreaming ?? false;
 
   @override
   bool get supportsLanguageDetection => true;
@@ -417,7 +418,84 @@ class CrispASREngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
   }) {
-    return null;
+    if (_model == null || !_model!.supportsStreaming) return null;
+
+    final session = _model!.openStream(
+      language: (language == null || language == 'auto') ? null : language,
+      stepMs: 3000,
+      lengthMs: 10000,
+      keepMs: 200,
+      nThreads: 4,
+    );
+    Log.instance.i('crispasr', 'Streaming session opened');
+
+    final controller = StreamController<TranscriptionSegment>(
+      onCancel: () {
+        if (!session.isClosed) {
+          final last = session.flush();
+          if (last != null) Log.instance.d('crispasr', 'Stream flush: ${last.text.length} chars');
+          session.close();
+        }
+        Log.instance.i('crispasr', 'Streaming session closed');
+      },
+    );
+
+    // Subscribe to the incoming PCM, run feed() on the caller's audio
+    // thread, and forward each commit as a TranscriptionSegment. We
+    // synthesize a synthetic index so downstream UI can tell consecutive
+    // commits apart even though the text grows monotonically.
+    audioStream.listen(
+      (chunk) {
+        if (controller.isClosed || session.isClosed) return;
+        try {
+          final update = session.feed(chunk);
+          if (update != null && update.text.isNotEmpty) {
+            controller.add(TranscriptionSegment(
+              text: update.text.trim(),
+              startTime: update.start,
+              endTime: update.end,
+              confidence: 1.0,
+              metadata: {
+                'engine': engineId,
+                'streaming': true,
+                'decodeCounter': update.counter,
+              },
+            ));
+          }
+        } catch (e, st) {
+          Log.instance.w('crispasr', 'stream.feed failed', error: e, stack: st);
+          controller.addError(e, st);
+        }
+      },
+      onDone: () {
+        // Drain any final partial before closing.
+        try {
+          final last = session.flush();
+          if (last != null && last.text.isNotEmpty) {
+            controller.add(TranscriptionSegment(
+              text: last.text.trim(),
+              startTime: last.start,
+              endTime: last.end,
+              confidence: 1.0,
+              metadata: {
+                'engine': engineId,
+                'streaming': true,
+                'final': true,
+                'decodeCounter': last.counter,
+              },
+            ));
+          }
+        } catch (_) {
+          // Flush failures at stream end are not worth surfacing.
+        }
+        session.close();
+        controller.close();
+      },
+      onError: controller.addError,
+      cancelOnError: false,
+    );
+
+    return controller.stream;
   }
 
   @override
