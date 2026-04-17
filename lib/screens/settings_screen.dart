@@ -1,16 +1,15 @@
-// lib/screens/settings_screen.dart (FIXED)
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:go_router/go_router.dart';
 
-import '../engines/engine_factory.dart'; // Use EngineType instead of TranscriptionBackend
-import '../native/coreml_whisper.dart';
+import '../engines/engine_factory.dart';
 import '../main.dart';
 import '../services/log_service.dart';
-import 'package:go_router/go_router.dart';
+import '../services/model_service.dart';
+import '../services/settings_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -20,99 +19,34 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  late SharedPreferences _prefs;
-  bool _isLoading = true;
-
-  // Settings values
-  EngineType _preferredEngine = EngineType.mock; // Use EngineType
-  String _defaultModel = 'base';
-  String _defaultLanguage = 'auto';
-  bool _autoDetectLanguage = true;
-  bool _enableWordTimestamps = false;
-  bool _keepAudioFiles = false;
-  double _audioQuality = 0.8;
-  bool _enableDiarizationByDefault = false;
-
-  // Debug / developer settings
-  LogLevel _logLevel = Log.instance.minLevel;
-  bool _logToFile = false;
-  bool _skipChecksum = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    _prefs = await SharedPreferences.getInstance();
-
-    setState(() {
-      // Load engine type by name
-      final engineName = _prefs.getString('preferred_engine') ?? 'mock';
-      _preferredEngine = EngineType.values.firstWhere(
-        (e) => e.id == engineName,
-        orElse: () => EngineType.mock,
-      );
-      
-      _defaultModel = _prefs.getString('default_model') ?? 'base';
-      _defaultLanguage = _prefs.getString('default_language') ?? 'auto';
-      _autoDetectLanguage = _prefs.getBool('auto_detect_language') ?? true;
-      _enableWordTimestamps = _prefs.getBool('enable_word_timestamps') ?? false;
-      _keepAudioFiles = _prefs.getBool('keep_audio_files') ?? false;
-      _audioQuality = _prefs.getDouble('audio_quality') ?? 0.8;
-      _enableDiarizationByDefault = _prefs.getBool('enable_diarization_by_default') ?? false;
-
-      // Debug / advanced
-      final storedLogLevel = _prefs.getString('log_level');
-      if (storedLogLevel != null) {
-        _logLevel = LogLevel.values.firstWhere(
-          (l) => l.name == storedLogLevel,
-          orElse: () => Log.instance.minLevel,
-        );
-        Log.instance.setMinLevel(_logLevel);
-      }
-      _logToFile = _prefs.getBool('log_to_file') ?? false;
-      if (_logToFile) {
-        // Fire-and-forget: enabling the sink is async but safe to kick off.
-        Log.instance.enableFileSink(true);
-      }
-      _skipChecksum = _prefs.getBool('skip_checksum') ?? false;
-
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _saveSetting<T>(String key, T value) async {
-    if (value is bool) {
-      await _prefs.setBool(key, value);
-    } else if (value is int) {
-      await _prefs.setInt(key, value);
-    } else if (value is double) {
-      await _prefs.setDouble(key, value);
-    } else if (value is String) {
-      await _prefs.setString(key, value);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    final settings = ref.watch(settingsServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Settings saved')),
+              );
+              Navigator.of(context).pop();
+            },
+            child: const Text('DONE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
       body: ListView(
         children: [
-          _buildEngineSettings(),
-          _buildTranscriptionSettings(),
-          _buildAudioSettings(),
-          _buildDiarizationSettings(),
+          _buildLocaleSettings(settings),
+          _buildEngineSettings(settings),
+          _buildTranscriptionSettings(settings),
+          _buildAudioSettings(settings),
+          _buildDiarizationSettings(settings),
           _buildStorageSettings(),
-          _buildDeveloperSettings(),
+          _buildDeveloperSettings(settings),
           _buildSystemInfo(),
           _buildAboutSection(),
         ],
@@ -120,286 +54,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildDeveloperSettings() {
+  Widget _buildLocaleSettings(SettingsService settings) {
     return _buildSettingsSection(
-      title: 'Debugging & development',
-      icon: Icons.bug_report,
+      title: 'App Language',
+      icon: Icons.language,
       children: [
         ListTile(
-          title: const Text('Log level'),
-          subtitle: Text('Currently ${_logLevel.tag}'),
+          title: const Text('Interface Language'),
+          subtitle: Text(_getAppLocaleDisplayName(settings.appLocale ?? '')),
           trailing: const Icon(Icons.chevron_right),
-          onTap: _showLogLevelSelector,
-        ),
-        SwitchListTile(
-          title: const Text('Mirror logs to file'),
-          subtitle: const Text(
-              'Writes to logs/session.log in the app documents directory'),
-          value: _logToFile,
-          onChanged: (value) async {
-            setState(() => _logToFile = value);
-            await _saveSetting('log_to_file', value);
-            await Log.instance.enableFileSink(value);
-          },
-        ),
-        SwitchListTile(
-          title: const Text('Skip checksum verification'),
-          subtitle: const Text(
-              'Accept downloaded models even if SHA-1 does not match'),
-          value: _skipChecksum,
-          onChanged: (value) {
-            setState(() => _skipChecksum = value);
-            _saveSetting('skip_checksum', value);
-            Log.instance.i('settings',
-                value ? 'Checksum verification disabled' : 'Checksum verification enabled');
-          },
-        ),
-        ListTile(
-          title: const Text('Open log viewer'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/logs'),
+          onTap: () => _showAppLocaleSelector(settings),
         ),
       ],
     );
   }
 
-  void _showLogLevelSelector() {
+  void _showAppLocaleSelector(SettingsService settings) {
+    final locales = {
+      '': 'System Default',
+      'en': 'English',
+      'de': 'Deutsch',
+    };
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Log level'),
+      builder: (context) => AlertDialog(
+        title: const Text('Select Interface Language'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: LogLevel.values
-              .map(
-                (l) => RadioListTile<LogLevel>(
-                  title: Text('${l.tag} — ${l.name}'),
-                  value: l,
-                  groupValue: _logLevel,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    setState(() => _logLevel = v);
-                    _saveSetting('log_level', v.name);
-                    Log.instance.setMinLevel(v);
-                    Navigator.of(ctx).pop();
-                  },
-                ),
-              )
-              .toList(),
+          children: locales.entries.map((entry) {
+            return RadioListTile<String>(
+              title: Text(entry.value),
+              value: entry.key,
+              groupValue: settings.appLocale ?? '',
+              onChanged: (value) async {
+                if (value != null) {
+                  setState(() => settings.appLocale = value);
+                  
+                  // Update app-wide locale via provider
+                  final languageCode = value.isEmpty ? null : value;
+                  ref.read(localeProvider.notifier).setLocale(languageCode);
+                  
+                  Navigator.of(context).pop();
+                }
+              },
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildEngineSettings() {
+  String _getAppLocaleDisplayName(String code) {
+    if (code == 'en') return 'English';
+    if (code == 'de') return 'Deutsch';
+    return 'System Default';
+  }
+
+  Widget _buildEngineSettings(SettingsService settings) {
     return _buildSettingsSection(
       title: 'Transcription Engine',
       icon: Icons.psychology,
       children: [
         ListTile(
           title: const Text('Preferred Engine'),
-          subtitle: Text(_getEngineDisplayName(_preferredEngine)),
+          subtitle: Text(settings.preferredEngine.displayName),
           trailing: const Icon(Icons.chevron_right),
-          onTap: _showEngineSelector,
+          onTap: () => _showEngineSelector(settings),
         ),
       ],
     );
   }
 
-  Widget _buildTranscriptionSettings() {
-    return _buildSettingsSection(
-      title: 'Transcription',
-      icon: Icons.transcribe,
-      children: [
-        ListTile(
-          title: const Text('Default Model'),
-          subtitle: Text(_defaultModel),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showModelSelector,
-        ),
-        ListTile(
-          title: const Text('Default Language'),
-          subtitle: Text(_getLanguageDisplayName(_defaultLanguage)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showLanguageSelector,
-        ),
-        SwitchListTile(
-          title: const Text('Auto-detect Language'),
-          subtitle: const Text('Automatically detect audio language'),
-          value: _autoDetectLanguage,
-          onChanged: (value) {
-            setState(() => _autoDetectLanguage = value);
-            _saveSetting('auto_detect_language', value);
-          },
-        ),
-        SwitchListTile(
-          title: const Text('Word Timestamps'),
-          subtitle: const Text('Generate timestamps for individual words'),
-          value: _enableWordTimestamps,
-          onChanged: (value) {
-            setState(() => _enableWordTimestamps = value);
-            _saveSetting('enable_word_timestamps', value);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAudioSettings() {
-    return _buildSettingsSection(
-      title: 'Audio',
-      icon: Icons.audiotrack,
-      children: [
-        ListTile(
-          title: const Text('Audio Quality'),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Recording quality: ${(_audioQuality * 100).toInt()}%'),
-              Slider(
-                value: _audioQuality,
-                onChanged: (value) {
-                  setState(() => _audioQuality = value);
-                  _saveSetting('audio_quality', value);
-                },
-                divisions: 4,
-                label: '${(_audioQuality * 100).toInt()}%',
-              ),
-            ],
-          ),
-        ),
-        SwitchListTile(
-          title: const Text('Keep Audio Files'),
-          subtitle: const Text('Keep downloaded/recorded audio files after transcription'),
-          value: _keepAudioFiles,
-          onChanged: (value) {
-            setState(() => _keepAudioFiles = value);
-            _saveSetting('keep_audio_files', value);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDiarizationSettings() {
-    return _buildSettingsSection(
-      title: 'Speaker Diarization',
-      icon: Icons.people,
-      children: [
-        SwitchListTile(
-          title: const Text('Enable by Default'),
-          subtitle: const Text('Automatically enable diarization for new transcriptions'),
-          value: _enableDiarizationByDefault,
-          onChanged: (value) {
-            setState(() => _enableDiarizationByDefault = value);
-            _saveSetting('enable_diarization_by_default', value);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStorageSettings() {
-    return _buildSettingsSection(
-      title: 'Storage',
-      icon: Icons.storage,
-      children: [
-        ListTile(
-          title: const Text('Clear Cache'),
-          subtitle: const Text('Clear temporary files and cache'),
-          trailing: const Icon(Icons.delete_outline),
-          onTap: _clearCache,
-        ),
-        ListTile(
-          title: const Text('Manage Models'),
-          subtitle: const Text('Download, update, or delete transcription models'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).pushNamed('/models'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSystemInfo() {
-    return _buildSettingsSection(
-      title: 'System Information',
-      icon: Icons.info,
-      children: [
-        FutureBuilder<Map<String, String>>(
-          future: _getSystemInfo(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const ListTile(title: Text('Loading system information...'));
-            }
-
-            final info = snapshot.data!;
-            return Column(
-              children: info.entries.map((entry) {
-                return ListTile(
-                  title: Text(entry.key),
-                  subtitle: Text(entry.value),
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAboutSection() {
-    return _buildSettingsSection(
-      title: 'About',
-      icon: Icons.help_outline,
-      children: [
-        ListTile(
-          title: const Text('Version'),
-          subtitle: FutureBuilder<PackageInfo>(
-            future: PackageInfo.fromPlatform(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return Text('${snapshot.data!.version} (${snapshot.data!.buildNumber})');
-              }
-              return const Text('Loading...');
-            },
-          ),
-        ),
-        ListTile(
-          title: const Text('About CrisperWeaver'),
-          subtitle: const Text('Author, contact, disclaimer, licenses'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/about'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingsSection({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(icon),
-            title: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  void _showEngineSelector() {
+  void _showEngineSelector(SettingsService settings) {
     final availableEngines = EngineFactory.getAvailableEngines();
 
     showDialog(
@@ -410,18 +137,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: availableEngines.map((engine) {
             return RadioListTile<EngineType>(
-              title: Text(_getEngineDisplayName(engine)),
-              subtitle: Text(_getEngineDescription(engine)),
+              title: Text(engine.displayName),
+              subtitle: Text(engine.description),
               value: engine,
-              groupValue: _preferredEngine,
+              groupValue: settings.preferredEngine,
               onChanged: (value) async {
                 if (value == null) return;
-                setState(() => _preferredEngine = value);
-                _saveSetting('preferred_engine', value.id);
+                setState(() => settings.preferredEngine = value);
                 Navigator.of(context).pop();
 
-                // Try to swap engines immediately so the next transcription
-                // picks up the change without a restart.
+                // Try to swap engines immediately
                 final service = ref.read(transcriptionServiceProvider);
                 try {
                   final ok = await service.switchEngine(value);
@@ -447,15 +172,88 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showModelSelector() {
+  Widget _buildTranscriptionSettings(SettingsService settings) {
+    return _buildSettingsSection(
+      title: 'Transcription',
+      icon: Icons.transcribe,
+      children: [
+        if (settings.preferredEngine == EngineType.crispasr)
+          ListTile(
+            title: const Text('Default Backend'),
+            subtitle: Text(settings.defaultBackend),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showBackendSelector(settings),
+          ),
+        ListTile(
+          title: const Text('Default Model'),
+          subtitle: Text(settings.defaultModel),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _showModelSelector(settings),
+        ),
+        ListTile(
+          title: const Text('Default Language'),
+          subtitle: Text(_getLanguageDisplayName(settings.defaultLanguage)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _showLanguageSelector(settings),
+        ),
+        SwitchListTile(
+          title: const Text('Auto-detect Language'),
+          subtitle: const Text('Automatically detect audio language'),
+          value: settings.autoDetectLanguage,
+          onChanged: (value) {
+            setState(() => settings.autoDetectLanguage = value);
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Word Timestamps'),
+          subtitle: const Text('Generate timestamps for individual words'),
+          value: settings.enableWordTimestamps,
+          onChanged: (value) {
+            setState(() => settings.enableWordTimestamps = value);
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showBackendSelector(SettingsService settings) {
+    final backends = [
+      'whisper', 'parakeet', 'canary', 'qwen3', 'cohere', 'granite',
+      'fastconformer-ctc', 'canary-ctc', 'voxtral', 'voxtral4b', 'wav2vec2',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Default Backend'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: backends.map((b) => RadioListTile<String>(
+              title: Text(b),
+              value: b,
+              groupValue: settings.defaultBackend,
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => settings.defaultBackend = value);
+                Navigator.of(ctx).pop();
+              },
+            )).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showModelSelector(SettingsService settings) {
     const models = {
-      'tiny': 'Tiny (fast, 39 MB)',
-      'base': 'Base (balanced, 74 MB)',
-      'small': 'Small (244 MB)',
-      'medium': 'Medium (769 MB)',
-      'large': 'Large (1.5 GB)',
-      'large-v2': 'Large v2 (1.5 GB)',
-      'large-v3': 'Large v3 (1.5 GB)',
+      'tiny': 'Tiny (fast, 74 MB)',
+      'base': 'Base (balanced, 142 MB)',
+      'small': 'Small (466 MB)',
+      'medium': 'Medium (1.5 GB)',
+      'large': 'Large (3 GB)',
+      'large-v2': 'Large v2 (3 GB)',
+      'large-v3': 'Large v3 (3 GB)',
     };
     showDialog(
       context: context,
@@ -464,39 +262,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: models.entries
-                .map(
-                  (e) => RadioListTile<String>(
-                    title: Text(e.value),
-                    value: e.key,
-                    groupValue: _defaultModel,
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _defaultModel = value);
-                      _saveSetting('default_model', value);
-                      Navigator.of(ctx).pop();
-                    },
-                  ),
-                )
-                .toList(),
+            children: models.entries.map((e) => RadioListTile<String>(
+              title: Text(e.value),
+              value: e.key,
+              groupValue: settings.defaultModel,
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => settings.defaultModel = value);
+                Navigator.of(ctx).pop();
+              },
+            )).toList(),
           ),
         ),
       ),
     );
   }
 
-  void _showLanguageSelector() {
+  void _showLanguageSelector(SettingsService settings) {
     final languages = {
-      'auto': 'Auto-detect',
-      'en': 'English',
-      'es': 'Spanish',
-      'fr': 'French',
-      'de': 'German',
-      'it': 'Italian',
-      'pt': 'Portuguese',
-      'zh': 'Chinese',
-      'ja': 'Japanese',
-      'ko': 'Korean',
+      'auto': 'Auto-detect', 'en': 'English', 'es': 'Spanish', 'fr': 'French',
+      'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese',
+      'ja': 'Japanese', 'ko': 'Korean',
     };
 
     showDialog(
@@ -505,48 +291,256 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Select Default Language'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: languages.entries.map((entry) {
-            return RadioListTile<String>(
-              title: Text(entry.value),
-              value: entry.key,
-              groupValue: _defaultLanguage,
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _defaultLanguage = value);
-                  _saveSetting('default_language', value);
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
+          children: languages.entries.map((entry) => RadioListTile<String>(
+            title: Text(entry.value),
+            value: entry.key,
+            groupValue: settings.defaultLanguage,
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => settings.defaultLanguage = value);
+                Navigator.of(context).pop();
+              }
+            },
+          )).toList(),
         ),
       ),
     );
   }
 
-  Future<void> _clearCache() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cache cleared successfully')),
+  Widget _buildAudioSettings(SettingsService settings) {
+    return _buildSettingsSection(
+      title: 'Audio',
+      icon: Icons.audiotrack,
+      children: [
+        ListTile(
+          title: const Text('Audio Quality'),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Recording quality: ${(settings.audioQuality * 100).toInt()}%'),
+              Slider(
+                value: settings.audioQuality,
+                onChanged: (value) {
+                  setState(() => settings.audioQuality = value);
+                },
+                divisions: 4,
+                label: '${(settings.audioQuality * 100).toInt()}%',
+              ),
+            ],
+          ),
+        ),
+        SwitchListTile(
+          title: const Text('Keep Audio Files'),
+          subtitle: const Text('Keep downloaded/recorded audio files after transcription'),
+          value: settings.keepAudioFiles,
+          onChanged: (value) {
+            setState(() => settings.keepAudioFiles = value);
+          },
+        ),
+      ],
     );
   }
 
-  void _showPrivacyPolicy() {
+  Widget _buildDiarizationSettings(SettingsService settings) {
+    return _buildSettingsSection(
+      title: 'Speaker Diarization',
+      icon: Icons.people,
+      children: [
+        SwitchListTile(
+          title: const Text('Enable by Default'),
+          subtitle: const Text('Automatically enable diarization for new transcriptions'),
+          value: settings.enableDiarizationByDefault,
+          onChanged: (value) {
+            setState(() => settings.enableDiarizationByDefault = value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStorageSettings() {
+    return _buildSettingsSection(
+      title: 'Storage',
+      icon: Icons.storage,
+      children: [
+        ListTile(
+          title: const Text('Clear Cache'),
+          subtitle: const Text('Clear temporary files and cache'),
+          trailing: const Icon(Icons.delete_outline),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Cache cleared successfully')),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text('Manage Models'),
+          subtitle: const Text('Download, update, or delete transcription models'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/models'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeveloperSettings(SettingsService settings) {
+    return _buildSettingsSection(
+      title: 'Debugging & development',
+      icon: Icons.bug_report,
+      children: [
+        ListTile(
+          title: const Text('Log level'),
+          subtitle: Text('Currently ${settings.logLevel.tag}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _showLogLevelSelector(settings),
+        ),
+        SwitchListTile(
+          title: const Text('Mirror logs to file'),
+          subtitle: const Text('Writes to logs/session.log in the app documents directory'),
+          value: settings.logToFile,
+          onChanged: (value) async {
+            setState(() => settings.logToFile = value);
+            await Log.instance.enableFileSink(value);
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Skip checksum verification'),
+          subtitle: const Text('Accept downloaded models even if SHA-1 does not match'),
+          value: settings.skipChecksum,
+          onChanged: (value) {
+            setState(() => settings.skipChecksum = value);
+            Log.instance.i('settings', value ? 'Checksum verification disabled' : 'Checksum verification enabled');
+          },
+        ),
+        ListTile(
+          title: const Text('Hugging Face API Token'),
+          subtitle: Text(settings.hfToken.isEmpty ? 'Not set (required for gated models)' : '••••••••${settings.hfToken.length > 8 ? settings.hfToken.substring(settings.hfToken.length - 4) : ""}'),
+          trailing: const Icon(Icons.vpn_key),
+          onTap: () => _showHfTokenDialog(settings),
+        ),
+        ListTile(
+          title: const Text('Open log viewer'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/logs'),
+        ),
+      ],
+    );
+  }
+
+  void _showLogLevelSelector(SettingsService settings) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log level'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: LogLevel.values.map((l) => RadioListTile<LogLevel>(
+            title: Text('${l.tag} — ${l.name}'),
+            value: l,
+            groupValue: settings.logLevel,
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() => settings.logLevel = v);
+              Log.instance.setMinLevel(v);
+              Navigator.of(ctx).pop();
+            },
+          )).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _showHfTokenDialog(SettingsService settings) {
+    final controller = TextEditingController(text: settings.hfToken);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'CrisperWeaver processes all audio locally on your device. '
-            'No audio data is sent to external servers. '
-            'Transcriptions are stored locally and can be deleted at any time.',
-          ),
+        title: const Text('Hugging Face API Token'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Required for gated or private repositories.', style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(labelText: 'API Token', border: OutlineInputBorder(), hintText: 'hf_...'),
+              obscureText: true,
+              autocorrect: false,
+            ),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('CANCEL')),
+          ElevatedButton(
+            onPressed: () {
+              final newToken = controller.text.trim();
+              setState(() => settings.hfToken = newToken);
+              ref.read(modelServiceProvider).hfToken = newToken;
+              Navigator.of(context).pop();
+              Log.instance.i('settings', newToken.isEmpty ? 'HF Token cleared' : 'HF Token updated');
+            },
+            child: const Text('SAVE'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemInfo() {
+    return _buildSettingsSection(
+      title: 'System Information',
+      icon: Icons.info,
+      children: [
+        FutureBuilder<Map<String, String>>(
+          future: _getSystemInfo(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const ListTile(title: Text('Loading...'));
+            return Column(
+              children: snapshot.data!.entries.map((entry) => ListTile(
+                title: Text(entry.key),
+                subtitle: Text(entry.value),
+              )).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAboutSection() {
+    return _buildSettingsSection(
+      title: 'About',
+      icon: Icons.help_outline,
+      children: [
+        ListTile(
+          title: const Text('Version'),
+          subtitle: FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) => Text(snapshot.hasData ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})' : 'Loading...'),
+          ),
+        ),
+        ListTile(
+          title: const Text('About CrisperWeaver'),
+          subtitle: const Text('Author, contact, disclaimer, licenses'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/about'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsSection({required String title, required IconData icon, required List<Widget> children}) {
+    return Card(
+      margin: const EdgeInsets.all(8),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(icon),
+            title: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          const Divider(height: 1),
+          ...children,
         ],
       ),
     );
@@ -554,17 +548,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<Map<String, String>> _getSystemInfo() async {
     final info = <String, String>{};
-
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       info['App Version'] = '${packageInfo.version} (${packageInfo.buildNumber})';
-
       if (Platform.isIOS) {
         final deviceInfo = DeviceInfoPlugin();
         final iosInfo = await deviceInfo.iosInfo;
         info['Device'] = '${iosInfo.name} (${iosInfo.model})';
         info['iOS Version'] = '${iosInfo.systemName} ${iosInfo.systemVersion}';
-        info['CoreML Available'] = await CoreMLWhisper.instance.isAvailable ? 'Yes' : 'No';
       } else if (Platform.isAndroid) {
         final deviceInfo = DeviceInfoPlugin();
         final androidInfo = await deviceInfo.androidInfo;
@@ -574,30 +565,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       info['Error'] = 'Could not load system info';
     }
-
     return info;
-  }
-
-  String _getEngineDisplayName(EngineType engine) {
-    return engine.displayName;
-  }
-
-  String _getEngineDescription(EngineType engine) {
-    return engine.description;
   }
 
   String _getLanguageDisplayName(String languageCode) {
     const languages = {
-      'auto': 'Auto-detect',
-      'en': 'English',
-      'es': 'Spanish',
-      'fr': 'French',
-      'de': 'German',
-      'it': 'Italian',
-      'pt': 'Portuguese',
-      'zh': 'Chinese',
-      'ja': 'Japanese',
-      'ko': 'Korean',
+      'auto': 'Auto-detect', 'en': 'English', 'es': 'Spanish', 'fr': 'French',
+      'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese',
+      'ja': 'Japanese', 'ko': 'Korean',
     };
     return languages[languageCode] ?? languageCode;
   }

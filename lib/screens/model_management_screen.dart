@@ -1,8 +1,7 @@
-// lib/screens/model_management_screen.dart (FIXED)
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../main.dart' show modelServiceProvider;
 import '../services/model_service.dart';
 
 class ModelManagementScreen extends ConsumerStatefulWidget {
@@ -12,13 +11,8 @@ class ModelManagementScreen extends ConsumerStatefulWidget {
   ConsumerState<ModelManagementScreen> createState() => _ModelManagementScreenState();
 }
 
-class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
-  final ModelService _modelService = ModelService();
-
+class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   List<ModelInfo> _whisperModels = [];
-  List<ModelInfo> _coreMLModels = [];
   bool _isLoading = true;
   String? _downloadingModel;
   double _downloadProgress = 0.0;
@@ -26,28 +20,15 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: Platform.isIOS ? 2 : 1,
-      vsync: this,
-    );
     _loadModels();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadModels() async {
     setState(() => _isLoading = true);
 
     try {
-      _whisperModels = await _modelService.getWhisperCppModels();
-
-      if (Platform.isIOS) {
-        _coreMLModels = await _modelService.getCoreMLModels();
-      }
+      final modelService = ref.read(modelServiceProvider);
+      _whisperModels = await modelService.getWhisperCppModels();
     } catch (e) {
       _showErrorDialog('Failed to load models: $e');
     }
@@ -63,45 +44,28 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadModels),
         ],
-        bottom: Platform.isIOS
-            ? TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Whisper.cpp'),
-                  Tab(text: 'CoreML'),
-                ],
-              )
-            : null,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Platform.isIOS
-              ? TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildModelList(_whisperModels, ModelType.whisperCpp),
-                    _buildModelList(_coreMLModels, ModelType.coreML),
-                  ],
-                )
-              : _buildModelList(_whisperModels, ModelType.whisperCpp),
+          : _buildModelList(_whisperModels),
     );
   }
 
-  Widget _buildModelList(List<ModelInfo> models, ModelType modelType) {
+  Widget _buildModelList(List<ModelInfo> models) {
     if (models.isEmpty) {
-      return _buildEmptyState(modelType);
+      return _buildEmptyState();
     }
 
     return Column(
       children: [
-        _buildSummaryCard(models, modelType),
+        _buildSummaryCard(models),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(8),
             itemCount: models.length,
             itemBuilder: (context, index) {
               final model = models[index];
-              return _buildModelCard(model, modelType);
+              return _buildModelCard(model);
             },
           ),
         ),
@@ -109,7 +73,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Widget _buildSummaryCard(List<ModelInfo> models, ModelType modelType) {
+  Widget _buildSummaryCard(List<ModelInfo> models) {
     final downloadedCount = models.where((m) => m.isDownloaded).length;
     final totalSize = _calculateTotalSize(models.where((m) => m.isDownloaded));
 
@@ -120,7 +84,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
         child: Row(
           children: [
             Icon(
-              modelType == ModelType.coreML ? Icons.apple : Icons.memory,
+              Icons.memory,
               size: 32,
               color: Theme.of(context).primaryColor,
             ),
@@ -130,7 +94,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    modelType == ModelType.coreML ? 'CoreML Models' : 'Whisper.cpp Models',
+                    'CrispASR Models',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -155,7 +119,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Widget _buildModelCard(ModelInfo model, ModelType modelType) {
+  Widget _buildModelCard(ModelInfo model) {
     final isDownloading = _downloadingModel == model.name;
 
     return Card(
@@ -222,21 +186,6 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           children: [
             Text('Size: ${model.size}'),
             Text(model.description),
-            if (model.backend != 'whisper')
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Runtime: backend "${model.backend}" is not yet wired '
-                  'into the bundled FFI — download works, transcription '
-                  'will error until libwhisper is rebuilt with the '
-                  'corresponding backend linked in.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.orange.shade800,
-                  ),
-                ),
-              ),
             if (model.isDownloaded)
               Text(
                 'Downloaded',
@@ -267,14 +216,14 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
             if (model.isDownloaded) ...[
               IconButton(
                 icon: const Icon(Icons.delete_outline),
-                onPressed: () => _deleteModel(model, modelType),
+                onPressed: () => _deleteModel(model),
                 tooltip: 'Delete model',
               ),
             ] else if (!isDownloading) ...[
               ElevatedButton.icon(
                 icon: const Icon(Icons.download),
                 label: const Text('Download'),
-                onPressed: () => _downloadModel(model, modelType),
+                onPressed: () => _downloadModel(model),
               ),
             ],
           ],
@@ -284,7 +233,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Widget _buildEmptyState(ModelType modelType) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -299,9 +248,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            modelType == ModelType.coreML
-                ? 'CoreML models not supported on this device'
-                : 'Failed to load model list',
+            'Failed to load model list',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade500,
             ),
@@ -317,32 +264,23 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     );
   }
 
-  Future<void> _downloadModel(ModelInfo model, ModelType modelType) async {
+  Future<void> _downloadModel(ModelInfo model) async {
     setState(() {
       _downloadingModel = model.name;
       _downloadProgress = 0.0;
     });
 
     try {
-      bool success = false;
-
-      if (modelType == ModelType.coreML) {
-        success = await _modelService.downloadCoreMLModel(
-          model.name,
-          onProgress: (progress) {
-            setState(() => _downloadProgress = progress);
-          },
-        );
-      } else {
-        success = await _modelService.downloadWhisperCppModel(
-          model.name,
-          onProgress: (progress) {
-            setState(() => _downloadProgress = progress);
-          },
-        );
-      }
+      final modelService = ref.read(modelServiceProvider);
+      final success = await modelService.downloadWhisperCppModel(
+        model.name,
+        onProgress: (progress) {
+          setState(() => _downloadProgress = progress);
+        },
+      );
 
       if (success) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${model.displayName} downloaded successfully')),
         );
@@ -360,7 +298,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     }
   }
 
-  Future<void> _deleteModel(ModelInfo model, ModelType modelType) async {
+  Future<void> _deleteModel(ModelInfo model) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,7 +321,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen>
     if (confirmed != true) return;
 
     try {
-      final success = await _modelService.deleteModel(model.name, modelType: modelType);
+      final success = await ref.read(modelServiceProvider).deleteModel(model.name);
+      if (!mounted) return;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${model.displayName} deleted')),

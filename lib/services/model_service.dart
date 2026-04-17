@@ -3,14 +3,15 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:isolate';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
 
 import 'log_service.dart';
+import 'settings_service.dart';
 
 class ModelService {
   /// Upstream ggerganov repo — the canonical source for F16 GGML Whisper models.
@@ -29,12 +30,9 @@ class ModelService {
   static const String cstrCrispBaseUrl =
       'https://huggingface.co/cstr/crispasr-gguf/resolve/main';
 
-  static const String coreMLBaseUrl =
-      'https://huggingface.co/openai/whisper-large-v3/resolve/main';
-
   final Dio _dio = Dio();
   late String _modelsDir;
-  SharedPreferences? _prefs;
+  final SettingsService _settingsService;
   final Map<String, CancelToken> _activeDowloads = {};
 
   // Enhanced model definitions with proper URLs and checksums
@@ -44,99 +42,99 @@ class ModelService {
       displayName: 'Whisper Tiny',
       fileName: 'ggml-tiny.bin',
       url: '$whisperCppBaseUrl/ggml-tiny.bin',
-      sizeBytes: 39 * 1024 * 1024,
+      sizeBytes: 74 * 1024 * 1024,
       checksum: 'bd577a113a864445d4c299885e0cb97d4ba92b5f',
-      description: 'Fastest model, lower accuracy (~39 MB)',
+      description: 'Fastest model, lower accuracy (~74 MB)',
     ),
     'tiny.en': ModelDefinition(
       name: 'tiny.en',
       displayName: 'Whisper Tiny English',
       fileName: 'ggml-tiny.en.bin',
       url: '$whisperCppBaseUrl/ggml-tiny.en.bin',
-      sizeBytes: 39 * 1024 * 1024,
+      sizeBytes: 74 * 1024 * 1024,
       checksum: 'c78c86eb1a8faa21b369bcd33207cc90d64ae9df',
-      description: 'Fastest model for English only (~39 MB)',
+      description: 'Fastest model for English only (~74 MB)',
     ),
     'base': ModelDefinition(
       name: 'base',
       displayName: 'Whisper Base',
       fileName: 'ggml-base.bin',
       url: '$whisperCppBaseUrl/ggml-base.bin',
-      sizeBytes: 74 * 1024 * 1024,
+      sizeBytes: 142 * 1024 * 1024,
       checksum: '465707469ff3a37a2b9b8d8f89f2f99de7299dac',
-      description: 'Balanced speed and accuracy (~74 MB)',
+      description: 'Balanced speed and accuracy (~142 MB)',
     ),
     'base.en': ModelDefinition(
       name: 'base.en',
       displayName: 'Whisper Base English',
       fileName: 'ggml-base.en.bin',
       url: '$whisperCppBaseUrl/ggml-base.en.bin',
-      sizeBytes: 74 * 1024 * 1024,
+      sizeBytes: 142 * 1024 * 1024,
       checksum: '137c40403d78fd54d454da0f9bd998f78703390c',
-      description: 'Balanced model for English only (~74 MB)',
+      description: 'Balanced model for English only (~142 MB)',
     ),
     'small': ModelDefinition(
       name: 'small',
       displayName: 'Whisper Small',
       fileName: 'ggml-small.bin',
       url: '$whisperCppBaseUrl/ggml-small.bin',
-      sizeBytes: 244 * 1024 * 1024,
+      sizeBytes: 466 * 1024 * 1024,
       checksum: '55356645c2b361a969dfd0ef2c5a50d530afd8d5',
-      description: 'Good accuracy with moderate speed (~244 MB)',
+      description: 'Good accuracy with moderate speed (~466 MB)',
     ),
     'small.en': ModelDefinition(
       name: 'small.en',
       displayName: 'Whisper Small English',
       fileName: 'ggml-small.en.bin',
       url: '$whisperCppBaseUrl/ggml-small.en.bin',
-      sizeBytes: 244 * 1024 * 1024,
+      sizeBytes: 466 * 1024 * 1024,
       checksum: 'db8a495a91d927739e50b3fc1cc4c6b8f6c2d022',
-      description: 'Good accuracy for English only (~244 MB)',
+      description: 'Good accuracy for English only (~466 MB)',
     ),
     'medium': ModelDefinition(
       name: 'medium',
       displayName: 'Whisper Medium',
       fileName: 'ggml-medium.bin',
       url: '$whisperCppBaseUrl/ggml-medium.bin',
-      sizeBytes: 769 * 1024 * 1024,
+      sizeBytes: 1500 * 1024 * 1024,
       checksum: 'fd9727b6e1217c2f614f9b698455c4ffd82463b4',
-      description: 'High accuracy with slower processing (~769 MB)',
+      description: 'High accuracy with slower processing (~1.5 GB)',
     ),
     'medium.en': ModelDefinition(
       name: 'medium.en',
       displayName: 'Whisper Medium English',
       fileName: 'ggml-medium.en.bin',
       url: '$whisperCppBaseUrl/ggml-medium.en.bin',
-      sizeBytes: 769 * 1024 * 1024,
+      sizeBytes: 1500 * 1024 * 1024,
       checksum: 'd7440d1dc186f76616787fcdd0b295ef60e88766',
-      description: 'High accuracy for English only (~769 MB)',
+      description: 'High accuracy for English only (~1.5 GB)',
     ),
     'large': ModelDefinition(
       name: 'large',
       displayName: 'Whisper Large',
       fileName: 'ggml-large.bin',
       url: '$whisperCppBaseUrl/ggml-large.bin',
-      sizeBytes: 1550 * 1024 * 1024,
+      sizeBytes: 3000 * 1024 * 1024,
       checksum: 'b1caaf735c4cc1429223d5a74f0f4d0b9b59a299',
-      description: 'Best accuracy with slowest processing (~1.5 GB)',
+      description: 'Best accuracy with slowest processing (~3 GB)',
     ),
     'large-v2': ModelDefinition(
       name: 'large-v2',
       displayName: 'Whisper Large v2',
       fileName: 'ggml-large-v2.bin',
       url: '$whisperCppBaseUrl/ggml-large-v2.bin',
-      sizeBytes: 1550 * 1024 * 1024,
+      sizeBytes: 3000 * 1024 * 1024,
       checksum: '0f4c8e34f21cf1a914c59d8b3ce882345ad349d6',
-      description: 'Improved large model (~1.5 GB)',
+      description: 'Improved large model (~3 GB)',
     ),
     'large-v3': ModelDefinition(
       name: 'large-v3',
       displayName: 'Whisper Large v3',
       fileName: 'ggml-large-v3.bin',
       url: '$whisperCppBaseUrl/ggml-large-v3.bin',
-      sizeBytes: 1550 * 1024 * 1024,
+      sizeBytes: 3000 * 1024 * 1024,
       checksum: 'ad82bf6a9043ceed055076d0fd39f5f186ff8062',
-      description: 'Latest large model with enhanced performance (~1.5 GB)',
+      description: 'Latest large model with enhanced performance (~3 GB)',
     ),
     'large-v3-turbo': ModelDefinition(
       name: 'large-v3-turbo',
@@ -283,7 +281,7 @@ class ModelService {
       name: 'parakeet-tdt-0.6b-v3-q4_k',
       displayName: 'Parakeet TDT 0.6B v3 (q4_k)',
       fileName: 'parakeet-tdt-0.6b-v3-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/parakeet-tdt-0.6b-v3-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/parakeet-tdt-0.6b-v3-GGUF/resolve/main/parakeet-tdt-0.6b-v3-q4_k.gguf',
       sizeBytes: 467 * 1024 * 1024,
       checksum: '',
       description: 'Fast English ASR (NVIDIA Parakeet) — ~467 MB',
@@ -295,7 +293,7 @@ class ModelService {
       name: 'canary-1b-v2-q5_0',
       displayName: 'Canary 1B v2 (q5_0)',
       fileName: 'canary-1b-v2-q5_0.gguf',
-      url: '$cstrCrispBaseUrl/canary-1b-v2-q5_0.gguf',
+      url: 'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-q5_0.gguf',
       sizeBytes: 600 * 1024 * 1024,
       checksum: '',
       description: 'Multilingual ASR with speech-translation — ~600 MB',
@@ -307,7 +305,7 @@ class ModelService {
       name: 'cohere-transcribe-03-2026-q5_0',
       displayName: 'Cohere Transcribe 03-2026 (q5_0)',
       fileName: 'cohere-transcribe-03-2026-q5_0.gguf',
-      url: '$cstrCrispBaseUrl/cohere-transcribe-03-2026-q5_0.gguf',
+      url: 'https://huggingface.co/cstr/cohere-transcribe-03-2026-GGUF/resolve/main/cohere-transcribe-03-2026-q5_0.gguf',
       sizeBytes: 1200 * 1024 * 1024,
       checksum: '',
       description: 'Cohere high-accuracy ASR — ~1.2 GB',
@@ -319,7 +317,7 @@ class ModelService {
       name: 'voxtral-mini-3b-2507-q4_k',
       displayName: 'Voxtral Mini 3B 2507 (q4_k)',
       fileName: 'voxtral-mini-3b-2507-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/voxtral-mini-3b-2507-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/voxtral-mini-3b-2507-GGUF/resolve/main/voxtral-mini-3b-2507-q4_k.gguf',
       sizeBytes: 2500 * 1024 * 1024,
       checksum: '',
       description: 'Speech translation + ASR — ~2.5 GB',
@@ -331,7 +329,7 @@ class ModelService {
       name: 'voxtral-mini-4b-realtime-q4_k',
       displayName: 'Voxtral Mini 4B realtime (q4_k)',
       fileName: 'voxtral-mini-4b-realtime-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/voxtral-mini-4b-realtime-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/voxtral-mini-4b-realtime-GGUF/resolve/main/voxtral-mini-4b-realtime-q4_k.gguf',
       sizeBytes: 3300 * 1024 * 1024,
       checksum: '',
       description: 'Voxtral realtime tuning — ~3.3 GB',
@@ -343,7 +341,7 @@ class ModelService {
       name: 'qwen3-asr-0.6b-q4_k',
       displayName: 'Qwen3-ASR 0.6B (q4_k)',
       fileName: 'qwen3-asr-0.6b-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/qwen3-asr-0.6b-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/qwen3-asr-0.6b-GGUF/resolve/main/qwen3-asr-0.6b-q4_k.gguf',
       sizeBytes: 380 * 1024 * 1024,
       checksum: '',
       description: 'Multilingual (30+ langs, incl. Chinese dialects) — ~380 MB',
@@ -355,7 +353,7 @@ class ModelService {
       name: 'granite-4.0-1b-speech-q4_k',
       displayName: 'Granite 4.0 1B Speech (q4_k)',
       fileName: 'granite-4.0-1b-speech-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/granite-4.0-1b-speech-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/granite-speech-4.0-1b-GGUF/resolve/main/granite-4.0-1b-speech-q4_k.gguf',
       sizeBytes: 900 * 1024 * 1024,
       checksum: '',
       description: 'IBM Granite speech — ~900 MB',
@@ -367,7 +365,7 @@ class ModelService {
       name: 'fastconformer-ctc-en-q4_k',
       displayName: 'FastConformer CTC (en, q4_k)',
       fileName: 'fastconformer-ctc-en-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/fastconformer-ctc-en-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/stt-en-fastconformer-ctc-large-GGUF/resolve/main/fastconformer-ctc-en-q4_k.gguf',
       sizeBytes: 400 * 1024 * 1024,
       checksum: '',
       description: 'Low-latency CTC ASR (English) — ~400 MB',
@@ -379,7 +377,7 @@ class ModelService {
       name: 'wav2vec2-base-en-q4_k',
       displayName: 'Wav2Vec2 base (en, q4_k)',
       fileName: 'wav2vec2-base-en-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/wav2vec2-base-en-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/wav2vec2-large-xlsr-53-english-GGUF/resolve/main/wav2vec2-base-en-q4_k.gguf',
       sizeBytes: 100 * 1024 * 1024,
       checksum: '',
       description: 'Self-supervised (facebook/wav2vec2) — ~100 MB',
@@ -390,7 +388,7 @@ class ModelService {
       name: 'qwen2-audio-7b-q4_k',
       displayName: 'Qwen2-Audio 7B (q4_k)',
       fileName: 'qwen2-audio-7b-q4_k.gguf',
-      url: '$cstrCrispBaseUrl/qwen2-audio-7b-q4_k.gguf',
+      url: 'https://huggingface.co/cstr/qwen2-audio-7b-GGUF/resolve/main/qwen2-audio-7b-q4_k.gguf',
       sizeBytes: 4500 * 1024 * 1024,
       checksum: '',
       description: 'Large multilingual audio-LLM — ~4.5 GB',
@@ -401,7 +399,7 @@ class ModelService {
       name: 'canary-1b-v2-f16',
       displayName: 'Canary 1B v2 (f16)',
       fileName: 'canary-1b-v2-f16.gguf',
-      url: '$cstrCrispBaseUrl/canary-1b-v2-f16.gguf',
+      url: 'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-f16.gguf',
       sizeBytes: 2000 * 1024 * 1024,
       checksum: '',
       description: 'High-precision Canary 1B — ~2.0 GB',
@@ -410,37 +408,7 @@ class ModelService {
     ),
   };
 
-  static const Map<String, ModelDefinition> coreMLModels = {
-    'tiny': ModelDefinition(
-      name: 'tiny',
-      displayName: 'Whisper Tiny (CoreML)',
-      fileName: 'whisper-tiny-encoder.mlmodelc.zip',
-      url: 'https://huggingface.co/spaces/sanchit-gandhi/whisper-coreml/resolve/main/model_repo/whisper-tiny/encoder.mlmodelc.zip',
-      sizeBytes: 24 * 1024 * 1024,
-      checksum: '',  // CoreML checksums vary by platform
-      description: 'CoreML optimized tiny model (~24 MB)',
-    ),
-    'base': ModelDefinition(
-      name: 'base',
-      displayName: 'Whisper Base (CoreML)',
-      fileName: 'whisper-base-encoder.mlmodelc.zip',
-      url: 'https://huggingface.co/spaces/sanchit-gandhi/whisper-coreml/resolve/main/model_repo/whisper-base/encoder.mlmodelc.zip',
-      sizeBytes: 57 * 1024 * 1024,
-      checksum: '',
-      description: 'CoreML optimized base model (~57 MB)',
-    ),
-    'small': ModelDefinition(
-      name: 'small',
-      displayName: 'Whisper Small (CoreML)',
-      fileName: 'whisper-small-encoder.mlmodelc.zip',
-      url: 'https://huggingface.co/spaces/sanchit-gandhi/whisper-coreml/resolve/main/model_repo/whisper-small/encoder.mlmodelc.zip',
-      sizeBytes: 185 * 1024 * 1024,
-      checksum: '',
-      description: 'CoreML optimized small model (~185 MB)',
-    ),
-  };
-
-  ModelService() {
+  ModelService(this._settingsService) {
     _configureDio();
   }
 
@@ -453,6 +421,17 @@ class ModelService {
         'User-Agent': 'CrisperWeaver-Flutter/1.0.0',
       },
     );
+
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestHeader: true,
+        requestBody: false,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) => Log.instance.d('dio', obj.toString()),
+      ));
+    }
 
     // Add interceptors for debugging and retry logic
     _dio.interceptors.add(
@@ -473,11 +452,6 @@ class ModelService {
 
     // Create subdirectories
     await Directory(path.join(_modelsDir, 'whisper_cpp')).create(recursive: true);
-    if (Platform.isIOS) {
-      await Directory(path.join(_modelsDir, 'coreml')).create(recursive: true);
-    }
-
-    _prefs = await SharedPreferences.getInstance();
   }
 
   /// Get available Whisper.cpp models with download status
@@ -536,34 +510,12 @@ class ModelService {
   }
 
   /// Whether the user has disabled SHA-1 checksum validation for downloads.
-  bool get skipChecksum => _prefs?.getBool('skip_checksum') ?? false;
+  bool get skipChecksum => _settingsService.skipChecksum;
 
-  /// Get available CoreML models (iOS only)
-  Future<List<ModelInfo>> getCoreMLModels() async {
-    if (!Platform.isIOS) return [];
-
-    await initialize();
-
-    final modelInfos = <ModelInfo>[];
-
-    for (final entry in coreMLModels.entries) {
-      final modelDef = entry.value;
-      final localPath = path.join(_modelsDir, 'coreml', modelDef.name);
-      final isDownloaded = await _isCoreMLModelDownloaded(localPath);
-
-      modelInfos.add(ModelInfo(
-        name: modelDef.name,
-        displayName: modelDef.displayName,
-        size: _formatSize(modelDef.sizeBytes),
-        sizeBytes: modelDef.sizeBytes,
-        isDownloaded: isDownloaded,
-        localPath: isDownloaded ? localPath : null,
-        description: modelDef.description,
-        modelType: ModelType.coreML,
-      ));
-    }
-
-    return modelInfos;
+  /// Hugging Face API token for gated/private repositories.
+  String? get hfToken => _settingsService.hfToken;
+  set hfToken(String? value) {
+    _settingsService.hfToken = value ?? '';
   }
 
   /// Download a Whisper.cpp model with comprehensive error handling
@@ -613,6 +565,9 @@ class ModelService {
       onStatusChange?.call('Starting download...');
       onProgress?.call(0.0);
 
+      Log.instance.i('model', 'Starting download: ${modelDef.url}');
+      Log.instance.d('model', 'Target path: $tempPath');
+
       // Download with resume capability
       await _downloadWithResume(
         modelDef.url,
@@ -643,9 +598,6 @@ class ModelService {
       // Move temp file to final location
       await File(tempPath).rename(localPath);
 
-      // Save metadata
-      await _saveModelMetadata(modelName, ModelType.whisperCpp, localPath);
-
       onProgress?.call(1.0);
       onStatusChange?.call('Download complete');
       return true;
@@ -655,12 +607,24 @@ class ModelService {
       await _cleanupTempFile(tempPath);
 
       if (e is DioException) {
+        final resp = e.response;
+        Log.instance.e('model', 'DioException during download: ${e.type}');
+        if (resp != null) {
+          Log.instance.e('model', 'HTTP ${resp.statusCode} for ${e.requestOptions.uri}');
+          Log.instance.e('model', 'Headers: ${resp.headers}');
+          Log.instance.e('model', 'Body: ${resp.data}');
+        } else {
+          Log.instance.e('model', 'No response for ${e.requestOptions.uri}');
+        }
+
         if (e.type == DioExceptionType.cancel) {
           throw ModelException('Download cancelled');
         } else if (e.type == DioExceptionType.connectionTimeout) {
           throw ModelException('Download timeout. Please check your internet connection.');
         } else if (e.response?.statusCode == 404) {
           throw ModelException('Model not found on server');
+        } else if (e.response?.statusCode == 401) {
+          throw ModelException('Authentication required (401). This model repository is private or gated.');
         } else {
           throw ModelException('Download failed: ${e.message}');
         }
@@ -672,83 +636,12 @@ class ModelService {
     }
   }
 
-  /// Download a CoreML model (iOS only)
-  Future<bool> downloadCoreMLModel(
-    String modelName, {
-    void Function(double progress)? onProgress,
-    void Function(String status)? onStatusChange,
-  }) async {
-    if (!Platform.isIOS) {
-      throw ModelException('CoreML models are only available on iOS');
-    }
-
-    await initialize();
-
-    final modelDef = coreMLModels[modelName];
-    if (modelDef == null) {
-      throw ModelException('Unknown CoreML model: $modelName');
-    }
-
-    final modelDir = path.join(_modelsDir, 'coreml');
-    final extractDir = path.join(modelDir, modelName);
-    final tempPath = '${extractDir}.zip.tmp';
-
-    // Check if already downloaded
-    if (await _isCoreMLModelDownloaded(extractDir)) {
-      onProgress?.call(1.0);
-      onStatusChange?.call('Model already downloaded');
-      return true;
-    }
-
-    // Check if download is already in progress
-    if (_activeDowloads.containsKey('coreml_$modelName')) {
-      throw ModelException('Download already in progress for CoreML $modelName');
-    }
-
-    final cancelToken = CancelToken();
-    _activeDowloads['coreml_$modelName'] = cancelToken;
-
-    try {
-      onStatusChange?.call('Starting CoreML download...');
-
-      await _downloadWithResume(
-        modelDef.url,
-        tempPath,
-        expectedSize: modelDef.sizeBytes,
-        onProgress: (progress) => onProgress?.call(progress * 0.8),
-        onStatusChange: onStatusChange,
-        cancelToken: cancelToken,
-      );
-
-      onStatusChange?.call('Extracting CoreML model...');
-      onProgress?.call(0.8);
-
-      // Extract zip file
-      await _extractCoreMLModel(tempPath, extractDir);
-      await File(tempPath).delete();
-
-      await _saveModelMetadata(modelName, ModelType.coreML, extractDir);
-
-      onProgress?.call(1.0);
-      onStatusChange?.call('CoreML download complete');
-      return true;
-
-    } catch (e) {
-      await _cleanupTempFile(tempPath);
-      await _cleanupDirectory(extractDir);
-      throw ModelException('Failed to download CoreML model: $e');
-    } finally {
-      _activeDowloads.remove('coreml_$modelName');
-    }
-  }
-
   /// Cancel an ongoing download
   Future<void> cancelDownload(String modelName, {ModelType? modelType}) async {
-    final key = modelType == ModelType.coreML ? 'coreml_$modelName' : modelName;
-    final cancelToken = _activeDowloads[key];
+    final cancelToken = _activeDowloads[modelName];
     if (cancelToken != null) {
       cancelToken.cancel('Download cancelled by user');
-      _activeDowloads.remove(key);
+      _activeDowloads.remove(modelName);
     }
   }
 
@@ -779,6 +672,13 @@ class ModelService {
     if (downloadedBytes > 0 && downloadedBytes < expectedSize) {
       headers['Range'] = 'bytes=$downloadedBytes-';
     }
+
+    final token = hfToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    Log.instance.d('model', 'Request headers: $headers');
 
     int lastProgressUpdate = DateTime.now().millisecondsSinceEpoch;
 
@@ -813,10 +713,10 @@ class ModelService {
 
     // Verify final file size
     final finalSize = await file.length();
-    if (finalSize != expectedSize) {
+    if (expectedSize > 0 && finalSize < expectedSize) {
       await file.delete();
       throw ModelException(
-        'Download incomplete. Expected $expectedSize bytes, got $finalSize bytes'
+        'Download incomplete. Expected at least $expectedSize bytes, got $finalSize bytes'
       );
     }
   }
@@ -837,27 +737,6 @@ class ModelService {
       return '${(speed / 1024).toStringAsFixed(1)} KB/s';
     } else {
       return '${(speed / (1024 * 1024)).toStringAsFixed(1)} MB/s';
-    }
-  }
-
-  /// Extract CoreML model from zip file
-  Future<void> _extractCoreMLModel(String zipPath, String extractDir) async {
-    final bytes = await File(zipPath).readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-
-    await Directory(extractDir).create(recursive: true);
-
-    for (final file in archive) {
-      final filename = path.join(extractDir, file.name);
-      
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        final outFile = File(filename);
-        await outFile.create(recursive: true);
-        await outFile.writeAsBytes(data);
-      } else {
-        await Directory(filename).create(recursive: true);
-      }
     }
   }
 
@@ -894,51 +773,20 @@ class ModelService {
     return null;
   }
 
-  /// Get CoreML model path
-  Future<String?> getCoreMLModelPath(String modelName) async {
-    if (!Platform.isIOS) return null;
-
-    await initialize();
-
-    final localPath = path.join(_modelsDir, 'coreml', modelName);
-
-    if (await _isCoreMLModelDownloaded(localPath)) {
-      return localPath;
-    }
-
-    return null;
-  }
-
   /// Delete a model with proper cleanup
   Future<bool> deleteModel(String modelName, {ModelType? modelType}) async {
     await initialize();
 
-    bool deleted = false;
-
-    // Cancel any ongoing downloads first
+    // Cancel any ongoing downloads first.
     await cancelDownload(modelName, modelType: modelType);
 
-    // Try Whisper.cpp first
-    if (modelType == null || modelType == ModelType.whisperCpp) {
-      final whisperPath = await getWhisperCppModelPath(modelName);
-      if (whisperPath != null) {
-        await File(whisperPath).delete();
-        await _removeModelMetadata(modelName, ModelType.whisperCpp);
-        deleted = true;
-      }
+    final whisperPath = await getWhisperCppModelPath(modelName);
+    if (whisperPath != null) {
+      await File(whisperPath).delete();
+      return true;
     }
 
-    // Try CoreML
-    if (!deleted && (modelType == null || modelType == ModelType.coreML)) {
-      final coreMLPath = await getCoreMLModelPath(modelName);
-      if (coreMLPath != null) {
-        await _cleanupDirectory(coreMLPath);
-        await _removeModelMetadata(modelName, ModelType.coreML);
-        deleted = true;
-      }
-    }
-
-    return deleted;
+    return false;
   }
 
   /// Get total storage used by models
@@ -946,26 +794,14 @@ class ModelService {
     await initialize();
 
     int whisperCppSize = 0;
-    int coreMLSize = 0;
-
-    // Calculate Whisper.cpp storage
     final whisperDir = Directory(path.join(_modelsDir, 'whisper_cpp'));
     if (await whisperDir.exists()) {
       whisperCppSize = await _getDirectorySize(whisperDir.path);
     }
 
-    // Calculate CoreML storage
-    if (Platform.isIOS) {
-      final coreMLDir = Directory(path.join(_modelsDir, 'coreml'));
-      if (await coreMLDir.exists()) {
-        coreMLSize = await _getDirectorySize(coreMLDir.path);
-      }
-    }
-
     return StorageInfo(
       whisperCppBytes: whisperCppSize,
-      coreMLBytes: coreMLSize,
-      totalBytes: whisperCppSize + coreMLSize,
+      totalBytes: whisperCppSize,
     );
   }
 
@@ -986,15 +822,6 @@ class ModelService {
 
       // Recreate subdirectories
       await Directory(path.join(_modelsDir, 'whisper_cpp')).create();
-      if (Platform.isIOS) {
-        await Directory(path.join(_modelsDir, 'coreml')).create();
-      }
-    }
-
-    // Clear metadata
-    final keys = _prefs?.getKeys().where((key) => key.startsWith('model_')) ?? [];
-    for (final key in keys) {
-      await _prefs?.remove(key);
     }
   }
 
@@ -1023,34 +850,6 @@ class ModelService {
     return true;
   }
 
-  Future<bool> _isCoreMLModelDownloaded(String modelDir) async {
-    final dir = Directory(modelDir);
-    if (!await dir.exists()) return false;
-
-    // Check if directory contains .mlmodelc files
-    final entities = await dir.list().toList();
-    return entities.any((entity) => 
-      entity is Directory && entity.path.endsWith('.mlmodelc')
-    );
-  }
-
-  Future<void> _saveModelMetadata(String modelName, ModelType type, String localPath) async {
-    final key = 'model_${type.name}_$modelName';
-    final metadata = {
-      'name': modelName,
-      'type': type.name,
-      'path': localPath,
-      'downloadedAt': DateTime.now().toIso8601String(),
-      'version': '1.0',
-    };
-
-    await _prefs?.setString(key, jsonEncode(metadata));
-  }
-
-  Future<void> _removeModelMetadata(String modelName, ModelType type) async {
-    final key = 'model_${type.name}_$modelName';
-    await _prefs?.remove(key);
-  }
 
   Future<void> _cleanupTempFile(String tempPath) async {
     try {
@@ -1176,22 +975,18 @@ class ModelInfo {
 
 enum ModelType {
   whisperCpp,
-  coreML,
 }
 
 class StorageInfo {
   final int whisperCppBytes;
-  final int coreMLBytes;
   final int totalBytes;
 
   const StorageInfo({
     required this.whisperCppBytes,
-    required this.coreMLBytes,
     required this.totalBytes,
   });
 
   String get formattedWhisperCpp => _formatSize(whisperCppBytes);
-  String get formattedCoreML => _formatSize(coreMLBytes);
   String get formattedTotal => _formatSize(totalBytes);
 
   String _formatSize(int bytes) {

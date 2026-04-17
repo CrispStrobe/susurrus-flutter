@@ -207,7 +207,6 @@ class AppConstants {
   
   // Model Download URLs
   static const String whisperCppModelsUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/';
-  static const String coreMLModelsUrl = 'https://huggingface.co/openai/whisper-large-v3/resolve/main/';
   
   // Regular Expressions
   static final RegExp filenameRegex = RegExp(r'[<>:"/\\|?*]');

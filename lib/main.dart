@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/transcription_screen.dart';
 import 'screens/settings_screen.dart';
@@ -21,6 +22,8 @@ import 'services/log_service.dart';
 import 'services/native_licenses.dart';
 import 'services/share_intake_service.dart';
 import 'services/transcription_service.dart';
+import 'services/model_service.dart';
+import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
@@ -42,7 +45,17 @@ void main() async {
   await _initializeServices();
   await registerNativeLicenses();
 
-  runApp(const ProviderScope(child: CrisperWeaverApp()));
+  final prefs = await SharedPreferences.getInstance();
+  final settingsService = SettingsService(prefs);
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        settingsServiceProvider.overrideWithValue(settingsService),
+      ],
+      child: const CrisperWeaverApp(),
+    ),
+  );
 }
 
 Future<void> _requestPermissions() async {
@@ -130,6 +143,8 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+
     return MaterialApp.router(
       title: 'CrisperWeaver',
       debugShowCheckedModeBanner: false,
@@ -137,6 +152,7 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       routerConfig: _router,
+      locale: locale,
       // i18n: English (fallback) + German. Flutter picks the closest match
       // to the system locale automatically.
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -153,9 +169,15 @@ final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
 final historyServiceProvider =
     Provider<HistoryService>((ref) => HistoryService());
 
+final modelServiceProvider = Provider<ModelService>((ref) {
+  final settingsService = ref.watch(settingsServiceProvider);
+  return ModelService(settingsService);
+});
+
 final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
   final audioService = ref.watch(audioServiceProvider);
-  return TranscriptionService(audioService);
+  final modelService = ref.watch(modelServiceProvider);
+  return TranscriptionService(audioService, modelService);
 });
 
 /// Path to the audio file the user has selected or just recorded — used to
@@ -298,3 +320,33 @@ class AppStateNotifier extends StateNotifier<AppState> {
     state = const AppState();
   }
 }
+
+/// Manages the app's locale based on user preference or system default.
+class LocaleNotifier extends StateNotifier<Locale?> {
+  final SettingsService _settingsService;
+
+  LocaleNotifier(this._settingsService) : super(null) {
+    _init();
+  }
+
+  void _init() {
+    final localeCode = _settingsService.appLocale;
+    if (localeCode != null && localeCode.isNotEmpty) {
+      state = Locale(localeCode);
+    }
+  }
+
+  Future<void> setLocale(String? languageCode) async {
+    _settingsService.appLocale = languageCode;
+    if (languageCode == null || languageCode.isEmpty) {
+      state = null;
+    } else {
+      state = Locale(languageCode);
+    }
+  }
+}
+
+final localeProvider = StateNotifierProvider<LocaleNotifier, Locale?>((ref) {
+  final settingsService = ref.watch(settingsServiceProvider);
+  return LocaleNotifier(settingsService);
+});

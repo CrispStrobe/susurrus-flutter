@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Flutter plugin applies after Android + Kotlin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -20,20 +20,36 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.crispstrobe.crisperweaver"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+    }
+
+    // Pre-built libwhisper.so (+ sibling CrispASR backend libs) are dropped
+    // into src/main/jniLibs/<abi>/ by CrispASR/build-android.sh.
+    sourceSets {
+        named("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // Other plugins may ship libc++_shared; keep the first.
+            pickFirsts += "**/libc++_shared.so"
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signed debug for now so `flutter run --release` works without a
+            // keystore. Swap in a release signingConfig before publishing.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

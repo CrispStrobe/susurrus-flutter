@@ -1,5 +1,6 @@
 // lib/engines/transcription_engine.dart
 import 'dart:typed_data';
+import '../services/model_service.dart';
 
 /// Abstract interface for all transcription engines
 abstract class TranscriptionEngine {
@@ -20,7 +21,7 @@ abstract class TranscriptionEngine {
   bool get isProcessing;
 
   /// Lifecycle methods
-  Future<bool> initialize({Map<String, dynamic>? config});
+  Future<bool> initialize({ModelService? modelService, Map<String, dynamic>? config});
   Future<void> dispose();
 
   /// Model management

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crispasr/crispasr.dart' as crispasr;
-import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
 import 'log_service.dart';
+import 'settings_service.dart';
 
 class AudioService {
   final AudioRecorder _recorder = AudioRecorder();
@@ -18,18 +18,22 @@ class AudioService {
   bool _isRecording = false;
   
   /// Record audio from microphone
-  Future<String?> startRecording() async {
+  Future<String?> startRecording({SettingsService? settingsService}) async {
     try {
       if (await _recorder.hasPermission()) {
         final appDir = await getApplicationDocumentsDirectory();
         final fileName = 'recording_${DateTime.now().millisecondsSinceEpoch}.wav';
         final filePath = path.join(appDir.path, fileName);
         
-        const config = RecordConfig(
+        final bitRate = settingsService != null 
+          ? (settingsService.audioQuality * 128000).toInt() 
+          : 128000;
+
+        final config = RecordConfig(
           encoder: AudioEncoder.wav,
           sampleRate: 16000,
           numChannels: 1,
-          bitRate: 128000,
+          bitRate: bitRate,
         );
         
         await _recorder.start(config, path: filePath);
@@ -38,7 +42,7 @@ class AudioService {
       }
       return null;
     } catch (e) {
-      print('Error starting recording: $e');
+      Log.instance.e('audio', 'Error starting recording', error: e);
       return null;
     }
   }
@@ -50,7 +54,7 @@ class AudioService {
       _isRecording = false;
       return path;
     } catch (e) {
-      print('Error stopping recording: $e');
+      Log.instance.e('audio', 'Error stopping recording', error: e);
       return null;
     }
   }
@@ -58,9 +62,6 @@ class AudioService {
   /// Convert audio file to the required format for transcription
   Future<AudioData> loadAudioFile(File audioFile) async {
     try {
-      // For now, we'll use a simple approach
-      // In production, you might want to use FFmpeg through FFI
-      
       // Load with just_audio to get duration and sample rate info
       await _player.setFilePath(audioFile.path);
       final duration = _player.duration?.inMilliseconds ?? 0;
@@ -102,16 +103,7 @@ class AudioService {
   }
   
   /// Convert an arbitrary audio file to mono 16 kHz float32 PCM.
-  ///
-  /// Tiered approach, fastest-first:
-  ///   1. **CrispASR FFI decoder** — `crispasr_audio_load`, shipped inside
-  ///      libcrispasr. Handles WAV / MP3 / FLAC with internal resample
-  ///      + down-mix. Cross-platform everywhere libwhisper runs.
-  ///   2. **Legacy iOS/macOS method channel** — only if the FFI decoder
-  ///      isn't in the bundled library (pre-0.4.1 CrispASR).
-  ///   3. **Pure-Dart WAV parser** — last-resort for .wav files.
   Future<WavData> _convertToWav(File audioFile) async {
-    // 1. FFI decoder. Runs on any platform that loaded libcrispasr.
     try {
       final decoded = crispasr.decodeAudioFile(audioFile.path);
       Log.instance.d('audio',
@@ -123,37 +115,13 @@ class AudioService {
         channels: 1,
       );
     } on UnsupportedError catch (e) {
-      // FFI binding missing — older dylib. Fall through to tier 2.
       Log.instance.w('audio', 'FFI decoder not available: $e');
     } catch (e, st) {
-      // Decoder present but the file failed to load — could be an unsupported
-      // container (Ogg Vorbis) or a corrupt file. Fall back to legacy path.
       Log.instance.w('audio',
-          'FFI decoder rejected ${audioFile.path}; trying fallbacks',
+          'FFI decoder rejected ${audioFile.path}; falling back to WAV parser',
           error: e, stack: st);
     }
 
-    // 2. Legacy method channel (iOS/macOS only).
-    try {
-      const platform = MethodChannel('com.crispstrobe.crisperweaver.audio_processing');
-      final result = await platform.invokeMethod('convertToWav', {
-        'filePath': audioFile.path,
-        'sampleRate': 16000,
-        'channels': 1,
-      });
-      final samples = Float32List.fromList(
-        (result['samples'] as List).cast<double>(),
-      );
-      return WavData(
-        samples: samples,
-        sampleRate: result['sampleRate'] as int,
-        channels: result['channels'] as int,
-      );
-    } catch (_) {
-      // Method channel missing / rejected — fall through.
-    }
-
-    // 3. Pure-Dart WAV header parser. Only succeeds for actual .wav files.
     return await _basicWavProcessing(audioFile);
   }
   
@@ -162,12 +130,10 @@ class AudioService {
     final bytes = await audioFile.readAsBytes();
     final byteData = ByteData.sublistView(bytes);
 
-    // Simple WAV header parsing
     if (bytes.length < 12) {
       throw AudioProcessingException('Invalid WAV file: too short');
     }
 
-    // Check WAV signature
     final riff = String.fromCharCodes(bytes.sublist(0, 4));
     final wave = String.fromCharCodes(bytes.sublist(8, 12));
 
@@ -181,7 +147,6 @@ class AudioService {
     int dataOffset = -1;
     int dataSize = 0;
 
-    // Iterate through chunks starting from offset 12
     int offset = 12;
     while (offset + 8 <= bytes.length) {
       final chunkId = String.fromCharCodes(bytes.sublist(offset, offset + 4));
@@ -189,33 +154,23 @@ class AudioService {
       offset += 8;
 
       if (chunkId == 'fmt ') {
-        if (chunkSize < 16) {
-          throw AudioProcessingException('Invalid fmt chunk size');
-        }
+        if (chunkSize < 16) throw AudioProcessingException('Invalid fmt chunk size');
         channels = byteData.getUint16(offset + 2, Endian.little);
         sampleRate = byteData.getUint32(offset + 4, Endian.little);
         bitsPerSample = byteData.getUint16(offset + 14, Endian.little);
       } else if (chunkId == 'data') {
         dataOffset = offset;
         dataSize = chunkSize;
-        // We found data, but we might still need fmt if it comes later (rare but possible)
-        // or we can break if we already have fmt.
         if (channels > 0) break;
       }
 
       offset += chunkSize;
-      // WAV chunks are padded to 2 bytes
       if (chunkSize % 2 != 0) offset++;
     }
 
-    if (dataOffset == -1) {
-      throw AudioProcessingException('No data chunk found in WAV file');
-    }
-    if (channels == 0) {
-      throw AudioProcessingException('No fmt chunk found in WAV file');
-    }
+    if (dataOffset == -1) throw AudioProcessingException('No data chunk found in WAV file');
+    if (channels == 0) throw AudioProcessingException('No fmt chunk found in WAV file');
 
-    // Ensure we don't read past the end of the file
     final actualDataSize = (bytes.length - dataOffset);
     final sizeToRead = dataSize < actualDataSize ? dataSize : actualDataSize;
     
@@ -287,7 +242,7 @@ class AudioService {
         return fileName.substring(lastDot + 1);
       }
     }
-    return 'mp3'; // Default extension
+    return 'mp3';
   }
   
   void dispose() {
@@ -355,11 +310,9 @@ class AudioInfo {
   }
 }
 
-// Exceptions
 class AudioProcessingException implements Exception {
   final String message;
   const AudioProcessingException(this.message);
-  
   @override
   String toString() => 'AudioProcessingException: $message';
 }
@@ -367,7 +320,6 @@ class AudioProcessingException implements Exception {
 class AudioDownloadException implements Exception {
   final String message;
   const AudioDownloadException(this.message);
-  
   @override
   String toString() => 'AudioDownloadException: $message';
 }
@@ -375,7 +327,6 @@ class AudioDownloadException implements Exception {
 class AudioPlaybackException implements Exception {
   final String message;
   const AudioPlaybackException(this.message);
-  
   @override
   String toString() => 'AudioPlaybackException: $message';
 }

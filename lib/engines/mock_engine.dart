@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'dart:async';
 
+import '../services/model_service.dart';
 import 'transcription_engine.dart';
 
 /// Mock transcription engine for testing and development
@@ -64,7 +65,7 @@ class MockEngine implements TranscriptionEngine {
   Map<String, dynamic> get currentConfig => Map.from(_config);
 
   @override
-  Future<bool> initialize({Map<String, dynamic>? config}) async {
+  Future<bool> initialize({ModelService? modelService, Map<String, dynamic>? config}) async {
     await Future.delayed(const Duration(milliseconds: 500)); // Simulate init time
     
     _config = config ?? {};

@@ -70,6 +70,9 @@ for name in parakeet canary qwen3_asr cohere granite_speech canary_ctc \
   fi
 done
 
+# Bundle all ggml shared libraries (including symlinks)
+find "$CRISPASR_DIR/build/ggml/src" -name "libggml*.dylib" -exec cp -R {} "$FRAMEWORKS/" \;
+
 # wav2vec2 is built as a static library (see src/CMakeLists.txt), so
 # its symbols are already inside libwhisper.dylib — nothing to copy.
 

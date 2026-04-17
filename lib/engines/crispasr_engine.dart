@@ -74,11 +74,13 @@ class CrispASREngine implements TranscriptionEngine {
   Map<String, dynamic> get currentConfig => Map.unmodifiable(_config);
 
   @override
-  Future<bool> initialize({Map<String, dynamic>? config}) async {
+  Future<bool> initialize({ModelService? modelService, Map<String, dynamic>? config}) async {
     try {
       _config = Map<String, dynamic>.from(config ?? const {});
-      _modelService = ModelService();
-      await _modelService!.initialize();
+      _modelService = modelService;
+      if (_modelService != null) {
+        await _modelService!.initialize();
+      }
       _isInitialized = true;
       Log.instance.i('crispasr', 'Initialized (lib=${crispasr.CrispASR.defaultLibName()})');
       return true;
@@ -155,6 +157,7 @@ class CrispASREngine implements TranscriptionEngine {
 
     // Check if the backend is available in the bundled dylib.
     final available = crispasr.CrispasrSession.availableBackends();
+    Log.instance.d('crispasr', 'Available backends in libwhisper: ${available.join(", ")}');
     if (!available.contains(def.backend)) {
       throw ModelLoadException(
         'Model uses the ${def.backend} backend. The bundled libwhisper '
@@ -366,7 +369,7 @@ class CrispASREngine implements TranscriptionEngine {
         language: (language == null || language == 'auto') ? null : language,
         detectLanguage: language == null || language == 'auto',
         wordTimestamps: wordTimestamps,
-        silent: true,
+        silent: false,
       ),
     );
   }

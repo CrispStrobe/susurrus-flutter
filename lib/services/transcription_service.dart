@@ -12,7 +12,7 @@ import 'diarization_service.dart';
 /// Main transcription service that coordinates engines, audio processing, and diarization
 class TranscriptionService {
   final AudioService _audioService;
-  final ModelService _modelService = ModelService();
+  final ModelService _modelService;
   final DiarizationService _diarizationService = DiarizationService();
   final EngineManager _engineManager = EngineManager();
 
@@ -25,7 +25,7 @@ class TranscriptionService {
   /// detection without plumbing a new return type through every layer.
   TranscriptionResult? lastResult;
 
-  TranscriptionService(this._audioService);
+  TranscriptionService(this._audioService, this._modelService);
 
   bool get isTranscribing => _isTranscribing;
   TranscriptionEngine? get currentEngine => _engineManager.currentEngine;
@@ -41,12 +41,12 @@ class TranscriptionService {
 
       // Initialize with preferred engine or use mock as safe fallback
       final engineType = preferredEngine ?? EngineType.mock;
-      final success = await _engineManager.switchEngine(engineType);
+      final success = await _engineManager.switchEngine(engineType, modelService: _modelService);
 
       if (!success) {
         // Fallback to mock engine if preferred engine fails
         print('Failed to initialize $engineType engine, falling back to mock');
-        return await _engineManager.initializeWithMock();
+        return await _engineManager.initializeWithMock(modelService: _modelService);
       }
 
       // Load model if specified and engine supports it
@@ -216,7 +216,7 @@ class TranscriptionService {
     }
 
     try {
-      return await _engineManager.switchEngine(engineType, config: config);
+      return await _engineManager.switchEngine(engineType, modelService: _modelService, config: config);
     } catch (e) {
       print('Error switching engine to $engineType: $e');
       return false;

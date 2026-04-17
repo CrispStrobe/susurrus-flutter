@@ -1,11 +1,10 @@
-# ios/Podfile - Complete Configuration for CrisperWeaver
-# Minimum iOS version for modern CoreML and Metal support
-platform :ios, '13.0'
+# Standard Flutter iOS Podfile.
+# CrisperWeaver loads libcrispasr/libwhisper via Dart FFI, not CocoaPods,
+# so only Flutter plugin pods land here — no custom pod '...' lines.
 
-# Disable CocoaPods analytics for faster builds
+platform :ios, '13.0'
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
-# Project configuration
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -26,7 +25,6 @@ def flutter_root
 end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-
 flutter_ios_podfile_setup
 
 target 'Runner' do
@@ -34,16 +32,6 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-
-  # CoreML and Machine Learning Support
-  pod 'TensorFlowLiteSwift', '~> 2.13.0'
-  
-  # Audio processing optimization
-  pod 'AudioToolbox'
-  pod 'AVFoundation'
-  
-  # For advanced audio format support (optional)
-  # pod 'FFmpeg-iOS', '~> 4.4.1' # Uncomment if you need advanced audio format support
 
   target 'RunnerTests' do
     inherit! :search_paths
@@ -55,117 +43,10 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      # Ensure minimum deployment target
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      
-      # Enable modern C++ features for whisper.cpp
+      # CrispASR's C++ code uses C++17.
       config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
       config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
-      
-      # Optimize for whisper.cpp performance
-      config.build_settings['GCC_OPTIMIZATION_LEVEL'] = '3' # -O3 optimization
-      config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-O'
-      
-      # Enable Metal Performance Shaders for CoreML
-      config.build_settings['MTL_ENABLE_DEBUG_INFO'] = 'NO'
-      config.build_settings['ENABLE_METAL'] = 'YES'
-      
-      # Whisper.cpp specific preprocessor definitions
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] += [
-        'GGML_USE_ACCELERATE=1',
-        'GGML_USE_METAL=1',
-        'WHISPER_USE_COREML=1',
-        'PERMISSION_MICROPHONE=1',
-        'PERMISSION_PHOTOS=1',
-        'PERMISSION_CAMERA=1'
-      ]
-      
-      # Linker flags for Apple frameworks
-      config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
-      config.build_settings['OTHER_LDFLAGS'] += [
-        '-framework Accelerate',
-        '-framework Metal',
-        '-framework MetalKit',
-        '-framework CoreML',
-        '-framework AVFoundation',
-        '-framework AudioToolbox',
-        '-lc++'
-      ]
-      
-      # Header search paths for whisper.cpp
-      config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
-      config.build_settings['HEADER_SEARCH_PATHS'] += [
-        '$(SRCROOT)/../android/app/src/main/cpp/whisper.cpp',
-        '$(SRCROOT)/Runner/whisper_cpp'
-      ]
-      
-      # Library search paths
-      config.build_settings['LIBRARY_SEARCH_PATHS'] ||= ['$(inherited)']
-      config.build_settings['LIBRARY_SEARCH_PATHS'] += [
-        '$(SRCROOT)/Runner/Libraries'
-      ]
-      
-      # Enable bitcode for App Store (if needed)
-      config.build_settings['ENABLE_BITCODE'] = 'NO' # Disabled for faster builds and whisper.cpp compatibility
-      
-      # Architecture-specific optimizations
-      if config.name == 'Release'
-        config.build_settings['GCC_UNROLL_LOOPS'] = 'YES'
-        config.build_settings['GCC_FAST_MATH'] = 'YES'
-        config.build_settings['LLVM_LTO'] = 'YES' # Link Time Optimization
-      end
-      
-      # Fix for Xcode 14+ compatibility
-      config.build_settings['DEAD_CODE_STRIPPING'] = 'YES'
-      config.build_settings['DEFINES_MODULE'] = 'YES'
-      
-      # Privacy manifest support (iOS 17+)
-      config.build_settings['GENERATE_PRIVACY_MANIFEST'] = 'YES'
-      
-      # Exclude architecture if building for simulator (whisper.cpp optimization)
-      if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
-        config.build_settings['ARCHS[sdk=iphonesimulator*]'] = 'x86_64 arm64'
-      end
     end
-    
-    # Special handling for TensorFlowLite
-    if target.name == 'TensorFlowLiteSwift'
-      target.build_configurations.each do |config|
-        config.build_settings['SWIFT_VERSION'] = '5.0'
-        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-      end
-    end
-    
-    # Ensure all pods have consistent deployment target
-    if target.platform_name == :ios
-      target.build_configurations.each do |config|
-        config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      end
-    end
-  end
-  
-  # Fix for file permissions (common iOS build issue)
-  system('find Pods -name "*.sh" -exec chmod +x {} \\;')
-  
-  # Create whisper.cpp symlink if needed
-  unless File.exist?('Runner/whisper_cpp')
-    system('ln -sf ../../android/app/src/main/cpp/whisper.cpp Runner/whisper_cpp')
   end
 end
-
-# Custom function to check for whisper.cpp availability
-def check_whisper_cpp
-  whisper_path = File.expand_path('../android/app/src/main/cpp/whisper.cpp', __FILE__)
-  unless Dir.exist?(whisper_path)
-    puts "⚠️  Warning: whisper.cpp source not found at #{whisper_path}"
-    puts "   Run: cd android/app/src/main/cpp && git clone https://github.com/ggerganov/whisper.cpp.git"
-    puts "   The app will use mock implementation until whisper.cpp is available."
-  else
-    puts "✅ whisper.cpp source found - native transcription will be available"
-  end
-end
-
-# Run the check
-check_whisper_cpp

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/audio_utils.dart';
 
@@ -13,7 +14,10 @@ import '../main.dart';
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/log_service.dart';
 import '../services/transcription_service.dart';
+import '../services/model_service.dart';
+import '../services/settings_service.dart';
 import '../utils/file_utils.dart';
 import '../widgets/audio_recorder_widget.dart';
 import '../widgets/transcription_output_widget.dart';
@@ -30,10 +34,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   final TextEditingController _urlController = TextEditingController();
   String? _selectedFilePath;
   bool _showAdvancedOptions = false;
-  bool _enableDiarization = false;
-  String _language = 'auto';
-  String _modelName = 'base';
+  late bool _enableDiarization;
+  late String _language;
+  late String _modelName;
   bool _engineReady = false;
+  List<ModelInfo> _availableModels = [];
+  bool _loadingModels = false;
   // Memoized init future — the first `_ensureEngineReady()` call kicks it
   // off and any subsequent callers await the same future rather than
   // racing a second init through the service. Without this, tapping
@@ -47,6 +53,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize state from settings
+    final settings = ref.read(settingsServiceProvider);
+    _enableDiarization = settings.enableDiarizationByDefault;
+    _language = settings.defaultLanguage;
+    _modelName = settings.defaultModel;
+
     // Kick off engine initialization after the first frame so the error
     // dialog (if it occurs) has a context to attach to.
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureEngineReady());
@@ -72,21 +85,71 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
   Future<bool> _doInitialize() async {
     final service = ref.read(transcriptionServiceProvider);
+    final settings = ref.read(settingsServiceProvider);
+    
+    // Load models list
+    _loadModels();
+
     final ok = await service.initialize(
-      preferredEngine: EngineFactory.getRecommendedEngine(),
+      preferredEngine: settings.preferredEngine,
     );
     if (ok) {
-      // Try to load the chosen model; users can download it from /models
-      // if it's missing — loading will simply throw, which we report
-      // lazily at transcribe-time.
       try {
         await service.loadModel(_modelName);
       } catch (_) {
-        // Non-fatal — the transcribe call will surface a clearer error.
+        // Non-fatal
       }
     }
     if (mounted) setState(() => _engineReady = ok);
     return ok;
+  }
+
+  Future<void> _loadModels() async {
+    if (_loadingModels) return;
+    Log.instance.d('ui', 'Loading models for advanced options...');
+    setState(() => _loadingModels = true);
+    try {
+      final models = await ref.read(modelServiceProvider).getWhisperCppModels();
+      Log.instance.d('ui', 'Fetched ${models.length} models');
+      if (mounted) {
+        setState(() {
+          _availableModels = models;
+          _loadingModels = false;
+        });
+      }
+    } catch (e, st) {
+      Log.instance.e('ui', 'Failed to load models', error: e, stack: st);
+      if (mounted) {
+        setState(() => _loadingModels = false);
+      }
+    }
+  }
+
+  Future<void> _downloadModel(ModelInfo model) async {
+    final modelService = ref.read(modelServiceProvider);
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Starting download: ${model.displayName}')),
+      );
+      
+      final success = await modelService.downloadWhisperCppModel(
+        model.name,
+        onProgress: (p) {
+          // Optional: update UI with progress
+        },
+      );
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${model.displayName} downloaded')),
+        );
+        _loadModels(); // Refresh list
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Download failed: $e');
+      }
+    }
   }
 
   @override
@@ -313,6 +376,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               onPressed: () {
                 setState(() {
                   _showAdvancedOptions = !_showAdvancedOptions;
+                  if (_showAdvancedOptions) {
+                    _loadModels();
+                  }
                 });
               },
             ),
@@ -328,6 +394,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Widget _buildAdvancedOptions() {
+    Log.instance.d('ui', '_buildAdvancedOptions: _loadingModels=$_loadingModels, _availableModels.length=${_availableModels.length}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -378,48 +445,96 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         const SizedBox(height: 16),
 
         // Model Selection
-        Row(
-          children: [
-            const Text('Model: '),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'tiny', child: Text('Tiny (fast, less accurate)')),
-                  DropdownMenuItem(value: 'base', child: Text('Base (balanced)')),
-                  DropdownMenuItem(value: 'small', child: Text('Small (good quality)')),
-                  DropdownMenuItem(value: 'medium', child: Text('Medium (high quality)')),
-                  DropdownMenuItem(value: 'large', child: Text('Large (best quality)')),
-                ],
-                value: _modelName,
-                onChanged: (value) async {
-                  if (value == null || value == _modelName) return;
-                  setState(() => _modelName = value);
-                  try {
-                    await ref.read(transcriptionServiceProvider).loadModel(value);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Loaded $value')),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Load failed: $e')),
-                      );
-                    }
-                  }
-                },
-              ),
+        const Text('Model:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        if (_loadingModels && _availableModels.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_availableModels.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                const Text('No models found'),
+                TextButton.icon(
+                  onPressed: () {
+                    Log.instance.d('ui', 'Retry tapped in advanced options');
+                    _loadModels();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            height: 250,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _availableModels.length,
+              itemBuilder: (context, index) {
+                if (index == 0) Log.instance.t('ui', 'ListView.builder building item 0');
+                final model = _availableModels[index];
+                final isSelected = _modelName == model.name;
+                return ListTile(
+                  dense: true,
+                  selected: isSelected,
+                  title: Text(model.displayName, style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  )),
+                  subtitle: Text('${model.size} • ${model.backend}'),
+                  trailing: _buildModelAction(model),
+                  onTap: model.isDownloaded ? () => _selectModel(model.name) : null,
+                );
+              },
+            ),
+          ),
       ],
     );
+  }
+
+  Widget _buildModelAction(ModelInfo model) {
+    if (model.isDownloaded) {
+      return _modelName == model.name
+          ? const Icon(Icons.check_circle, color: Colors.green)
+          : const Icon(Icons.check, color: Colors.grey);
+    }
+    return IconButton(
+      icon: const Icon(Icons.download, size: 20),
+      onPressed: () => _downloadModel(model),
+      tooltip: 'Download model',
+    );
+  }
+
+  Future<void> _selectModel(String value) async {
+    if (value == _modelName) return;
+    setState(() => _modelName = value);
+    try {
+      await ref.read(transcriptionServiceProvider).loadModel(value);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Loaded $value')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Load failed: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildControlsSection(AppState appState, TranscriptionService transcriptionService) {
@@ -494,7 +609,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   value: 'save_txt',
                   child: ListTile(
                     leading: Icon(Icons.description),
-                    title: Text('Save as .txt'),
+                    title: Text('Save as TXT'),
                     dense: true,
                   ),
                 ),
@@ -502,7 +617,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   value: 'save_srt',
                   child: ListTile(
                     leading: Icon(Icons.subtitles),
-                    title: Text('Save as .srt'),
+                    title: Text('Save as SRT'),
                     dense: true,
                   ),
                 ),
@@ -510,7 +625,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   value: 'save_vtt',
                   child: ListTile(
                     leading: Icon(Icons.closed_caption),
-                    title: Text('Save as .vtt'),
+                    title: Text('Save as VTT'),
                     dense: true,
                   ),
                 ),
@@ -518,7 +633,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   value: 'save_json',
                   child: ListTile(
                     leading: Icon(Icons.data_object),
-                    title: Text('Save as .json'),
+                    title: Text('Save as JSON'),
                     dense: true,
                   ),
                 ),
@@ -621,6 +736,17 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
     if (!_engineReady) {
       await _ensureEngineReady();
+    }
+
+    // Ensure model is loaded (if not already)
+    final currentStatus = transcriptionService.getEngineStatus();
+    if (currentStatus.currentModelId != _modelName) {
+      try {
+        await transcriptionService.loadModel(_modelName);
+      } catch (e) {
+        _showErrorDialog('Failed to load model $_modelName: $e');
+        return;
+      }
     }
 
     try {

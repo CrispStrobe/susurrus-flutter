@@ -218,9 +218,10 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
 
   Future<void> _startRecording() async {
     final audioService = ref.read(audioServiceProvider);
+    final settingsService = ref.read(settingsServiceProvider);
     
     try {
-      final path = await audioService.startRecording();
+      final path = await audioService.startRecording(settingsService: settingsService);
       if (path != null) {
         setState(() {
           _isRecording = true;
