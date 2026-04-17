@@ -174,17 +174,31 @@ jobs:
         working-directory: repos/susurrus-flutter
         run: flutter build linux --debug
 
-      - name: Bundle libwhisper.so into bundle/lib/
+      - name: Bundle all CrispASR .so's into bundle/lib/
         working-directory: repos/susurrus-flutter
         run: |
           BUNDLE=build/linux/x64/debug/bundle
-          SO=$(ls ../CrispASR/build/src/libwhisper.so.[0-9]* 2>/dev/null | head -1)
-          if [ -z "$SO" ]; then
-            SO=../CrispASR/build/src/libwhisper.so
-          fi
           mkdir -p "$BUNDLE/lib"
+
+          # Core library — pick the real file, then symlink both
+          # historical names so either open path works.
+          SO=$(ls ../CrispASR/build/src/libwhisper.so.[0-9]* 2>/dev/null | head -1)
+          [ -z "$SO" ] && SO=../CrispASR/build/src/libwhisper.so
           cp "$SO" "$BUNDLE/lib/libwhisper.so"
-          ls -lh "$BUNDLE/lib/libwhisper.so"
+          ln -sf libwhisper.so "$BUNDLE/lib/libcrispasr.so"
+
+          # Sibling backend .so's — DT_NEEDED by libwhisper.so. Missing
+          # ones just get skipped (slim builds stay valid).
+          for name in parakeet canary qwen3_asr cohere granite_speech \
+                      canary_ctc voxtral voxtral4b; do
+            src="../CrispASR/build/src/lib${name}.so"
+            if [ -f "$src" ]; then
+              cp "$src" "$BUNDLE/lib/lib${name}.so"
+            else
+              echo "warn: $src missing, backend ${name} not runtime-ready" >&2
+            fi
+          done
+          ls -lh "$BUNDLE/lib/"
 
       - name: Upload Linux bundle
         uses: actions/upload-artifact@v4
