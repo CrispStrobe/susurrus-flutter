@@ -4,7 +4,7 @@ This document enumerates what `package:crispasr` (at
 `../CrispASR/flutter/crispasr/`) would need to expose through Dart FFI so
 CrisperWeaver can surface the matching feature in the UI. Until these land
 upstream, the status matrix in the README will have ⚠️ / ❌ entries
-regardless of how much work we do in `crisperweaver-flutter`.
+regardless of how much work we do in CrisperWeaver.
 
 ## What the Dart package exposes today
 

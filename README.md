@@ -108,7 +108,7 @@ required for parity with mobile.
 ## Repo layout
 
 ```
-crisperweaver-flutter/             ← this repo
+CrisperWeaver/                ← this repo
   lib/
     engines/                  ← TranscriptionEngine + impls (CrispASR, Mock, ...)
     screens/                  ← transcription, history, models, logs, about, settings
@@ -139,7 +139,7 @@ CrispASR/                     ← sibling checkout required at build time
 ```bash
 mkdir crisperweaver && cd crisperweaver
 git clone https://github.com/CrispStrobe/CrispASR.git
-git clone https://github.com/<you>/crisperweaver-flutter.git
+git clone https://github.com/CrispStrobe/CrisperWeaver.git
 ```
 
 ### Build libwhisper (macOS / Linux)
@@ -155,7 +155,7 @@ cmake --build build --parallel --target whisper
 ### Run the Flutter app
 
 ```bash
-cd ../crisperweaver-flutter
+cd ../CrisperWeaver
 flutter pub get
 flutter run -d macos          # or: flutter run -d linux, flutter run -d android, ...
 ```
