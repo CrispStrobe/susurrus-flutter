@@ -384,10 +384,16 @@ class CrispASREngine implements TranscriptionEngine {
     bool enableWordTimestamps,
     void Function(TranscriptionSegment segment)? onSegment,
   ) {
+    Log.instance.d('crispasr', 'Mapping ${nativeSegments.length} native segments');
     final segments = <TranscriptionSegment>[];
     for (var i = 0; i < nativeSegments.length; i++) {
       if (_cancelRequested) break;
       final s = nativeSegments[i];
+      Log.instance.d('crispasr', 'Native segment $i text: "[${s.text}]" words: ${s.words.length}');
+      if (s.text.trim().isEmpty) {
+        Log.instance.d('crispasr', 'Segment $i is empty, skipping');
+        continue;
+      }
       final confidence = (1.0 - s.noSpeechProb).clamp(0.0, 1.0).toDouble();
 
       // Map CrispASR's per-token `Word` onto the app's `TranscriptionWord`

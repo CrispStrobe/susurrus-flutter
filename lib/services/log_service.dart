@@ -72,8 +72,8 @@ class Log {
   final StreamController<LogEntry> _stream =
       StreamController<LogEntry>.broadcast();
 
-  int _capacity = 2000;
-  LogLevel _minLevel = kDebugMode ? LogLevel.debug : LogLevel.info;
+  int _capacity = 5000;
+  LogLevel _minLevel = kDebugMode ? LogLevel.trace : LogLevel.info;
   bool _fileSink = false;
   File? _sinkFile;
   IOSink? _sink;

@@ -30,7 +30,13 @@ import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Log.instance.i('main', 'CrisperWeaver starting — platform=${Platform.operatingSystem}');
+  // Persist the rolling session log from the very first line so bug reports
+  // always have the startup trail on disk.
+  await Log.instance.enableFileSink(true);
+  Log.instance.i('main',
+      'CrisperWeaver starting — platform=${Platform.operatingSystem} '
+      'level=${Log.instance.minLevel.tag}');
+
   FlutterError.onError = (details) {
     Log.instance.e(
       'flutter',
@@ -41,12 +47,22 @@ void main() async {
     FlutterError.presentError(details);
   };
 
+  // Surface uncaught platform/dispatcher errors too.
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    Log.instance.e('uncaught', '$error', error: error, stack: stack);
+    return true;
+  };
+
   await _requestPermissions();
   await _initializeServices();
   await registerNativeLicenses();
 
   final prefs = await SharedPreferences.getInstance();
   final settingsService = SettingsService(prefs);
+
+  // Honour persisted user choice for log level. If unset, Log's default
+  // (trace in debug, info in release) holds.
+  Log.instance.setMinLevel(settingsService.logLevel);
 
   runApp(
     ProviderScope(
@@ -331,12 +347,14 @@ class LocaleNotifier extends StateNotifier<Locale?> {
 
   void _init() {
     final localeCode = _settingsService.appLocale;
+    Log.instance.d('locale', 'Initial app locale from settings: $localeCode');
     if (localeCode != null && localeCode.isNotEmpty) {
       state = Locale(localeCode);
     }
   }
 
   Future<void> setLocale(String? languageCode) async {
+    Log.instance.i('locale', 'Changing app locale to: $languageCode');
     _settingsService.appLocale = languageCode;
     if (languageCode == null || languageCode.isEmpty) {
       state = null;

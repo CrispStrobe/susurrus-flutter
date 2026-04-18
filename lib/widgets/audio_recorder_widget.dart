@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../main.dart';
+import '../services/settings_service.dart';
 
 class AudioRecorderWidget extends ConsumerStatefulWidget {
   const AudioRecorderWidget({super.key});
@@ -17,6 +18,8 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     with TickerProviderStateMixin {
   bool _isRecording = false;
   bool _isPaused = false;
+  bool _isPlaying = false;
+  List<double> _amplitudes = [];
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
   String? _recordingPath;
@@ -156,6 +159,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
         painter: AudioVisualizerPainter(
           isRecording: _isRecording && !_isPaused,
           animationValue: _pulseController.value,
+          amplitudes: _amplitudes,
         ),
       ),
     );
@@ -195,9 +199,9 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.play_arrow),
-                onPressed: _playRecording,
-                tooltip: 'Play recording',
+                icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
+                onPressed: _isPlaying ? _stopPlayback : _playRecording,
+                tooltip: _isPlaying ? 'Stop playback' : 'Play recording',
               ),
               IconButton(
                 icon: const Icon(Icons.delete),
@@ -228,17 +232,23 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
           _isPaused = false;
           _recordingDuration = Duration.zero;
           _recordingPath = path;
+          _amplitudes = [];
         });
         
         // Start animation
         _pulseController.repeat(reverse: true);
         
         // Start timer
-        _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+        _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
           if (_isRecording && !_isPaused) {
-            setState(() {
-              _recordingDuration += const Duration(milliseconds: 100);
-            });
+            final amp = await audioService.getAmplitude();
+            if (mounted) {
+              setState(() {
+                _recordingDuration += const Duration(milliseconds: 100);
+                _amplitudes.add(amp);
+                if (_amplitudes.length > 100) _amplitudes.removeAt(0);
+              });
+            }
           }
         });
       }
@@ -285,10 +295,21 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     
     final audioService = ref.read(audioServiceProvider);
     try {
+      setState(() => _isPlaying = true);
       await audioService.playAudio(File(_recordingPath!));
+      if (mounted) setState(() => _isPlaying = false);
     } catch (e) {
+      if (mounted) setState(() => _isPlaying = false);
       _showErrorDialog('Failed to play recording: $e');
     }
+  }
+
+  Future<void> _stopPlayback() async {
+    final audioService = ref.read(audioServiceProvider);
+    try {
+      await audioService.stopPlayback();
+      if (mounted) setState(() => _isPlaying = false);
+    } catch (_) {}
   }
 
   void _deleteRecording() {
@@ -331,6 +352,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
 
   void _useRecording() {
     if (_recordingPath == null) return;
+    _stopPlayback();
     ref.read(selectedAudioPathProvider.notifier).state = _recordingPath;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Recording queued for transcription.')),
@@ -374,42 +396,47 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
 class AudioVisualizerPainter extends CustomPainter {
   final bool isRecording;
   final double animationValue;
+  final List<double> amplitudes;
   
   AudioVisualizerPainter({
     required this.isRecording,
     required this.animationValue,
+    required this.amplitudes,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!isRecording) return;
+    if (amplitudes.isEmpty) return;
     
     final paint = Paint()
-      ..color = Colors.red.withOpacity(0.6)
+      ..color = isRecording ? Colors.red.withOpacity(0.6) : Colors.grey.withOpacity(0.6)
       ..style = PaintingStyle.fill;
     
-    final center = Offset(size.width / 2, size.height / 2);
-    final maxRadius = size.height / 3;
+    final spacing = size.width / amplitudes.length;
+    final centerY = size.height / 2;
     
-    // Draw animated waveform
-    for (int i = 0; i < 20; i++) {
-      final x = (i / 19) * size.width;
-      final amplitude = (sin(animationValue * 2 * pi + i * 0.5) + 1) * 0.5;
-      final height = amplitude * maxRadius * 2;
+    for (int i = 0; i < amplitudes.length; i++) {
+      final x = i * spacing;
+      final amplitude = amplitudes[i];
+      final height = (amplitude * size.height).clamp(4.0, size.height - 4);
       
       final rect = Rect.fromCenter(
-        center: Offset(x, center.dy),
-        width: 3,
+        center: Offset(x, centerY),
+        width: spacing * 0.8,
         height: height,
       );
       
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(1.5)),
+        RRect.fromRectAndRadius(rect, const Radius.circular(1.0)),
         paint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant AudioVisualizerPainter oldDelegate) {
+    return oldDelegate.isRecording != isRecording || 
+           oldDelegate.amplitudes.length != amplitudes.length ||
+           isRecording;
+  }
 }

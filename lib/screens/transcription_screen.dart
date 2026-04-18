@@ -496,7 +496,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   )),
                   subtitle: Text('${model.size} • ${model.backend}'),
                   trailing: _buildModelAction(model),
-                  onTap: model.isDownloaded ? () => _selectModel(model.name) : null,
+                  onTap: () => _selectModelWithDownloadPrompt(model),
                 );
               },
             ),
@@ -521,6 +521,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Future<void> _selectModel(String value) async {
     if (value == _modelName) return;
     setState(() => _modelName = value);
+    
+    // Save to settings
+    ref.read(settingsServiceProvider).defaultModel = value;
+
     try {
       await ref.read(transcriptionServiceProvider).loadModel(value);
       if (mounted) {
@@ -878,6 +882,45 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         ],
       ),
     );
+  }
+
+  void _selectModelWithDownloadPrompt(ModelInfo model) async {
+    if (model.isDownloaded) {
+      _selectModel(model.name);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Download Model'),
+        content: Text(
+          'The model "${model.displayName}" is not yet downloaded. '
+          'Would you like to download it now (~${model.size})?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('DOWNLOAD'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _downloadModel(model);
+      final refreshedModels =
+          await ref.read(modelServiceProvider).getWhisperCppModels();
+      final updatedModel =
+          refreshedModels.firstWhere((m) => m.name == model.name);
+      if (updatedModel.isDownloaded) {
+        _selectModel(model.name);
+      }
+    }
   }
 }
 

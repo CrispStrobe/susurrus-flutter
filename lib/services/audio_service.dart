@@ -58,6 +58,18 @@ class AudioService {
       return null;
     }
   }
+
+  /// Get current microphone amplitude
+  Future<double> getAmplitude() async {
+    try {
+      final amp = await _recorder.getAmplitude();
+      // Map -160..0 dB to 0..1 linear
+      final linear = (amp.current + 160) / 160;
+      return linear.clamp(0.0, 1.0);
+    } catch (_) {
+      return 0.0;
+    }
+  }
   
   /// Convert audio file to the required format for transcription
   Future<AudioData> loadAudioFile(File audioFile) async {
