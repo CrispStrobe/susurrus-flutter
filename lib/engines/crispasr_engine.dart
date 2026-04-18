@@ -363,11 +363,16 @@ class CrispASREngine implements TranscriptionEngine {
     // sending the model handle across isolates which FFI can't do, so we
     // instead yield briefly to pump the event loop before the blocking call.
     await Future<void>.delayed(Duration.zero);
+    // NOTE: whisper.cpp's `params.detect_language = true` is a detect-ONLY
+    // mode — it returns as soon as the language is identified and never
+    // runs transcription. For auto-detect we just leave `language = null`;
+    // whisper then transcribes in auto-language mode, picking up the
+    // detected language internally on the first window.
     return _model!.transcribePcm(
       pcm,
       options: crispasr.TranscribeOptions(
         language: (language == null || language == 'auto') ? null : language,
-        detectLanguage: language == null || language == 'auto',
+        detectLanguage: false,
         wordTimestamps: wordTimestamps,
         silent: false,
       ),
