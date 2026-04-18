@@ -3,7 +3,7 @@ description: A cross-platform Flutter app for fully-offline audio transcription.
 
 publish_to: 'none'
 
-version: 0.1.4+1
+version: 0.1.5+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -61,10 +61,6 @@ dependencies:
   # For model downloads and verification - ENHANCED
   crypto: ^3.0.3
   archive: ^4.0.9
-  connectivity_plus: ^7.1.1
-  
-  # Background tasks and isolates
-  isolate: ^2.1.1
   
   # Progress indicators and animations
   percent_indicator: ^4.2.3
