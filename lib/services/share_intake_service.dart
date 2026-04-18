@@ -39,12 +39,11 @@ class ShareIntakeService {
 
     // Files that arrived while the app was suspended.
     try {
-      final initial =
-          await ReceiveSharingIntent.instance.getInitialMedia();
+      final initial = await ReceiveSharingIntent.instance.getInitialMedia();
       _handleBatch(initial);
     } catch (e, st) {
-      Log.instance.w('share', 'Initial media fetch failed',
-          error: e, stack: st);
+      Log.instance
+          .w('share', 'Initial media fetch failed', error: e, stack: st);
     }
 
     // Files that arrive while the app is running.

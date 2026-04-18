@@ -65,11 +65,11 @@ class AudioUtils {
 
     if (hours > 0) {
       return '${hours.toString().padLeft(2, '0')}:'
-             '${minutes.toString().padLeft(2, '0')}:'
-             '${secs.toString().padLeft(2, '0')}';
+          '${minutes.toString().padLeft(2, '0')}:'
+          '${secs.toString().padLeft(2, '0')}';
     } else {
       return '${minutes.toString().padLeft(2, '0')}:'
-             '${secs.toString().padLeft(2, '0')}';
+          '${secs.toString().padLeft(2, '0')}';
     }
   }
 
@@ -116,7 +116,8 @@ class AudioUtils {
   }
 
   /// Apply pre-emphasis filter to audio samples
-  static Float32List applyPreEmphasis(Float32List samples, [double alpha = 0.97]) {
+  static Float32List applyPreEmphasis(Float32List samples,
+      [double alpha = 0.97]) {
     if (samples.length <= 1) return samples;
 
     final result = Float32List(samples.length);
@@ -181,7 +182,8 @@ class AudioUtils {
         }
         silenceLength = i - silenceStart + 1;
       } else {
-        if (silenceLength >= minSilenceSamples && silenceStart > chunkStart + minChunkSamples) {
+        if (silenceLength >= minSilenceSamples &&
+            silenceStart > chunkStart + minChunkSamples) {
           // Found a significant silence gap, create a chunk
           final chunkEnd = silenceStart;
           final chunkSamples = samples.sublist(chunkStart, chunkEnd);
@@ -221,7 +223,8 @@ class AudioUtils {
   }
 
   /// Apply simple noise reduction using spectral subtraction
-  static Float32List reduceNoise(Float32List samples, {double noiseReduction = 0.5}) {
+  static Float32List reduceNoise(Float32List samples,
+      {double noiseReduction = 0.5}) {
     // This is a simplified noise reduction implementation
     // In production, you'd want more sophisticated algorithms
 
@@ -233,7 +236,7 @@ class AudioUtils {
 
     // Apply noise gate
     final threshold = noiseEstimate * (1.0 + noiseReduction);
-    
+
     return Float32List.fromList(samples.map((sample) {
       final amplitude = sample.abs();
       if (amplitude < threshold) {
@@ -326,7 +329,8 @@ class AudioUtils {
         );
       }
 
-      if (fileSize > 100 * 1024 * 1024) { // 100MB limit
+      if (fileSize > 100 * 1024 * 1024) {
+        // 100MB limit
         return AudioValidationResult(
           isValid: false,
           error: 'File is too large (max 100MB)',

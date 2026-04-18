@@ -89,13 +89,11 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
   void clearAll() => state = const [];
 
   void _update(String id, BatchJob Function(BatchJob) fn) {
-    state = state
-        .map((j) => j.id == id ? fn(j) : j)
-        .toList(growable: false);
+    state = state.map((j) => j.id == id ? fn(j) : j).toList(growable: false);
   }
 
-  void setRunning(String id) =>
-      _update(id, (j) => j.copyWith(status: BatchJobStatus.running, progress: 0));
+  void setRunning(String id) => _update(
+      id, (j) => j.copyWith(status: BatchJobStatus.running, progress: 0));
 
   void setProgress(String id, double p) =>
       _update(id, (j) => j.copyWith(progress: p));
@@ -110,13 +108,12 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
                 historyEntryId: historyEntryId,
               ));
 
-  void setError(String id, String message) =>
-      _update(
-          id,
-          (j) => j.copyWith(
-                status: BatchJobStatus.error,
-                errorMessage: message,
-              ));
+  void setError(String id, String message) => _update(
+      id,
+      (j) => j.copyWith(
+            status: BatchJobStatus.error,
+            errorMessage: message,
+          ));
 
   void setCancelled(String id) =>
       _update(id, (j) => j.copyWith(status: BatchJobStatus.cancelled));

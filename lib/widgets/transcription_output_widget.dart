@@ -15,7 +15,8 @@ class TranscriptionOutputWidget extends StatefulWidget {
   });
 
   @override
-  State<TranscriptionOutputWidget> createState() => _TranscriptionOutputWidgetState();
+  State<TranscriptionOutputWidget> createState() =>
+      _TranscriptionOutputWidgetState();
 }
 
 class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
@@ -94,7 +95,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                     prefixIcon: const Icon(Icons.search, size: 18),
                     isDense: true,
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
                   style: const TextStyle(fontSize: 13),
                   onChanged: (value) {
@@ -115,17 +117,20 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                   CheckedPopupMenuItem(
                     value: 'timestamps',
                     checked: _showTimestamps,
-                    child: Text(AppLocalizations.of(context).outputShowTimestamps),
+                    child:
+                        Text(AppLocalizations.of(context).outputShowTimestamps),
                   ),
                   CheckedPopupMenuItem(
                     value: 'speakers',
                     checked: _showSpeakers,
-                    child: Text(AppLocalizations.of(context).outputShowSpeakers),
+                    child:
+                        Text(AppLocalizations.of(context).outputShowSpeakers),
                   ),
                   CheckedPopupMenuItem(
                     value: 'confidence',
                     checked: _showConfidence,
-                    child: Text(AppLocalizations.of(context).outputShowConfidence),
+                    child:
+                        Text(AppLocalizations.of(context).outputShowConfidence),
                   ),
                   const PopupMenuDivider(),
                   PopupMenuItem(
@@ -160,8 +165,10 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
     final filteredSegments = _searchQuery.isEmpty
         ? widget.segments
-        : widget.segments.where((segment) =>
-            segment.text.toLowerCase().contains(_searchQuery)).toList();
+        : widget.segments
+            .where(
+                (segment) => segment.text.toLowerCase().contains(_searchQuery))
+            .toList();
 
     if (filteredSegments.isEmpty) {
       return _buildNoSearchResults();
@@ -197,7 +204,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                 children: [
                   if (_showTimestamps) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -216,7 +224,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
                   if (_showSpeakers && segment.speaker != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getSpeakerColor(segment.speaker!),
                         borderRadius: BorderRadius.circular(12),
@@ -237,7 +246,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
                   if (_showConfidence) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: _getConfidenceColor(segment.confidence),
                         borderRadius: BorderRadius.circular(8),
@@ -256,7 +266,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                   // Options menu
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_horiz, size: 16),
-                    onSelected: (action) => _handleSegmentAction(action, segment),
+                    onSelected: (action) =>
+                        _handleSegmentAction(action, segment),
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         value: 'play',
@@ -346,7 +357,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
   }
 
   Widget _buildFullTextView() {
-    if (widget.currentTranscription == null || widget.currentTranscription!.isEmpty) {
+    if (widget.currentTranscription == null ||
+        widget.currentTranscription!.isEmpty) {
       return _buildEmptyState();
     }
 
@@ -383,15 +395,15 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
           Text(
             'No transcription yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.grey.shade600,
-            ),
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Select an audio file and start transcription',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade500,
-            ),
+                  color: Colors.grey.shade500,
+                ),
           ),
         ],
       ),
@@ -412,15 +424,15 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
           Text(
             'No results found',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.grey.shade600,
-            ),
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Try a different search term',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade500,
-            ),
+                  color: Colors.grey.shade500,
+                ),
           ),
         ],
       ),
@@ -486,7 +498,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     // TODO: Implement audio playback for specific segment
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context).outputPlayingSegment(segment.formattedTime)),
+        content: Text(AppLocalizations.of(context)
+            .outputPlayingSegment(segment.formattedTime)),
         duration: const Duration(seconds: 2),
       ),
     );

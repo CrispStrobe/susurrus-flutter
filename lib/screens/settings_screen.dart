@@ -84,7 +84,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).settingsSelectInterfaceLanguage),
+        title:
+            Text(AppLocalizations.of(context).settingsSelectInterfaceLanguage),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: locales.entries.map((entry) {
@@ -95,11 +96,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   setState(() => settings.appLocale = value);
-                  
+
                   // Update app-wide locale via provider
                   final languageCode = value.isEmpty ? null : value;
                   ref.read(localeProvider.notifier).setLocale(languageCode);
-                  
+
                   Navigator.of(context).pop();
                 }
               },
@@ -167,7 +168,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${AppLocalizations.of(context).settingsEngineSwitchFailed}: $e')),
+                    SnackBar(
+                        content: Text(
+                            '${AppLocalizations.of(context).settingsEngineSwitchFailed}: $e')),
                   );
                 }
               },
@@ -204,8 +207,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchListTile(
           title: Text(AppLocalizations.of(context).settingsAutoDetectLanguage),
-          subtitle: Text(AppLocalizations.of(context)
-              .settingsAutoDetectLanguageSubtitle),
+          subtitle: Text(
+              AppLocalizations.of(context).settingsAutoDetectLanguageSubtitle),
           value: settings.autoDetectLanguage,
           onChanged: (value) {
             setState(() => settings.autoDetectLanguage = value);
@@ -213,8 +216,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchListTile(
           title: Text(AppLocalizations.of(context).settingsWordTimestamps),
-          subtitle: Text(
-              AppLocalizations.of(context).settingsWordTimestampsSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsWordTimestampsSubtitle),
           value: settings.enableWordTimestamps,
           onChanged: (value) {
             setState(() => settings.enableWordTimestamps = value);
@@ -226,8 +229,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showBackendSelector(SettingsService settings) {
     final backends = [
-      'whisper', 'parakeet', 'canary', 'qwen3', 'cohere', 'granite',
-      'fastconformer-ctc', 'canary-ctc', 'voxtral', 'voxtral4b', 'wav2vec2',
+      'whisper',
+      'parakeet',
+      'canary',
+      'qwen3',
+      'cohere',
+      'granite',
+      'fastconformer-ctc',
+      'canary-ctc',
+      'voxtral',
+      'voxtral4b',
+      'wav2vec2',
     ];
 
     showDialog(
@@ -237,16 +249,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: backends.map((b) => RadioListTile<String>(
-              title: Text(b),
-              value: b,
-              groupValue: settings.defaultBackend,
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => settings.defaultBackend = value);
-                Navigator.of(ctx).pop();
-              },
-            )).toList(),
+            children: backends
+                .map((b) => RadioListTile<String>(
+                      title: Text(b),
+                      value: b,
+                      groupValue: settings.defaultBackend,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => settings.defaultBackend = value);
+                        Navigator.of(ctx).pop();
+                      },
+                    ))
+                .toList(),
           ),
         ),
       ),
@@ -263,9 +277,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     // Filter by currently-selected backend — user chose "parakeet" as
     // default backend, picker shows parakeet quants only.
-    final filtered = models
-        .where((m) => m.backend == backendFilter)
-        .toList();
+    final filtered = models.where((m) => m.backend == backendFilter).toList();
 
     if (!mounted) return;
     final l = AppLocalizations.of(context);
@@ -322,17 +334,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(AppLocalizations.of(context).settingsSelectLanguage),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: languages.entries.map((entry) => RadioListTile<String>(
-            title: Text(entry.value),
-            value: entry.key,
-            groupValue: settings.defaultLanguage,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => settings.defaultLanguage = value);
-                Navigator.of(context).pop();
-              }
-            },
-          )).toList(),
+          children: languages.entries
+              .map((entry) => RadioListTile<String>(
+                    title: Text(entry.value),
+                    value: entry.key,
+                    groupValue: settings.defaultLanguage,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => settings.defaultLanguage = value);
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ))
+              .toList(),
         ),
       ),
     );
@@ -348,8 +362,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(AppLocalizations.of(context)
-                  .settingsAudioQualityCurrent((settings.audioQuality * 100).toInt())),
+              Text(AppLocalizations.of(context).settingsAudioQualityCurrent(
+                  (settings.audioQuality * 100).toInt())),
               Slider(
                 value: settings.audioQuality,
                 onChanged: (value) {
@@ -363,7 +377,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchListTile(
           title: Text(AppLocalizations.of(context).settingsKeepAudioFiles),
-          subtitle: Text(AppLocalizations.of(context).settingsKeepAudioFilesSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsKeepAudioFilesSubtitle),
           value: settings.keepAudioFiles,
           onChanged: (value) {
             setState(() => settings.keepAudioFiles = value);
@@ -379,8 +394,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       icon: Icons.people,
       children: [
         SwitchListTile(
-          title: Text(AppLocalizations.of(context).settingsEnableDiarizationByDefault),
-          subtitle: Text(AppLocalizations.of(context).settingsEnableDiarizationByDefaultSubtitle),
+          title: Text(
+              AppLocalizations.of(context).settingsEnableDiarizationByDefault),
+          subtitle: Text(AppLocalizations.of(context)
+              .settingsEnableDiarizationByDefaultSubtitle),
           value: settings.enableDiarizationByDefault,
           onChanged: (value) {
             setState(() => settings.enableDiarizationByDefault = value);
@@ -397,17 +414,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         ListTile(
           title: Text(AppLocalizations.of(context).settingsClearCache),
-          subtitle: Text(AppLocalizations.of(context).settingsClearCacheSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsClearCacheSubtitle),
           trailing: const Icon(Icons.delete_outline),
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(AppLocalizations.of(context).settingsCacheCleared)),
+              SnackBar(
+                  content:
+                      Text(AppLocalizations.of(context).settingsCacheCleared)),
             );
           },
         ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsManageModels),
-          subtitle: Text(AppLocalizations.of(context).settingsManageModelsSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsManageModelsSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/models'),
         ),
@@ -429,7 +450,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchListTile(
           title: Text(AppLocalizations.of(context).settingsMirrorLogs),
-          subtitle: Text(AppLocalizations.of(context).settingsMirrorLogsSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsMirrorLogsSubtitle),
           value: settings.logToFile,
           onChanged: (value) async {
             setState(() => settings.logToFile = value);
@@ -438,16 +460,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         SwitchListTile(
           title: Text(AppLocalizations.of(context).settingsSkipChecksum),
-          subtitle: Text(AppLocalizations.of(context).settingsSkipChecksumSubtitle),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsSkipChecksumSubtitle),
           value: settings.skipChecksum,
           onChanged: (value) {
             setState(() => settings.skipChecksum = value);
-            Log.instance.i('settings', value ? 'Checksum verification disabled' : 'Checksum verification enabled');
+            Log.instance.i(
+                'settings',
+                value
+                    ? 'Checksum verification disabled'
+                    : 'Checksum verification enabled');
           },
         ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsHfToken),
-          subtitle: Text(settings.hfToken.isEmpty ? 'Not set (required for gated models)' : '••••••••${settings.hfToken.length > 8 ? settings.hfToken.substring(settings.hfToken.length - 4) : ""}'),
+          subtitle: Text(settings.hfToken.isEmpty
+              ? 'Not set (required for gated models)'
+              : '••••••••${settings.hfToken.length > 8 ? settings.hfToken.substring(settings.hfToken.length - 4) : ""}'),
           trailing: const Icon(Icons.vpn_key),
           onTap: () => _showHfTokenDialog(settings),
         ),
@@ -467,17 +496,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(AppLocalizations.of(context).settingsLogLevel),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: LogLevel.values.map((l) => RadioListTile<LogLevel>(
-            title: Text('${l.tag} — ${l.name}'),
-            value: l,
-            groupValue: settings.logLevel,
-            onChanged: (v) {
-              if (v == null) return;
-              setState(() => settings.logLevel = v);
-              Log.instance.setMinLevel(v);
-              Navigator.of(ctx).pop();
-            },
-          )).toList(),
+          children: LogLevel.values
+              .map((l) => RadioListTile<LogLevel>(
+                    title: Text('${l.tag} — ${l.name}'),
+                    value: l,
+                    groupValue: settings.logLevel,
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => settings.logLevel = v);
+                      Log.instance.setMinLevel(v);
+                      Navigator.of(ctx).pop();
+                    },
+                  ))
+              .toList(),
         ),
       ),
     );
@@ -493,25 +524,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Required for gated or private repositories.', style: TextStyle(fontSize: 12)),
+            const Text('Required for gated or private repositories.',
+                style: TextStyle(fontSize: 12)),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(labelText: 'API Token', border: OutlineInputBorder(), hintText: 'hf_...'),
+              decoration: const InputDecoration(
+                  labelText: 'API Token',
+                  border: OutlineInputBorder(),
+                  hintText: 'hf_...'),
               obscureText: true,
               autocorrect: false,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('CANCEL')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('CANCEL')),
           ElevatedButton(
             onPressed: () {
               final newToken = controller.text.trim();
               setState(() => settings.hfToken = newToken);
               ref.read(modelServiceProvider).hfToken = newToken;
               Navigator.of(context).pop();
-              Log.instance.i('settings', newToken.isEmpty ? 'HF Token cleared' : 'HF Token updated');
+              Log.instance.i('settings',
+                  newToken.isEmpty ? 'HF Token cleared' : 'HF Token updated');
             },
             child: const Text('SAVE'),
           ),
@@ -528,12 +566,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         FutureBuilder<Map<String, String>>(
           future: _getSystemInfo(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return ListTile(title: Text(AppLocalizations.of(context).settingsLoading));
+            if (!snapshot.hasData)
+              return ListTile(
+                  title: Text(AppLocalizations.of(context).settingsLoading));
             return Column(
-              children: snapshot.data!.entries.map((entry) => ListTile(
-                title: Text(entry.key),
-                subtitle: Text(entry.value),
-              )).toList(),
+              children: snapshot.data!.entries
+                  .map((entry) => ListTile(
+                        title: Text(entry.key),
+                        subtitle: Text(entry.value),
+                      ))
+                  .toList(),
             );
           },
         ),
@@ -557,7 +599,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsAboutCrisperWeaver),
-          subtitle: Text(AppLocalizations.of(context).settingsAboutCrisperWeaverSubtitle),
+          subtitle: Text(
+              AppLocalizations.of(context).settingsAboutCrisperWeaverSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/about'),
         ),
@@ -565,14 +608,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsSection({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildSettingsSection(
+      {required String title,
+      required IconData icon,
+      required List<Widget> children}) {
     return Card(
       margin: const EdgeInsets.all(8),
       child: Column(
         children: [
           ListTile(
             leading: Icon(icon),
-            title: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            title: Text(title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
           ),
           const Divider(height: 1),
           ...children,
@@ -585,7 +635,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final info = <String, String>{};
     try {
       final packageInfo = await PackageInfo.fromPlatform();
-      info['App Version'] = '${packageInfo.version} (${packageInfo.buildNumber})';
+      info['App Version'] =
+          '${packageInfo.version} (${packageInfo.buildNumber})';
       if (Platform.isIOS) {
         final deviceInfo = DeviceInfoPlugin();
         final iosInfo = await deviceInfo.iosInfo;
@@ -606,17 +657,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _getLanguageDisplayName(String languageCode) {
     final l = AppLocalizations.of(context);
     switch (languageCode) {
-      case 'auto': return l.languageAuto;
-      case 'en': return l.languageEn;
-      case 'es': return l.languageEs;
-      case 'fr': return l.languageFr;
-      case 'de': return l.languageDe;
-      case 'it': return l.languageIt;
-      case 'pt': return l.languagePt;
-      case 'zh': return l.languageZh;
-      case 'ja': return l.languageJa;
-      case 'ko': return l.languageKo;
-      default: return languageCode;
+      case 'auto':
+        return l.languageAuto;
+      case 'en':
+        return l.languageEn;
+      case 'es':
+        return l.languageEs;
+      case 'fr':
+        return l.languageFr;
+      case 'de':
+        return l.languageDe;
+      case 'it':
+        return l.languageIt;
+      case 'pt':
+        return l.languagePt;
+      case 'zh':
+        return l.languageZh;
+      case 'ja':
+        return l.languageJa;
+      case 'ko':
+        return l.languageKo;
+      default:
+        return languageCode;
     }
   }
 }

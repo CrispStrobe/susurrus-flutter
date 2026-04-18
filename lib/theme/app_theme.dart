@@ -9,7 +9,7 @@ class AppTheme {
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color warningOrange = Color(0xFFFF9800);
   static const Color errorRed = Color(0xFFF44336);
-  
+
   // Dark theme colors
   static const Color darkSurface = Color(0xFF121212);
   static const Color darkSurfaceVariant = Color(0xFF1E1E1E);
@@ -19,13 +19,13 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      
+
       // Color scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
         brightness: Brightness.light,
       ),
-      
+
       // App bar theme
       appBarTheme: const AppBarTheme(
         elevation: 0,
@@ -39,7 +39,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      
+
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
@@ -49,7 +49,7 @@ class AppTheme {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
-      
+
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -64,7 +64,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -78,7 +78,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Text button theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -89,13 +89,13 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Floating action button theme
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: 4,
         shape: CircleBorder(),
       ),
-      
+
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
@@ -113,15 +113,16 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: errorRed),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
-      
+
       // List tile theme
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         minLeadingWidth: 40,
       ),
-      
+
       // Dialog theme
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
@@ -129,14 +130,14 @@ class AppTheme {
         ),
         elevation: 8,
       ),
-      
+
       // Bottom sheet theme
       bottomSheetTheme: const BottomSheetThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
       ),
-      
+
       // Tab bar theme
       tabBarTheme: const TabBarThemeData(
         labelColor: primaryBlue,
@@ -144,7 +145,7 @@ class AppTheme {
         indicatorColor: primaryBlue,
         indicatorSize: TabBarIndicatorSize.label,
       ),
-      
+
       // Switch theme
       switchTheme: SwitchThemeData(
         thumbColor: MaterialStateProperty.resolveWith((states) {
@@ -160,7 +161,7 @@ class AppTheme {
           return Colors.grey.shade300;
         }),
       ),
-      
+
       // Slider theme
       sliderTheme: const SliderThemeData(
         activeTrackColor: primaryBlue,
@@ -168,14 +169,14 @@ class AppTheme {
         thumbColor: primaryBlue,
         overlayColor: Color(0x1F2196F3),
       ),
-      
+
       // Progress indicator theme
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primaryBlue,
         linearTrackColor: Color(0xFFE3F2FD),
         circularTrackColor: Color(0xFFE3F2FD),
       ),
-      
+
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade100,
@@ -185,7 +186,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      
+
       // Typography
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -268,16 +269,16 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      
+
       // Color scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
         brightness: Brightness.dark,
       ),
-      
+
       // Scaffold background
       scaffoldBackgroundColor: darkBackground,
-      
+
       // App bar theme
       appBarTheme: const AppBarTheme(
         elevation: 0,
@@ -291,7 +292,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      
+
       // Card theme
       cardTheme: CardThemeData(
         elevation: 4,
@@ -302,7 +303,7 @@ class AppTheme {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
-      
+
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -319,7 +320,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -335,7 +336,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Text button theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -347,7 +348,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Floating action button theme
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: 4,
@@ -355,7 +356,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         shape: CircleBorder(),
       ),
-      
+
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -376,11 +377,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: errorRed),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         labelStyle: const TextStyle(color: Colors.white70),
         hintStyle: const TextStyle(color: Colors.white54),
       ),
-      
+
       // List tile theme
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -388,7 +390,7 @@ class AppTheme {
         textColor: Colors.white,
         iconColor: Colors.white70,
       ),
-      
+
       // Dialog theme
       dialogTheme: DialogThemeData(
         backgroundColor: darkSurfaceVariant,
@@ -397,7 +399,7 @@ class AppTheme {
         ),
         elevation: 8,
       ),
-      
+
       // Bottom sheet theme
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: darkSurfaceVariant,
@@ -405,7 +407,7 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
       ),
-      
+
       // Tab bar theme
       tabBarTheme: const TabBarThemeData(
         labelColor: primaryBlue,
@@ -413,7 +415,7 @@ class AppTheme {
         indicatorColor: primaryBlue,
         indicatorSize: TabBarIndicatorSize.label,
       ),
-      
+
       // Switch theme
       switchTheme: SwitchThemeData(
         thumbColor: MaterialStateProperty.resolveWith((states) {
@@ -429,7 +431,7 @@ class AppTheme {
           return Colors.grey.shade700;
         }),
       ),
-      
+
       // Slider theme
       sliderTheme: const SliderThemeData(
         activeTrackColor: primaryBlue,
@@ -437,14 +439,14 @@ class AppTheme {
         thumbColor: primaryBlue,
         overlayColor: Color(0x1F2196F3),
       ),
-      
+
       // Progress indicator theme
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primaryBlue,
         linearTrackColor: Color(0xFF263238),
         circularTrackColor: Color(0xFF263238),
       ),
-      
+
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade800,
@@ -454,7 +456,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      
+
       // Typography for dark theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(

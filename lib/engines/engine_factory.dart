@@ -15,7 +15,8 @@ import 'crispasr_engine.dart';
 /// than as a separate engine.
 enum EngineType {
   mock('mock', 'Mock Engine', 'Testing engine with simulated responses'),
-  crispasr('crispasr', 'CrispASR (ggml)', 'On-device ASR via the CrispASR FFI runtime');
+  crispasr('crispasr', 'CrispASR (ggml)',
+      'On-device ASR via the CrispASR FFI runtime');
 
   const EngineType(this.id, this.displayName, this.description);
 
@@ -180,8 +181,7 @@ class EngineManagerState {
 
 /// Engine manager state notifier.
 class EngineManagerNotifier extends StateNotifier<EngineManagerState> {
-  EngineManagerNotifier()
-      : super(EngineManagerState(manager: EngineManager()));
+  EngineManagerNotifier() : super(EngineManagerState(manager: EngineManager()));
 
   Future<void> initializeWithMock() async {
     state = state.copyWith(isInitializing: true, error: null);

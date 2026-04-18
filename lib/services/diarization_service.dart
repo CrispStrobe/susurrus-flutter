@@ -81,7 +81,9 @@ class DiarizationService {
       final startSample = (segment.startTime * _frameRate).round();
       final endSample = (segment.endTime * _frameRate).round();
 
-      if (startSample >= 0 && endSample <= audioSamples.length && startSample < endSample) {
+      if (startSample >= 0 &&
+          endSample <= audioSamples.length &&
+          startSample < endSample) {
         final segmentAudio = audioSamples.sublist(startSample, endSample);
 
         // Extract MFCC features as a simple speaker embedding
@@ -117,13 +119,16 @@ class DiarizationService {
     final frames = _frameSignal(preEmphasized, _windowSize, _hopLength);
 
     // Compute power spectrum
-    final powerSpectra = frames.map((frame) => _computePowerSpectrum(frame)).toList();
+    final powerSpectra =
+        frames.map((frame) => _computePowerSpectrum(frame)).toList();
 
     // Apply mel filter bank
-    final melFeatures = powerSpectra.map((spectrum) => _applyMelFilterBank(spectrum)).toList();
+    final melFeatures =
+        powerSpectra.map((spectrum) => _applyMelFilterBank(spectrum)).toList();
 
     // Apply DCT to get MFCC
-    final mfccFeatures = melFeatures.map((mel) => _dct(mel).take(numMfcc).toList()).toList();
+    final mfccFeatures =
+        melFeatures.map((mel) => _dct(mel).take(numMfcc).toList()).toList();
 
     // Ensure consistent number of frames
     return _normalizeFrameCount(mfccFeatures, numFrames);
@@ -142,10 +147,13 @@ class DiarizationService {
   }
 
   /// Frame the signal into overlapping windows
-  List<Float32List> _frameSignal(Float32List signal, int frameSize, int hopLength) {
+  List<Float32List> _frameSignal(
+      Float32List signal, int frameSize, int hopLength) {
     final frames = <Float32List>[];
 
-    for (int start = 0; start + frameSize <= signal.length; start += hopLength) {
+    for (int start = 0;
+        start + frameSize <= signal.length;
+        start += hopLength) {
       final frame = signal.sublist(start, start + frameSize);
 
       // Apply Hamming window
@@ -184,7 +192,8 @@ class DiarizationService {
   }
 
   /// Apply mel filter bank
-  List<double> _applyMelFilterBank(List<double> powerSpectrum, [int numFilters = 26]) {
+  List<double> _applyMelFilterBank(List<double> powerSpectrum,
+      [int numFilters = 26]) {
     // Simplified mel filter bank
     final melFilters = <double>[];
 
@@ -197,7 +206,8 @@ class DiarizationService {
   }
 
   /// Triangular filter for mel filter bank
-  double _triangularFilter(List<double> spectrum, int filterIndex, int numFilters) {
+  double _triangularFilter(
+      List<double> spectrum, int filterIndex, int numFilters) {
     double sum = 0.0;
     final filterWidth = spectrum.length / numFilters;
     final start = (filterIndex * filterWidth).round();
@@ -229,7 +239,8 @@ class DiarizationService {
   }
 
   /// Normalize frame count for consistent embeddings
-  List<List<double>> _normalizeFrameCount(List<List<double>> frames, int targetFrames) {
+  List<List<double>> _normalizeFrameCount(
+      List<List<double>> frames, int targetFrames) {
     if (frames.length == targetFrames) return frames;
 
     if (frames.length < targetFrames) {
@@ -267,7 +278,9 @@ class DiarizationService {
       features.add(mean);
 
       // Standard deviation
-      final variance = values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) / values.length;
+      final variance =
+          values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) /
+              values.length;
       features.add(sqrt(variance));
     }
 
@@ -343,7 +356,8 @@ class DiarizationService {
     for (int i = 0; i < k; i++) {
       final centroid = <double>[];
       for (int d = 0; d < dimensions; d++) {
-        centroid.add(random.nextDouble() * 2 - 1); // Random value between -1 and 1
+        centroid
+            .add(random.nextDouble() * 2 - 1); // Random value between -1 and 1
       }
       centroids.add(centroid);
     }
@@ -385,7 +399,9 @@ class DiarizationService {
 
         if (clusterPoints.isNotEmpty) {
           for (int d = 0; d < dimensions; d++) {
-            centroids[c][d] = clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) / clusterPoints.length;
+            centroids[c][d] =
+                clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) /
+                    clusterPoints.length;
           }
         }
       }
@@ -395,7 +411,8 @@ class DiarizationService {
   }
 
   /// Compute clustering inertia (within-cluster sum of squares)
-  double _computeInertia(List<List<double>> embeddings, List<int> labels, int k) {
+  double _computeInertia(
+      List<List<double>> embeddings, List<int> labels, int k) {
     final centroids = <List<double>>[];
     final dimensions = embeddings.first.length;
 
@@ -411,7 +428,8 @@ class DiarizationService {
       if (clusterPoints.isNotEmpty) {
         final centroid = <double>[];
         for (int d = 0; d < dimensions; d++) {
-          centroid.add(clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) / clusterPoints.length);
+          centroid.add(clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) /
+              clusterPoints.length);
         }
         centroids.add(centroid);
       } else {
@@ -424,7 +442,8 @@ class DiarizationService {
     for (int i = 0; i < embeddings.length; i++) {
       final clusterIndex = labels[i];
       if (clusterIndex < centroids.length) {
-        final distance = _euclideanDistance(embeddings[i], centroids[clusterIndex]);
+        final distance =
+            _euclideanDistance(embeddings[i], centroids[clusterIndex]);
         inertia += distance * distance;
       }
     }

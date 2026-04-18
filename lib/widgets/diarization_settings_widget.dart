@@ -5,7 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 class DiarizationSettingsWidget extends StatefulWidget {
   final bool enabled;
   final Function(bool enabled) onChanged;
-  
+
   const DiarizationSettingsWidget({
     super.key,
     required this.enabled,
@@ -13,18 +13,19 @@ class DiarizationSettingsWidget extends StatefulWidget {
   });
 
   @override
-  State<DiarizationSettingsWidget> createState() => _DiarizationSettingsWidgetState();
+  State<DiarizationSettingsWidget> createState() =>
+      _DiarizationSettingsWidgetState();
 }
 
 class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
   int? _minSpeakers;
   int? _maxSpeakers;
   String _diarizationModel = 'Default';
-  
+
   final List<String> _availableModels = [
     'Default',
     'English',
-    'Chinese', 
+    'Chinese',
     'German',
     'Spanish',
     'Japanese',
@@ -60,10 +61,10 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             Text(
               AppLocalizations.of(context).diarizationSubtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
-              ),
+                    color: Colors.grey.shade600,
+                  ),
             ),
-            
+
             if (widget.enabled) ...[
               const SizedBox(height: 16),
               _buildDiarizationSettings(),
@@ -91,7 +92,8 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                     value: _diarizationModel,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     items: _availableModels.map((model) {
                       return DropdownMenuItem(
@@ -118,9 +120,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Speaker count settings
         Row(
           children: [
@@ -135,7 +137,8 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                     value: _minSpeakers,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     hint: const Text('Auto'),
                     items: [
@@ -154,7 +157,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                       setState(() {
                         _minSpeakers = value;
                         // Ensure max >= min
-                        if (_maxSpeakers != null && value != null && _maxSpeakers! < value) {
+                        if (_maxSpeakers != null &&
+                            value != null &&
+                            _maxSpeakers! < value) {
                           _maxSpeakers = value;
                         }
                       });
@@ -163,9 +168,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                 ],
               ),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             // Maximum speakers
             Expanded(
               child: Column(
@@ -177,7 +182,8 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                     value: _maxSpeakers,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     hint: const Text('Auto'),
                     items: [
@@ -196,7 +202,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                       setState(() {
                         _maxSpeakers = value;
                         // Ensure min <= max
-                        if (_minSpeakers != null && value != null && _minSpeakers! > value) {
+                        if (_minSpeakers != null &&
+                            value != null &&
+                            _minSpeakers! > value) {
                           _minSpeakers = value;
                         }
                       });
@@ -207,9 +215,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Tips and information
         Container(
           padding: const EdgeInsets.all(12),
@@ -223,8 +231,8 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.lightbulb_outline, 
-                       color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.lightbulb_outline,
+                      color: Colors.blue.shade700, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Tips for better results',
@@ -249,9 +257,9 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Performance note
         Container(
           padding: const EdgeInsets.all(12),
@@ -262,8 +270,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, 
-                   color: Colors.orange.shade700, size: 16),
+              Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

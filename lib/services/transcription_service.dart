@@ -6,6 +6,7 @@ import 'dart:async';
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import 'audio_service.dart';
+import 'log_service.dart';
 import 'model_service.dart';
 import 'diarization_service.dart';
 
@@ -41,12 +42,14 @@ class TranscriptionService {
 
       // Initialize with preferred engine or use mock as safe fallback
       final engineType = preferredEngine ?? EngineType.mock;
-      final success = await _engineManager.switchEngine(engineType, modelService: _modelService);
+      final success = await _engineManager.switchEngine(engineType,
+          modelService: _modelService);
 
       if (!success) {
         // Fallback to mock engine if preferred engine fails
         print('Failed to initialize $engineType engine, falling back to mock');
-        return await _engineManager.initializeWithMock(modelService: _modelService);
+        return await _engineManager.initializeWithMock(
+            modelService: _modelService);
       }
 
       // Load model if specified and engine supports it
@@ -82,11 +85,13 @@ class TranscriptionService {
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
+      throw TranscriptionServiceException(
+          'Already transcribing. Stop current transcription first.');
     }
 
     if (currentEngine == null) {
-      throw TranscriptionServiceException('No transcription engine available. Please initialize first.');
+      throw TranscriptionServiceException(
+          'No transcription engine available. Please initialize first.');
     }
 
     _isTranscribing = true;
@@ -114,6 +119,7 @@ class TranscriptionService {
 
       // Use segments directly from engine (they're already TranscriptionSegment)
       List<TranscriptionSegment> segments = engineSegments;
+      Log.instance.d('service', 'Engine returned ${segments.length} segments');
 
       // Step 3: Speaker diarization if enabled (30% of progress)
       if (enableDiarization && segments.isNotEmpty) {
@@ -130,7 +136,6 @@ class TranscriptionService {
 
       onProgress?.call(1.0);
       return segments;
-
     } catch (e) {
       throw TranscriptionServiceException('File transcription failed: $e');
     } finally {
@@ -153,7 +158,8 @@ class TranscriptionService {
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException('Already transcribing. Stop current transcription first.');
+      throw TranscriptionServiceException(
+          'Already transcribing. Stop current transcription first.');
     }
 
     try {
@@ -222,13 +228,16 @@ class TranscriptionService {
   }
 
   /// Switch to a different transcription engine
-  Future<bool> switchEngine(EngineType engineType, {Map<String, dynamic>? config}) async {
+  Future<bool> switchEngine(EngineType engineType,
+      {Map<String, dynamic>? config}) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException('Cannot change engine while transcribing');
+      throw TranscriptionServiceException(
+          'Cannot change engine while transcribing');
     }
 
     try {
-      return await _engineManager.switchEngine(engineType, modelService: _modelService, config: config);
+      return await _engineManager.switchEngine(engineType,
+          modelService: _modelService, config: config);
     } catch (e) {
       print('Error switching engine to $engineType: $e');
       return false;
@@ -250,14 +259,16 @@ class TranscriptionService {
   }
 
   /// Load a specific model for the current engine
-  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress}) async {
+  Future<bool> loadModel(String modelId,
+      {void Function(double progress)? onProgress}) async {
     final engine = currentEngine;
     if (engine == null) {
       throw TranscriptionServiceException('No engine initialized');
     }
 
     if (_isTranscribing) {
-      throw TranscriptionServiceException('Cannot load model while transcribing');
+      throw TranscriptionServiceException(
+          'Cannot load model while transcribing');
     }
 
     try {
@@ -273,7 +284,8 @@ class TranscriptionService {
     if (engine == null) return;
 
     if (_isTranscribing) {
-      throw TranscriptionServiceException('Cannot unload model while transcribing');
+      throw TranscriptionServiceException(
+          'Cannot unload model while transcribing');
     }
 
     try {
@@ -347,7 +359,8 @@ class TranscriptionService {
   }) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException('No engine available for transcription');
+      throw TranscriptionServiceException(
+          'No engine available for transcription');
     }
 
     try {

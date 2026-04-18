@@ -140,7 +140,8 @@ class ModelService {
       name: 'large-v3-turbo',
       displayName: 'Whisper Large v3 Turbo',
       fileName: 'ggml-large-v3-turbo.bin',
-      url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin',
+      url:
+          'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin',
       sizeBytes: 1550 * 1024 * 1024,
       checksum: '',
       description: 'Faster large-v3 variant — ~1.5 GB',
@@ -263,7 +264,8 @@ class ModelService {
       name: 'large-v3-turbo-german',
       displayName: 'Whisper Large v3 Turbo (German)',
       fileName: 'ggml-large-v3-turbo-german.bin',
-      url: 'https://huggingface.co/cstr/whisper-large-v3-turbo-german-ggml/resolve/main/ggml-model.bin',
+      url:
+          'https://huggingface.co/cstr/whisper-large-v3-turbo-german-ggml/resolve/main/ggml-model.bin',
       sizeBytes: 1550 * 1024 * 1024,
       checksum: '',
       description: 'Fine-tuned German turbo model — ~1.5 GB',
@@ -281,7 +283,8 @@ class ModelService {
       name: 'parakeet-tdt-0.6b-v3-q4_k',
       displayName: 'Parakeet TDT 0.6B v3 (q4_k)',
       fileName: 'parakeet-tdt-0.6b-v3-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/parakeet-tdt-0.6b-v3-GGUF/resolve/main/parakeet-tdt-0.6b-v3-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/parakeet-tdt-0.6b-v3-GGUF/resolve/main/parakeet-tdt-0.6b-v3-q4_k.gguf',
       sizeBytes: 467 * 1024 * 1024,
       checksum: '',
       description: 'Fast English ASR (NVIDIA Parakeet) — ~467 MB',
@@ -293,7 +296,8 @@ class ModelService {
       name: 'canary-1b-v2-q5_0',
       displayName: 'Canary 1B v2 (q5_0)',
       fileName: 'canary-1b-v2-q5_0.gguf',
-      url: 'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-q5_0.gguf',
+      url:
+          'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-q5_0.gguf',
       sizeBytes: 600 * 1024 * 1024,
       checksum: '',
       description: 'Multilingual ASR with speech-translation — ~600 MB',
@@ -305,7 +309,8 @@ class ModelService {
       name: 'cohere-transcribe-03-2026-q5_0',
       displayName: 'Cohere Transcribe 03-2026 (q5_0)',
       fileName: 'cohere-transcribe-03-2026-q5_0.gguf',
-      url: 'https://huggingface.co/cstr/cohere-transcribe-03-2026-GGUF/resolve/main/cohere-transcribe-03-2026-q5_0.gguf',
+      url:
+          'https://huggingface.co/cstr/cohere-transcribe-03-2026-GGUF/resolve/main/cohere-transcribe-03-2026-q5_0.gguf',
       sizeBytes: 1200 * 1024 * 1024,
       checksum: '',
       description: 'Cohere high-accuracy ASR — ~1.2 GB',
@@ -317,7 +322,8 @@ class ModelService {
       name: 'voxtral-mini-3b-2507-q4_k',
       displayName: 'Voxtral Mini 3B 2507 (q4_k)',
       fileName: 'voxtral-mini-3b-2507-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/voxtral-mini-3b-2507-GGUF/resolve/main/voxtral-mini-3b-2507-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/voxtral-mini-3b-2507-GGUF/resolve/main/voxtral-mini-3b-2507-q4_k.gguf',
       sizeBytes: 2500 * 1024 * 1024,
       checksum: '',
       description: 'Speech translation + ASR — ~2.5 GB',
@@ -329,7 +335,8 @@ class ModelService {
       name: 'voxtral-mini-4b-realtime-q4_k',
       displayName: 'Voxtral Mini 4B realtime (q4_k)',
       fileName: 'voxtral-mini-4b-realtime-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/voxtral-mini-4b-realtime-GGUF/resolve/main/voxtral-mini-4b-realtime-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/voxtral-mini-4b-realtime-GGUF/resolve/main/voxtral-mini-4b-realtime-q4_k.gguf',
       sizeBytes: 3300 * 1024 * 1024,
       checksum: '',
       description: 'Voxtral realtime tuning — ~3.3 GB',
@@ -341,7 +348,8 @@ class ModelService {
       name: 'qwen3-asr-0.6b-q4_k',
       displayName: 'Qwen3-ASR 0.6B (q4_k)',
       fileName: 'qwen3-asr-0.6b-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/qwen3-asr-0.6b-GGUF/resolve/main/qwen3-asr-0.6b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/qwen3-asr-0.6b-GGUF/resolve/main/qwen3-asr-0.6b-q4_k.gguf',
       sizeBytes: 380 * 1024 * 1024,
       checksum: '',
       description: 'Multilingual (30+ langs, incl. Chinese dialects) — ~380 MB',
@@ -353,7 +361,8 @@ class ModelService {
       name: 'granite-4.0-1b-speech-q4_k',
       displayName: 'Granite 4.0 1B Speech (q4_k)',
       fileName: 'granite-4.0-1b-speech-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/granite-speech-4.0-1b-GGUF/resolve/main/granite-4.0-1b-speech-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/granite-speech-4.0-1b-GGUF/resolve/main/granite-4.0-1b-speech-q4_k.gguf',
       sizeBytes: 900 * 1024 * 1024,
       checksum: '',
       description: 'IBM Granite speech — ~900 MB',
@@ -365,7 +374,8 @@ class ModelService {
       name: 'fastconformer-ctc-en-q4_k',
       displayName: 'FastConformer CTC (en, q4_k)',
       fileName: 'fastconformer-ctc-en-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/stt-en-fastconformer-ctc-large-GGUF/resolve/main/fastconformer-ctc-en-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/stt-en-fastconformer-ctc-large-GGUF/resolve/main/fastconformer-ctc-en-q4_k.gguf',
       sizeBytes: 400 * 1024 * 1024,
       checksum: '',
       description: 'Low-latency CTC ASR (English) — ~400 MB',
@@ -377,7 +387,8 @@ class ModelService {
       name: 'wav2vec2-base-en-q4_k',
       displayName: 'Wav2Vec2 base (en, q4_k)',
       fileName: 'wav2vec2-base-en-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/wav2vec2-large-xlsr-53-english-GGUF/resolve/main/wav2vec2-base-en-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/wav2vec2-large-xlsr-53-english-GGUF/resolve/main/wav2vec2-base-en-q4_k.gguf',
       sizeBytes: 100 * 1024 * 1024,
       checksum: '',
       description: 'Self-supervised (facebook/wav2vec2) — ~100 MB',
@@ -388,7 +399,8 @@ class ModelService {
       name: 'qwen2-audio-7b-q4_k',
       displayName: 'Qwen2-Audio 7B (q4_k)',
       fileName: 'qwen2-audio-7b-q4_k.gguf',
-      url: 'https://huggingface.co/cstr/qwen2-audio-7b-GGUF/resolve/main/qwen2-audio-7b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/qwen2-audio-7b-GGUF/resolve/main/qwen2-audio-7b-q4_k.gguf',
       sizeBytes: 4500 * 1024 * 1024,
       checksum: '',
       description: 'Large multilingual audio-LLM — ~4.5 GB',
@@ -399,7 +411,8 @@ class ModelService {
       name: 'canary-1b-v2-f16',
       displayName: 'Canary 1B v2 (f16)',
       fileName: 'canary-1b-v2-f16.gguf',
-      url: 'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-f16.gguf',
+      url:
+          'https://huggingface.co/cstr/canary-1b-v2-GGUF/resolve/main/canary-1b-v2-f16.gguf',
       sizeBytes: 2000 * 1024 * 1024,
       checksum: '',
       description: 'High-precision Canary 1B — ~2.0 GB',
@@ -535,7 +548,8 @@ class ModelService {
     await Directory(_modelsDir).create(recursive: true);
 
     // Create subdirectories
-    await Directory(path.join(_modelsDir, 'whisper_cpp')).create(recursive: true);
+    await Directory(path.join(_modelsDir, 'whisper_cpp'))
+        .create(recursive: true);
   }
 
   /// Get available Whisper.cpp models with download status
@@ -625,8 +639,8 @@ class ModelService {
           _discoveredModels[m.name] = m;
           if (!existed) added++;
         }
-        Log.instance.i('model',
-            'Probed ${repo.repoId}: ${models.length} variants');
+        Log.instance
+            .i('model', 'Probed ${repo.repoId}: ${models.length} variants');
       } catch (e, st) {
         Log.instance.w('model', 'Quant probe failed for ${repo.repoId}',
             error: e, stack: st);
@@ -731,24 +745,22 @@ class ModelService {
       final freeSpace = await _getAvailableSpace();
       if (freeSpace < modelDef.sizeBytes * 1.2) {
         throw ModelException(
-          'Insufficient storage space. Need ${_formatSize(modelDef.sizeBytes)}, '
-          'have ${_formatSize(freeSpace)}'
-        );
+            'Insufficient storage space. Need ${_formatSize(modelDef.sizeBytes)}, '
+            'have ${_formatSize(freeSpace)}');
       }
 
       onStatusChange?.call('Starting download...');
       onProgress?.call(0.0);
 
-      final dlDone = Log.instance.stopwatch('model',
-          msg: 'download done',
-          fields: {
-            'name': modelName,
-            'url': modelDef.url,
-            'expected_bytes': modelDef.sizeBytes,
-            'backend': modelDef.backend,
-            'quant': modelDef.quantization,
-            'target': tempPath,
-          });
+      final dlDone =
+          Log.instance.stopwatch('model', msg: 'download done', fields: {
+        'name': modelName,
+        'url': modelDef.url,
+        'expected_bytes': modelDef.sizeBytes,
+        'backend': modelDef.backend,
+        'quant': modelDef.quantization,
+        'target': tempPath,
+      });
       Log.instance.i('model', 'download start', fields: {
         'name': modelName,
         'url': modelDef.url,
@@ -768,7 +780,9 @@ class ModelService {
           cancelToken: cancelToken,
         );
         int realBytes = 0;
-        try { realBytes = await File(tempPath).length(); } catch (_) {}
+        try {
+          realBytes = await File(tempPath).length();
+        } catch (_) {}
         dlDone(extra: {'actual_bytes': realBytes});
       } catch (e) {
         dlDone(error: e);
@@ -789,7 +803,8 @@ class ModelService {
               'Enable "Skip checksum verification" in Settings → Debugging to bypass.');
         }
       } else if (skipChecksum) {
-        Log.instance.i('model', 'Skipping checksum for $modelName (user override)');
+        Log.instance
+            .i('model', 'Skipping checksum for $modelName (user override)');
       }
 
       // Move temp file to final location
@@ -798,7 +813,6 @@ class ModelService {
       onProgress?.call(1.0);
       onStatusChange?.call('Download complete');
       return true;
-
     } catch (e) {
       // Cleanup on failure
       await _cleanupTempFile(tempPath);
@@ -807,7 +821,8 @@ class ModelService {
         final resp = e.response;
         Log.instance.e('model', 'DioException during download: ${e.type}');
         if (resp != null) {
-          Log.instance.e('model', 'HTTP ${resp.statusCode} for ${e.requestOptions.uri}');
+          Log.instance.e(
+              'model', 'HTTP ${resp.statusCode} for ${e.requestOptions.uri}');
           Log.instance.e('model', 'Headers: ${resp.headers}');
           Log.instance.e('model', 'Body: ${resp.data}');
         } else {
@@ -817,11 +832,13 @@ class ModelService {
         if (e.type == DioExceptionType.cancel) {
           throw ModelException('Download cancelled');
         } else if (e.type == DioExceptionType.connectionTimeout) {
-          throw ModelException('Download timeout. Please check your internet connection.');
+          throw ModelException(
+              'Download timeout. Please check your internet connection.');
         } else if (e.response?.statusCode == 404) {
           throw ModelException('Model not found on server');
         } else if (e.response?.statusCode == 401) {
-          throw ModelException('Authentication required (401). This model repository is private or gated.');
+          throw ModelException(
+              'Authentication required (401). This model repository is private or gated.');
         } else {
           throw ModelException('Download failed: ${e.message}');
         }
@@ -886,24 +903,25 @@ class ModelService {
       cancelToken: cancelToken,
       onReceiveProgress: (received, total) {
         final now = DateTime.now().millisecondsSinceEpoch;
-        
+
         // Throttle progress updates to avoid UI spam
         if (now - lastProgressUpdate < 100) return;
         lastProgressUpdate = now;
 
         final totalBytes = downloadedBytes + received;
-        final progress = total > 0 ? totalBytes / expectedSize : totalBytes / expectedSize;
+        final progress =
+            total > 0 ? totalBytes / expectedSize : totalBytes / expectedSize;
 
         onProgress?.call(progress.clamp(0.0, 1.0));
 
         // Update status periodically
-        if (totalBytes % (1024 * 1024) < 100 * 1024) { // Every MB
+        if (totalBytes % (1024 * 1024) < 100 * 1024) {
+          // Every MB
           final downloadedMB = totalBytes / (1024 * 1024);
           final totalMB = expectedSize / (1024 * 1024);
           final speed = _calculateDownloadSpeed(totalBytes, DateTime.now());
           onStatusChange?.call(
-            'Downloaded ${downloadedMB.toStringAsFixed(1)} MB of ${totalMB.toStringAsFixed(1)} MB ($speed)'
-          );
+              'Downloaded ${downloadedMB.toStringAsFixed(1)} MB of ${totalMB.toStringAsFixed(1)} MB ($speed)');
         }
       },
     );
@@ -918,7 +936,8 @@ class ModelService {
     if (expectedSize > 0 && finalSize < expectedSize) {
       final diff = expectedSize - finalSize;
       final tolerance = (expectedSize * 0.05).ceil();
-      final absTolerance = tolerance > 2 * 1024 * 1024 ? tolerance : 2 * 1024 * 1024;
+      final absTolerance =
+          tolerance > 2 * 1024 * 1024 ? tolerance : 2 * 1024 * 1024;
       if (diff > absTolerance) {
         await file.delete();
         throw ModelException(
@@ -928,7 +947,7 @@ class ModelService {
       Log.instance.w(
         'model',
         'Download finished at $finalSize bytes, expected $expectedSize '
-        '(diff ${_formatSize(diff)}); accepting within tolerance.',
+            '(diff ${_formatSize(diff)}); accepting within tolerance.',
       );
     }
   }
@@ -1039,7 +1058,8 @@ class ModelService {
 
   // Private helper methods
 
-  Future<bool> _isModelDownloaded(String localPath, ModelDefinition modelDef) async {
+  Future<bool> _isModelDownloaded(
+      String localPath, ModelDefinition modelDef) async {
     final file = File(localPath);
     if (!await file.exists()) return false;
 
@@ -1061,7 +1081,6 @@ class ModelService {
 
     return true;
   }
-
 
   Future<void> _cleanupTempFile(String tempPath) async {
     try {
@@ -1120,7 +1139,8 @@ class ModelService {
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
@@ -1157,12 +1177,13 @@ class ModelDefinition {
 /// Points at a HuggingFace repo that the model service can enumerate to
 /// discover every available quantisation variant.
 class BackendRepo {
-  final String backend;       // CrispASR backend id
-  final String repoId;        // e.g. "cstr/parakeet-tdt-0.6b-v3-GGUF"
-  final String baseName;      // filename stem without -quant; e.g. "parakeet-tdt-0.6b-v3"
+  final String backend; // CrispASR backend id
+  final String repoId; // e.g. "cstr/parakeet-tdt-0.6b-v3-GGUF"
+  final String
+      baseName; // filename stem without -quant; e.g. "parakeet-tdt-0.6b-v3"
   final String displayPrefix; // UI-friendly name; e.g. "Parakeet TDT 0.6B v3"
   final String description;
-  final String extension;     // typically ".gguf", Whisper uses ".bin"
+  final String extension; // typically ".gguf", Whisper uses ".bin"
 
   const BackendRepo({
     required this.backend,
@@ -1185,6 +1206,7 @@ class ModelInfo {
   final ModelType modelType;
   final String quantization;
   final String backend;
+
   /// Human-readable runtime status — "Ready" when the bundled libwhisper
   /// can execute this model today, or an explanation of what's missing.
   /// Filled in by the UI based on engine capability probing.
@@ -1224,7 +1246,8 @@ class StorageInfo {
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
@@ -1259,7 +1282,8 @@ class RetryInterceptor extends Interceptor {
     await Future.delayed(extra.retryInterval);
 
     final requestOptions = err.requestOptions;
-    requestOptions.extra[RetryOptions.extraKey] = extra.copyWith(retries: extra.retries - 1);
+    requestOptions.extra[RetryOptions.extraKey] =
+        extra.copyWith(retries: extra.retries - 1);
 
     try {
       final response = await dio.fetch(requestOptions);
@@ -1272,7 +1296,7 @@ class RetryInterceptor extends Interceptor {
 
 class RetryOptions {
   static const String extraKey = 'retry_options';
-  
+
   final int retries;
   final Duration retryInterval;
 

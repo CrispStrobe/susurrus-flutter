@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../engines/engine_factory.dart';
@@ -11,7 +10,7 @@ class SettingsService {
   SettingsService(this._prefs);
 
   // --- Transcription Settings ---
-  
+
   EngineType get preferredEngine {
     final id = _prefs.getString('preferred_engine');
     return EngineType.values.firstWhere(
@@ -19,6 +18,7 @@ class SettingsService {
       orElse: () => EngineFactory.getRecommendedEngine(),
     );
   }
+
   set preferredEngine(EngineType type) {
     Log.instance.d('settings', 'Saving preferredEngine: ${type.id}');
     _prefs.setString('preferred_engine', type.id);
@@ -71,7 +71,8 @@ class SettingsService {
 
   // --- Diarization Settings ---
 
-  bool get enableDiarizationByDefault => _prefs.getBool('enable_diarization_by_default') ?? false;
+  bool get enableDiarizationByDefault =>
+      _prefs.getBool('enable_diarization_by_default') ?? false;
   set enableDiarizationByDefault(bool value) {
     Log.instance.d('settings', 'Saving enableDiarizationByDefault: $value');
     _prefs.setBool('enable_diarization_by_default', value);
@@ -98,6 +99,7 @@ class SettingsService {
       orElse: () => LogLevel.info,
     );
   }
+
   set logLevel(LogLevel level) {
     Log.instance.d('settings', 'Saving logLevel: ${level.name}');
     _prefs.setString('log_level', level.name);
@@ -117,7 +119,8 @@ class SettingsService {
 
   String get hfToken => _prefs.getString('hf_token') ?? '';
   set hfToken(String token) {
-    Log.instance.d('settings', 'Saving hfToken: ${token.isNotEmpty ? "SET" : "EMPTY"}');
+    Log.instance
+        .d('settings', 'Saving hfToken: ${token.isNotEmpty ? "SET" : "EMPTY"}');
     _prefs.setString('hf_token', token);
   }
 

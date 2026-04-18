@@ -21,12 +21,14 @@ abstract class TranscriptionEngine {
   bool get isProcessing;
 
   /// Lifecycle methods
-  Future<bool> initialize({ModelService? modelService, Map<String, dynamic>? config});
+  Future<bool> initialize(
+      {ModelService? modelService, Map<String, dynamic>? config});
   Future<void> dispose();
 
   /// Model management
   Future<List<EngineModel>> getAvailableModels();
-  Future<bool> loadModel(String modelId, {void Function(double progress)? onProgress});
+  Future<bool> loadModel(String modelId,
+      {void Function(double progress)? onProgress});
   Future<void> unloadModel();
   String? get currentModelId;
 
@@ -163,24 +165,28 @@ abstract class EngineException implements Exception {
 }
 
 class EngineInitializationException extends EngineException {
-  const EngineInitializationException(String message, String engineId, [dynamic originalError])
+  const EngineInitializationException(String message, String engineId,
+      [dynamic originalError])
       : super(message, engineId, originalError);
 }
 
 class ModelLoadException extends EngineException {
   final String modelId;
 
-  const ModelLoadException(String message, String engineId, this.modelId, [dynamic originalError])
+  const ModelLoadException(String message, String engineId, this.modelId,
+      [dynamic originalError])
       : super(message, engineId, originalError);
 }
 
 class TranscriptionException extends EngineException {
-  const TranscriptionException(String message, String engineId, [dynamic originalError])
+  const TranscriptionException(String message, String engineId,
+      [dynamic originalError])
       : super(message, engineId, originalError);
 }
 
 /// A concrete fallback for engine errors that don't fit a more specific type.
 class GenericEngineException extends EngineException {
-  const GenericEngineException(String message, String engineId, [dynamic originalError])
+  const GenericEngineException(String message, String engineId,
+      [dynamic originalError])
       : super(message, engineId, originalError);
 }

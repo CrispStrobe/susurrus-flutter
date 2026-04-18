@@ -21,8 +21,8 @@ Future<void> registerNativeLicenses() async {
         crispasr,
       );
     } catch (e, st) {
-      Log.instance.w('licenses',
-          'Failed to load CrispASR/whisper.cpp/ggml license',
+      Log.instance.w(
+          'licenses', 'Failed to load CrispASR/whisper.cpp/ggml license',
           error: e, stack: st);
     }
 

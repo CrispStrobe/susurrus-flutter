@@ -13,21 +13,22 @@ import 'settings_service.dart';
 class AudioService {
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
-  
+
   bool get isRecording => _isRecording;
   bool _isRecording = false;
-  
+
   /// Record audio from microphone
   Future<String?> startRecording({SettingsService? settingsService}) async {
     try {
       if (await _recorder.hasPermission()) {
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+        final fileName =
+            'recording_${DateTime.now().millisecondsSinceEpoch}.wav';
         final filePath = path.join(appDir.path, fileName);
-        
-        final bitRate = settingsService != null 
-          ? (settingsService.audioQuality * 128000).toInt() 
-          : 128000;
+
+        final bitRate = settingsService != null
+            ? (settingsService.audioQuality * 128000).toInt()
+            : 128000;
 
         final config = RecordConfig(
           encoder: AudioEncoder.wav,
@@ -35,7 +36,7 @@ class AudioService {
           numChannels: 1,
           bitRate: bitRate,
         );
-        
+
         await _recorder.start(config, path: filePath);
         _isRecording = true;
         return filePath;
@@ -46,7 +47,7 @@ class AudioService {
       return null;
     }
   }
-  
+
   /// Stop recording and return the file path
   Future<String?> stopRecording() async {
     try {
@@ -70,17 +71,17 @@ class AudioService {
       return 0.0;
     }
   }
-  
+
   /// Convert audio file to the required format for transcription
   Future<AudioData> loadAudioFile(File audioFile) async {
     try {
       // Load with just_audio to get duration and sample rate info
       await _player.setFilePath(audioFile.path);
       final duration = _player.duration?.inMilliseconds ?? 0;
-      
+
       // Convert to WAV format if needed
       final wavData = await _convertToWav(audioFile);
-      
+
       return AudioData(
         samples: wavData.samples,
         sampleRate: wavData.sampleRate,
@@ -91,36 +92,42 @@ class AudioService {
       throw AudioProcessingException('Failed to load audio file: $e');
     }
   }
-  
+
   /// Download audio from URL
-  Future<File> downloadAudioFromUrl(String url, {
+  Future<File> downloadAudioFromUrl(
+    String url, {
     Function(double progress)? onProgress,
   }) async {
     try {
       final response = await http.get(Uri.parse(url));
-      
+
       if (response.statusCode != 200) {
-        throw AudioDownloadException('Failed to download audio: ${response.statusCode}');
+        throw AudioDownloadException(
+            'Failed to download audio: ${response.statusCode}');
       }
-      
+
       final appDir = await getApplicationDocumentsDirectory();
-      final fileName = 'downloaded_${DateTime.now().millisecondsSinceEpoch}.${_getFileExtension(url)}';
+      final fileName =
+          'downloaded_${DateTime.now().millisecondsSinceEpoch}.${_getFileExtension(url)}';
       final file = File(path.join(appDir.path, fileName));
-      
+
       await file.writeAsBytes(response.bodyBytes);
       return file;
     } catch (e) {
       throw AudioDownloadException('Failed to download audio: $e');
     }
   }
-  
+
   /// Convert an arbitrary audio file to mono 16 kHz float32 PCM.
   Future<WavData> _convertToWav(File audioFile) async {
     int fileBytes = 0;
-    try { fileBytes = await audioFile.length(); } catch (_) {}
-    final done = Log.instance.stopwatch('audio',
-        msg: 'decode done',
-        fields: {'file': path.basename(audioFile.path), 'file_bytes': fileBytes});
+    try {
+      fileBytes = await audioFile.length();
+    } catch (_) {}
+    final done = Log.instance.stopwatch('audio', msg: 'decode done', fields: {
+      'file': path.basename(audioFile.path),
+      'file_bytes': fileBytes
+    });
     try {
       final decoded = crispasr.decodeAudioFile(audioFile.path);
       final seconds = decoded.samples.length / decoded.sampleRate;
@@ -140,8 +147,12 @@ class AudioService {
           fields: {'file': path.basename(audioFile.path)}, error: e);
     } catch (e, st) {
       Log.instance.w('audio', 'FFI decoder rejected, falling back',
-          error: e, stack: st,
-          fields: {'file': path.basename(audioFile.path), 'file_bytes': fileBytes});
+          error: e,
+          stack: st,
+          fields: {
+            'file': path.basename(audioFile.path),
+            'file_bytes': fileBytes
+          });
     }
 
     final wav = await _basicWavProcessing(audioFile);
@@ -153,7 +164,7 @@ class AudioService {
     });
     return wav;
   }
-  
+
   /// Basic WAV file processing fallback
   Future<WavData> _basicWavProcessing(File audioFile) async {
     final bytes = await audioFile.readAsBytes();
@@ -183,7 +194,8 @@ class AudioService {
       offset += 8;
 
       if (chunkId == 'fmt ') {
-        if (chunkSize < 16) throw AudioProcessingException('Invalid fmt chunk size');
+        if (chunkSize < 16)
+          throw AudioProcessingException('Invalid fmt chunk size');
         channels = byteData.getUint16(offset + 2, Endian.little);
         sampleRate = byteData.getUint32(offset + 4, Endian.little);
         bitsPerSample = byteData.getUint16(offset + 14, Endian.little);
@@ -197,12 +209,14 @@ class AudioService {
       if (chunkSize % 2 != 0) offset++;
     }
 
-    if (dataOffset == -1) throw AudioProcessingException('No data chunk found in WAV file');
-    if (channels == 0) throw AudioProcessingException('No fmt chunk found in WAV file');
+    if (dataOffset == -1)
+      throw AudioProcessingException('No data chunk found in WAV file');
+    if (channels == 0)
+      throw AudioProcessingException('No fmt chunk found in WAV file');
 
     final actualDataSize = (bytes.length - dataOffset);
     final sizeToRead = dataSize < actualDataSize ? dataSize : actualDataSize;
-    
+
     final samplesCount = sizeToRead ~/ (bitsPerSample ~/ 8);
     final samples = Float32List(samplesCount);
 
@@ -220,7 +234,8 @@ class AudioService {
         samples[i] = byteData.getFloat32(pos, Endian.little);
       }
     } else {
-      throw AudioProcessingException('Unsupported bits per sample: $bitsPerSample');
+      throw AudioProcessingException(
+          'Unsupported bits per sample: $bitsPerSample');
     }
 
     return WavData(
@@ -229,7 +244,7 @@ class AudioService {
       channels: channels,
     );
   }
-  
+
   /// Play audio file for preview
   Future<void> playAudio(File audioFile) async {
     try {
@@ -239,17 +254,17 @@ class AudioService {
       throw AudioPlaybackException('Failed to play audio: $e');
     }
   }
-  
+
   /// Stop audio playback
   Future<void> stopPlayback() async {
     await _player.stop();
   }
-  
+
   /// Get audio file information
   Future<AudioInfo> getAudioInfo(File audioFile) async {
     try {
       await _player.setFilePath(audioFile.path);
-      
+
       return AudioInfo(
         duration: _player.duration ?? Duration.zero,
         fileName: path.basename(audioFile.path),
@@ -260,7 +275,7 @@ class AudioService {
       throw AudioProcessingException('Failed to get audio info: $e');
     }
   }
-  
+
   String _getFileExtension(String url) {
     final uri = Uri.parse(url);
     final pathSegments = uri.pathSegments;
@@ -273,7 +288,7 @@ class AudioService {
     }
     return 'mp3';
   }
-  
+
   void dispose() {
     _recorder.dispose();
     _player.dispose();
@@ -285,14 +300,14 @@ class AudioData {
   final int sampleRate;
   final Duration duration;
   final int channels;
-  
+
   const AudioData({
     required this.samples,
     required this.sampleRate,
     required this.duration,
     required this.channels,
   });
-  
+
   double get durationInSeconds => duration.inMilliseconds / 1000.0;
   int get totalSamples => samples.length;
 }
@@ -301,7 +316,7 @@ class WavData {
   final Float32List samples;
   final int sampleRate;
   final int channels;
-  
+
   const WavData({
     required this.samples,
     required this.sampleRate,
@@ -314,20 +329,20 @@ class AudioInfo {
   final String fileName;
   final int fileSize;
   final String filePath;
-  
+
   const AudioInfo({
     required this.duration,
     required this.fileName,
     required this.fileSize,
     required this.filePath,
   });
-  
+
   String get formattedDuration {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
-  
+
   String get formattedFileSize {
     if (fileSize < 1024) {
       return '$fileSize B';

@@ -9,7 +9,8 @@ class ModelManagementScreen extends ConsumerStatefulWidget {
   const ModelManagementScreen({super.key});
 
   @override
-  ConsumerState<ModelManagementScreen> createState() => _ModelManagementScreenState();
+  ConsumerState<ModelManagementScreen> createState() =>
+      _ModelManagementScreenState();
 }
 
 class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
@@ -135,8 +136,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                   Text(
                     'CrispASR Models',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -146,8 +147,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                   Text(
                     'Total size: $totalSize',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+                          color: Colors.grey.shade600,
+                        ),
                   ),
                 ],
               ),
@@ -165,9 +166,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: model.isDownloaded
-              ? Colors.green.shade100
-              : Colors.grey.shade200,
+          backgroundColor:
+              model.isDownloaded ? Colors.green.shade100 : Colors.grey.shade200,
           child: Icon(
             model.isDownloaded ? Icons.check : Icons.download,
             color: model.isDownloaded
@@ -283,8 +283,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           Text(
             AppLocalizations.of(context).modelsNoneAvailable,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.grey.shade600,
-            ),
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -315,7 +315,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       if (success) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${model.displayName} downloaded successfully')),
+          SnackBar(
+              content: Text('${model.displayName} downloaded successfully')),
         );
         await _loadModels();
       } else {
@@ -336,7 +337,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).modelsDelete),
-        content: Text(AppLocalizations.of(context).modelDeleteConfirm(model.displayName)),
+        content: Text(
+            AppLocalizations.of(context).modelDeleteConfirm(model.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -354,7 +356,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     if (confirmed != true) return;
 
     try {
-      final success = await ref.read(modelServiceProvider).deleteModel(model.name);
+      final success =
+          await ref.read(modelServiceProvider).deleteModel(model.name);
       if (!mounted) return;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(

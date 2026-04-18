@@ -53,15 +53,15 @@ class LogEntry {
     final kvPart = (fields == null || fields!.isEmpty)
         ? ''
         : ' ' + fields!.entries.map((e) => '${e.key}=${_q(e.value)}').join(' ');
-    final stackPart =
-        (includeStack && stack != null) ? '\n$stack' : '';
+    final stackPart = (includeStack && stack != null) ? '\n$stack' : '';
     return '$ts ${level.tag} [$tag] $message$kvPart$errPart$stackPart';
   }
 
   static String _q(Object? v) {
     if (v == null) return 'null';
     final s = v.toString();
-    if (s.contains(' ') || s.contains('"')) return '"${s.replaceAll('"', r'\"')}"';
+    if (s.contains(' ') || s.contains('"'))
+      return '"${s.replaceAll('"', r'\"')}"';
     return s;
   }
 
@@ -223,11 +223,11 @@ class Log {
   ///   …work…
   ///   done(extra: {'bytes': size});
   void Function({Map<String, Object?>? extra, Object? error}) stopwatch(
-      String tag, {
-      String msg = 'done',
-      Map<String, Object?>? fields,
-      LogLevel level = LogLevel.info,
-      }) {
+    String tag, {
+    String msg = 'done',
+    Map<String, Object?>? fields,
+    LogLevel level = LogLevel.info,
+  }) {
     final start = DateTime.now();
     return ({extra, error}) {
       final ms = DateTime.now().difference(start).inMilliseconds;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crispasr/crispasr.dart' as crispasr;
@@ -49,15 +50,105 @@ class CrispASREngine implements TranscriptionEngine {
 
   @override
   List<String> get supportedLanguages => const [
-        'auto', 'en', 'zh', 'de', 'es', 'ru', 'ko', 'fr', 'ja', 'pt', 'tr',
-        'pl', 'ca', 'nl', 'ar', 'sv', 'it', 'id', 'hi', 'fi', 'vi', 'he',
-        'uk', 'el', 'ms', 'cs', 'ro', 'da', 'hu', 'ta', 'no', 'th', 'ur',
-        'hr', 'bg', 'lt', 'la', 'mi', 'ml', 'cy', 'sk', 'te', 'fa', 'lv',
-        'bn', 'sr', 'az', 'sl', 'kn', 'et', 'mk', 'br', 'eu', 'is', 'hy',
-        'ne', 'mn', 'bs', 'kk', 'sq', 'sw', 'gl', 'mr', 'pa', 'si', 'km',
-        'sn', 'yo', 'so', 'af', 'oc', 'ka', 'be', 'tg', 'sd', 'gu', 'am',
-        'yi', 'lo', 'uz', 'fo', 'ht', 'ps', 'tk', 'nn', 'mt', 'sa', 'lb',
-        'my', 'bo', 'tl', 'mg', 'as', 'tt', 'haw', 'ln', 'ha', 'ba', 'jw',
+        'auto',
+        'en',
+        'zh',
+        'de',
+        'es',
+        'ru',
+        'ko',
+        'fr',
+        'ja',
+        'pt',
+        'tr',
+        'pl',
+        'ca',
+        'nl',
+        'ar',
+        'sv',
+        'it',
+        'id',
+        'hi',
+        'fi',
+        'vi',
+        'he',
+        'uk',
+        'el',
+        'ms',
+        'cs',
+        'ro',
+        'da',
+        'hu',
+        'ta',
+        'no',
+        'th',
+        'ur',
+        'hr',
+        'bg',
+        'lt',
+        'la',
+        'mi',
+        'ml',
+        'cy',
+        'sk',
+        'te',
+        'fa',
+        'lv',
+        'bn',
+        'sr',
+        'az',
+        'sl',
+        'kn',
+        'et',
+        'mk',
+        'br',
+        'eu',
+        'is',
+        'hy',
+        'ne',
+        'mn',
+        'bs',
+        'kk',
+        'sq',
+        'sw',
+        'gl',
+        'mr',
+        'pa',
+        'si',
+        'km',
+        'sn',
+        'yo',
+        'so',
+        'af',
+        'oc',
+        'ka',
+        'be',
+        'tg',
+        'sd',
+        'gu',
+        'am',
+        'yi',
+        'lo',
+        'uz',
+        'fo',
+        'ht',
+        'ps',
+        'tk',
+        'nn',
+        'mt',
+        'sa',
+        'lb',
+        'my',
+        'bo',
+        'tl',
+        'mg',
+        'as',
+        'tt',
+        'haw',
+        'ln',
+        'ha',
+        'ba',
+        'jw',
         'su',
       ];
 
@@ -74,7 +165,8 @@ class CrispASREngine implements TranscriptionEngine {
   Map<String, dynamic> get currentConfig => Map.unmodifiable(_config);
 
   @override
-  Future<bool> initialize({ModelService? modelService, Map<String, dynamic>? config}) async {
+  Future<bool> initialize(
+      {ModelService? modelService, Map<String, dynamic>? config}) async {
     try {
       _config = Map<String, dynamic>.from(config ?? const {});
       _modelService = modelService;
@@ -163,7 +255,8 @@ class CrispASREngine implements TranscriptionEngine {
 
     // Check if the backend is available in the bundled dylib.
     final available = crispasr.CrispasrSession.availableBackends();
-    Log.instance.d('crispasr', 'Available backends in libwhisper: ${available.join(", ")}');
+    Log.instance.d('crispasr',
+        'Available backends in libwhisper: ${available.join(", ")}');
     if (!available.contains(def.backend)) {
       throw ModelLoadException(
         'Model uses the ${def.backend} backend. The bundled libwhisper '
@@ -199,7 +292,9 @@ class CrispASREngine implements TranscriptionEngine {
     await unloadModel();
 
     int fileBytes = 0;
-    try { fileBytes = await File(modelPath).length(); } catch (_) {}
+    try {
+      fileBytes = await File(modelPath).length();
+    } catch (_) {}
     final done = Log.instance.stopwatch(
       'crispasr',
       msg: 'model loaded',
@@ -212,12 +307,17 @@ class CrispASREngine implements TranscriptionEngine {
       },
     );
     try {
-      Log.instance.d('crispasr', 'loading model',
-          fields: {'model': modelId, 'backend': def.backend, 'path': modelPath, 'bytes': fileBytes});
+      Log.instance.d('crispasr', 'loading model', fields: {
+        'model': modelId,
+        'backend': def.backend,
+        'path': modelPath,
+        'bytes': fileBytes
+      });
       if (def.backend == 'whisper') {
         _model = crispasr.CrispASR(modelPath);
       } else {
-        _session = crispasr.CrispasrSession.open(modelPath, backend: def.backend);
+        _session =
+            crispasr.CrispasrSession.open(modelPath, backend: def.backend);
       }
       _currentModelId = modelId;
       _currentModelPath = modelPath;
@@ -231,8 +331,13 @@ class CrispASREngine implements TranscriptionEngine {
       _currentModelPath = null;
       done(error: e);
       Log.instance.e('crispasr', 'Model load failed',
-          error: e, stack: st,
-          fields: {'model': modelId, 'backend': def.backend, 'path': modelPath});
+          error: e,
+          stack: st,
+          fields: {
+            'model': modelId,
+            'backend': def.backend,
+            'path': modelPath
+          });
       throw ModelLoadException(
         'CrispASR failed to load $modelId: $e',
         engineId,
@@ -257,7 +362,8 @@ class CrispASREngine implements TranscriptionEngine {
   /// is from the pre-0.2.0 era (or the detection fails internally) — the
   /// caller should treat "null" as "keep whatever language was configured".
   Future<String?> detectLanguage(Float32List audio) async {
-    if (_model == null) return null; // Only whisper class supports LID currently
+    if (_model == null)
+      return null; // Only whisper class supports LID currently
     if (!_model!.supportsExtended) return null;
     final det = _model!.detectLanguage(audio);
     if (!det.ok) {
@@ -308,11 +414,20 @@ class CrispASREngine implements TranscriptionEngine {
     onProgress?.call(0.05);
 
     final audioSeconds0 = audioData.length / 16000.0;
+
+    // Calculate RMS to see if we have actual signal
+    double sumSq = 0.0;
+    for (var i = 0; i < audioData.length; i++) {
+      sumSq += audioData[i] * audioData[i];
+    }
+    final rms = sqrt(sumSq / audioData.length);
+
     Log.instance.i('crispasr', 'transcribe start', fields: {
       'model': _currentModelId,
       'backend': _model != null ? 'whisper' : 'session',
       'samples': audioData.length,
       'audio_s': audioSeconds0.toStringAsFixed(2),
+      'rms': rms.toStringAsFixed(6),
       'lang': language ?? 'auto',
       'word_ts': enableWordTimestamps,
       'diarize': enableSpeakerDiarization,
@@ -334,7 +449,8 @@ class CrispASREngine implements TranscriptionEngine {
           beamSearch: beamSearch,
           initialPrompt: initialPrompt,
         );
-        segments = _mapWhisperSegments(nativeSegments, enableWordTimestamps, onSegment);
+        segments = _mapWhisperSegments(
+            nativeSegments, enableWordTimestamps, onSegment);
       } else {
         // Unified session path (Parakeet, Canary, etc.)
         final sessionSegments = await _runSessionTranscription(audioData);
@@ -394,7 +510,8 @@ class CrispASREngine implements TranscriptionEngine {
     } catch (e, st) {
       if (e is EngineException) rethrow;
       Log.instance.e('crispasr', 'Transcription failed', error: e, stack: st);
-      throw TranscriptionException('CrispASR transcription failed: $e', engineId, e);
+      throw TranscriptionException(
+          'CrispASR transcription failed: $e', engineId, e);
     } finally {
       _isProcessing = false;
     }
@@ -434,7 +551,8 @@ class CrispASREngine implements TranscriptionEngine {
     );
   }
 
-  Future<List<crispasr.SessionSegment>> _runSessionTranscription(Float32List pcm) async {
+  Future<List<crispasr.SessionSegment>> _runSessionTranscription(
+      Float32List pcm) async {
     await Future<void>.delayed(Duration.zero);
     return _session!.transcribe(pcm);
   }
@@ -444,12 +562,14 @@ class CrispASREngine implements TranscriptionEngine {
     bool enableWordTimestamps,
     void Function(TranscriptionSegment segment)? onSegment,
   ) {
-    Log.instance.d('crispasr', 'Mapping ${nativeSegments.length} native segments');
+    Log.instance
+        .d('crispasr', 'Mapping ${nativeSegments.length} native segments');
     final segments = <TranscriptionSegment>[];
     for (var i = 0; i < nativeSegments.length; i++) {
       if (_cancelRequested) break;
       final s = nativeSegments[i];
-      Log.instance.d('crispasr', 'Native segment $i text: "[${s.text}]" words: ${s.words.length}');
+      Log.instance.d('crispasr',
+          'Native segment $i text: "[${s.text}]" words: ${s.words.length}');
       if (s.text.trim().isEmpty) {
         Log.instance.d('crispasr', 'Segment $i is empty, skipping');
         continue;
@@ -551,7 +671,9 @@ class CrispASREngine implements TranscriptionEngine {
       onCancel: () {
         if (!session.isClosed) {
           final last = session.flush();
-          if (last != null) Log.instance.d('crispasr', 'Stream flush: ${last.text.length} chars');
+          if (last != null)
+            Log.instance
+                .d('crispasr', 'Stream flush: ${last.text.length} chars');
           session.close();
         }
         Log.instance.i('crispasr', 'Streaming session closed');

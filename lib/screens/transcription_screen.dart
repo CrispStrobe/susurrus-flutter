@@ -30,7 +30,8 @@ class TranscriptionScreen extends ConsumerStatefulWidget {
   const TranscriptionScreen({super.key});
 
   @override
-  ConsumerState<TranscriptionScreen> createState() => _TranscriptionScreenState();
+  ConsumerState<TranscriptionScreen> createState() =>
+      _TranscriptionScreenState();
 }
 
 class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
@@ -45,7 +46,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   bool _loadingModels = false;
   // Model picker filters
   String _modelNameFilter = '';
-  String _backendFilter = '';   // '' = any
+  String _backendFilter = ''; // '' = any
   final TextEditingController _modelFilterController = TextEditingController();
   // Memoized init future — the first `_ensureEngineReady()` call kicks it
   // off and any subsequent callers await the same future rather than
@@ -94,7 +95,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Future<bool> _doInitialize() async {
     final service = ref.read(transcriptionServiceProvider);
     final settings = ref.read(settingsServiceProvider);
-    
+
     // Load models list
     _loadModels();
 
@@ -160,9 +161,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final modelService = ref.read(modelServiceProvider);
     try {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).transcribeStarting(model.displayName))),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .transcribeStarting(model.displayName))),
       );
-      
+
       final success = await modelService.downloadWhisperCppModel(
         model.name,
         onProgress: (p) {
@@ -186,6 +189,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
+    Log.instance.t('ui', 'TranscriptionScreen.build locale=$locale');
 
     return Scaffold(
       appBar: AppBar(
@@ -222,7 +227,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         onDragEntered: (_) => setState(() => _dropHover = true),
         onDragExited: (_) => setState(() => _dropHover = false),
         onDragDone: _onFilesDropped,
-        child: Stack(children: [_buildBody(), if (_dropHover) _buildDropOverlay()]),
+        child: Stack(
+            children: [_buildBody(), if (_dropHover) _buildDropOverlay()]),
       ),
     );
   }
@@ -242,8 +248,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         .toList();
     if (supported.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)
-            .transcribeUnsupportedFile(details.files.first.name))),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .transcribeUnsupportedFile(details.files.first.name))),
       );
       return;
     }
@@ -287,7 +294,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               ),
               child: const Text(
                 'Drop audio file to transcribe',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -301,70 +311,69 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final transcriptionService = ref.watch(transcriptionServiceProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-          // Three tiers:
-          //   - narrow (<700)  : single stacked column, all panes scroll.
-          //     Suited to phones and very-tight desktop windows.
-          //   - wide   (≥700)  : 2-column input|output.
-          //   - extra-wide (≥1300) : 3-column input | queue+controls | output.
-          //     Batch queue gets its own middle column so the left stays
-          //     compact and the output pane is unaffected.
-          final w = constraints.maxWidth;
-          final input = _buildInputSection();
-          final controls =
-              _buildControlsSection(appState, transcriptionService);
-          final output = _buildOutputSection(appState);
+        // Three tiers:
+        //   - narrow (<700)  : single stacked column, all panes scroll.
+        //     Suited to phones and very-tight desktop windows.
+        //   - wide   (≥700)  : 2-column input|output.
+        //   - extra-wide (≥1300) : 3-column input | queue+controls | output.
+        //     Batch queue gets its own middle column so the left stays
+        //     compact and the output pane is unaffected.
+        final w = constraints.maxWidth;
+        final input = _buildInputSection();
+        final controls = _buildControlsSection(appState, transcriptionService);
+        final output = _buildOutputSection(appState);
 
-          if (w >= 1300) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 380,
-                  child: SingleChildScrollView(child: input),
-                ),
-                const VerticalDivider(width: 1),
-                SizedBox(
-                  width: 340,
-                  child: controls,
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: output),
-              ],
-            );
-          }
-          if (w >= 700) {
-            // Compute a sensible left-column width proportional to the
-            // viewport so controls don't cram when the window is ~700px.
-            final leftWidth = (w * 0.40).clamp(360.0, 520.0);
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: leftWidth,
-                  child: Column(
-                    children: [
-                      Expanded(child: SingleChildScrollView(child: input)),
-                      controls,
-                    ],
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: output),
-              ],
-            );
-          }
-          // Narrow: stack vertically. Output is most important → flex 3.
-          return Column(
+        if (w >= 1300) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
+              SizedBox(
+                width: 380,
                 child: SingleChildScrollView(child: input),
               ),
-              controls,
-              Expanded(flex: 3, child: output),
+              const VerticalDivider(width: 1),
+              SizedBox(
+                width: 340,
+                child: controls,
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: output),
             ],
           );
-        },
+        }
+        if (w >= 700) {
+          // Compute a sensible left-column width proportional to the
+          // viewport so controls don't cram when the window is ~700px.
+          final leftWidth = (w * 0.40).clamp(360.0, 520.0);
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: leftWidth,
+                child: Column(
+                  children: [
+                    Expanded(child: SingleChildScrollView(child: input)),
+                    controls,
+                  ],
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: output),
+            ],
+          );
+        }
+        // Narrow: stack vertically. Output is most important → flex 3.
+        return Column(
+          children: [
+            Expanded(
+              flex: 2,
+              child: SingleChildScrollView(child: input),
+            ),
+            controls,
+            Expanded(flex: 3, child: output),
+          ],
+        );
+      },
     );
   }
 
@@ -439,10 +448,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
             // Advanced Options Toggle
             TextButton.icon(
-              icon: Icon(_showAdvancedOptions
-                ? Icons.expand_less
-                : Icons.expand_more
-              ),
+              icon: Icon(
+                  _showAdvancedOptions ? Icons.expand_less : Icons.expand_more),
               label: Text(l.advancedOptions),
               onPressed: () {
                 setState(() {
@@ -465,7 +472,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Widget _buildAdvancedOptions() {
-    Log.instance.d('ui', '_buildAdvancedOptions: _loadingModels=$_loadingModels, _availableModels.length=${_availableModels.length}');
+    Log.instance.d('ui',
+        '_buildAdvancedOptions: _loadingModels=$_loadingModels, _availableModels.length=${_availableModels.length}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -493,11 +501,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     items: [
-                      DropdownMenuItem(value: 'auto', child: Text(l.languageAuto)),
+                      DropdownMenuItem(
+                          value: 'auto', child: Text(l.languageAuto)),
                       DropdownMenuItem(value: 'en', child: Text(l.languageEn)),
                       DropdownMenuItem(value: 'es', child: Text(l.languageEs)),
                       DropdownMenuItem(value: 'fr', child: Text(l.languageFr)),
@@ -536,8 +545,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   prefixIcon: const Icon(Icons.search, size: 18),
                   hintText: AppLocalizations.of(context).modelFilterHint,
                   border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   suffixIcon: _modelNameFilter.isEmpty
                       ? null
                       : IconButton(
@@ -556,7 +565,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             DropdownButton<String>(
               value: _backendFilter,
               items: [
-                DropdownMenuItem(value: '', child: Text(AppLocalizations.of(context).modelAnyBackend)),
+                DropdownMenuItem(
+                    value: '',
+                    child: Text(AppLocalizations.of(context).modelAnyBackend)),
                 for (final b in _uniqueBackends()) ...[
                   DropdownMenuItem(value: b, child: Text(b)),
                 ],
@@ -627,9 +638,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                       title: Text(
                         model.displayName,
                         style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                       subtitle: Text(
@@ -667,7 +677,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Future<void> _selectModel(String value) async {
     if (value == _modelName) return;
     setState(() => _modelName = value);
-    
+
     // Save to settings
     ref.read(settingsServiceProvider).defaultModel = value;
 
@@ -675,7 +685,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       await ref.read(transcriptionServiceProvider).loadModel(value);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).transcribeLoadedFile(value))),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context).transcribeLoadedFile(value))),
         );
       }
     } catch (e) {
@@ -687,7 +699,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     }
   }
 
-  Widget _buildControlsSection(AppState appState, TranscriptionService transcriptionService) {
+  Widget _buildControlsSection(
+      AppState appState, TranscriptionService transcriptionService) {
     final l = AppLocalizations.of(context);
     final queue = ref.watch(batchQueueProvider);
     final hasQueued = queue.any((j) => j.status == BatchJobStatus.queued);
@@ -705,16 +718,18 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               // Transcribe Button
               ElevatedButton.icon(
                 icon: appState.isTranscribing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow),
-                label: Text(appState.isTranscribing ? l.transcribing : l.transcribe),
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.transcribe),
+                label: Text(
+                    appState.isTranscribing ? l.transcribing : l.transcribe),
                 onPressed: appState.isTranscribing ? null : _startTranscription,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 ),
               ),
 
@@ -725,7 +740,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   label: Text(l.batchRunAll),
                   onPressed: _startBatchRun,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
                   ),
                 ),
 
@@ -738,74 +754,76 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                   ),
                 ),
 
-          // Clear Button
-          ElevatedButton.icon(
-            icon: const Icon(Icons.clear),
-            label: Text(l.clear),
-            onPressed: appState.segments.isNotEmpty ? _clearTranscription : null,
-          ),
+              // Clear Button
+              ElevatedButton.icon(
+                icon: const Icon(Icons.clear),
+                label: Text(l.clear),
+                onPressed:
+                    appState.segments.isNotEmpty ? _clearTranscription : null,
+              ),
 
-          // Save/Share Button
-          if (appState.currentTranscription != null)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.share),
-              onSelected: (action) => _handleShareAction(action, appState),
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'share',
-                  child: ListTile(
-                    leading: Icon(Icons.share),
-                    title: Text('Share plain text'),
-                    dense: true,
-                  ),
+              // Save/Share Button
+              if (appState.currentTranscription != null)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.share),
+                  onSelected: (action) => _handleShareAction(action, appState),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'share',
+                      child: ListTile(
+                        leading: Icon(Icons.share),
+                        title: Text('Share plain text'),
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'copy',
+                      child: ListTile(
+                        leading: Icon(Icons.copy),
+                        title: Text('Copy to clipboard'),
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'save_txt',
+                      child: ListTile(
+                        leading: Icon(Icons.description),
+                        title: Text('Save as TXT'),
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'save_srt',
+                      child: ListTile(
+                        leading: Icon(Icons.subtitles),
+                        title: Text('Save as SRT'),
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'save_vtt',
+                      child: ListTile(
+                        leading: Icon(Icons.closed_caption),
+                        title: Text('Save as VTT'),
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'save_json',
+                      child: ListTile(
+                        leading: Icon(Icons.data_object),
+                        title: Text('Save as JSON'),
+                        dense: true,
+                      ),
+                    ),
+                  ],
                 ),
-                const PopupMenuItem(
-                  value: 'copy',
-                  child: ListTile(
-                    leading: Icon(Icons.copy),
-                    title: Text('Copy to clipboard'),
-                    dense: true,
-                  ),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                  value: 'save_txt',
-                  child: ListTile(
-                    leading: Icon(Icons.description),
-                    title: Text('Save as TXT'),
-                    dense: true,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'save_srt',
-                  child: ListTile(
-                    leading: Icon(Icons.subtitles),
-                    title: Text('Save as SRT'),
-                    dense: true,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'save_vtt',
-                  child: ListTile(
-                    leading: Icon(Icons.closed_caption),
-                    title: Text('Save as VTT'),
-                    dense: true,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'save_json',
-                  child: ListTile(
-                    leading: Icon(Icons.data_object),
-                    title: Text('Save as JSON'),
-                    dense: true,
-                  ),
-                ),
-              ],
-            ),
             ],
           ),
         ],
@@ -877,7 +895,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Future<void> _selectAudioFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.audio,
       allowMultiple: true,
     );
@@ -898,8 +916,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)
-                .batchEnqueueAdded(paths.length - 1))),
+            SnackBar(
+                content: Text(AppLocalizations.of(context)
+                    .batchEnqueueAdded(paths.length - 1))),
           );
         }
       }
@@ -913,7 +932,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final filePath = _selectedFilePath ?? recordedPath;
 
     if (filePath == null && _urlController.text.isEmpty) {
-      _showErrorDialog('Please select an audio file, enter a URL, or make a recording.');
+      _showErrorDialog(
+          'Please select an audio file, enter a URL, or make a recording.');
       return;
     }
 
@@ -1036,8 +1056,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           enableDiarization: _enableDiarization,
           translate: adv.translate,
           beamSearch: adv.beamSearch,
-          initialPrompt:
-              adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);
@@ -1065,8 +1084,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               );
           historyId = saved.id;
         } catch (e, st) {
-          Log.instance.w('batch', 'history save failed',
-              error: e, stack: st);
+          Log.instance.w('batch', 'history save failed', error: e, stack: st);
         }
         queue.setDone(next.id,
             resultText: segments.map((s) => s.text).join(' ').trim(),
@@ -1117,8 +1135,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
   Future<void> _saveAs(AppState state, TranscriptFormat format) async {
     try {
-      final baseName =
-          'transcription-${DateTime.now().millisecondsSinceEpoch}';
+      final baseName = 'transcription-${DateTime.now().millisecondsSinceEpoch}';
       final file = await FileUtils.saveTranscription(
         state.currentTranscription ?? '',
         baseName,
@@ -1238,12 +1255,12 @@ class _PerformanceCard extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('$key: ',
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text('$key: ', style: const TextStyle(fontWeight: FontWeight.w600)),
         Text(value),
         if (hint != null)
           Text(' ($hint)',
-              style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 11)),
+              style:
+                  const TextStyle(fontStyle: FontStyle.italic, fontSize: 11)),
       ],
     );
   }
@@ -1258,8 +1275,7 @@ class _EngineStatusChip extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Chip(
       visualDensity: VisualDensity.compact,
-      backgroundColor:
-          ready ? Colors.green.shade100 : Colors.orange.shade100,
+      backgroundColor: ready ? Colors.green.shade100 : Colors.orange.shade100,
       label: Text(
         ready ? l.engineReady : l.engineStarting,
         style: TextStyle(

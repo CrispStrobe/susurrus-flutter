@@ -73,7 +73,8 @@ class AboutScreen extends ConsumerWidget {
                 Text(l.aboutLicenseText),
                 const SizedBox(height: 8),
                 InkWell(
-                  onTap: () => _open('https://www.gnu.org/licenses/agpl-3.0.html'),
+                  onTap: () =>
+                      _open('https://www.gnu.org/licenses/agpl-3.0.html'),
                   child: const Text(
                     'https://www.gnu.org/licenses/agpl-3.0.html',
                     style: TextStyle(

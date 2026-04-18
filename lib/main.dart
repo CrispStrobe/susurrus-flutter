@@ -139,11 +139,13 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
     try {
       Log.instance.i('main', 'exit requested — disposing engine');
       final t = ref.read(transcriptionServiceProvider);
-      t.dispose();
+      t.dispose(); // Returns void, do not await
+
+      // Give it a moment to actually stop any native threads if needed
+      await Future.delayed(const Duration(milliseconds: 100));
       await Log.instance.enableFileSink(false); // flush + close sink
     } catch (e, st) {
-      Log.instance.w('main', 'dispose on exit failed',
-          error: e, stack: st);
+      Log.instance.w('main', 'dispose on exit failed', error: e, stack: st);
     }
     return AppExitResponse.exit;
   }
@@ -153,7 +155,6 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
     _lifecycle.dispose();
     super.dispose();
   }
-
 
   static final GoRouter _router = GoRouter(
     initialLocation: '/',
@@ -194,9 +195,10 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
-    Log.instance.d('locale',
+    Log.instance.d(
+        'locale',
         'MaterialApp.build locale=$locale '
-        'supported=${AppLocalizations.supportedLocales}');
+            'supported=${AppLocalizations.supportedLocales}');
 
     return MaterialApp.router(
       title: 'CrisperWeaver',
@@ -213,9 +215,10 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       // Make the title locale-aware too.
       onGenerateTitle: (ctx) {
         final l = AppLocalizations.of(ctx);
-        Log.instance.d('locale',
+        Log.instance.d(
+            'locale',
             'onGenerateTitle resolved to locale=${Localizations.localeOf(ctx)} '
-            'appName="${l.appName}"');
+                'appName="${l.appName}"');
         return l.appName;
       },
     );
@@ -324,7 +327,8 @@ class PerformanceStats {
   }
 }
 
-final appStateProvider = StateNotifierProvider<AppStateNotifier, AppState>((ref) {
+final appStateProvider =
+    StateNotifierProvider<AppStateNotifier, AppState>((ref) {
   return AppStateNotifier();
 });
 
@@ -345,12 +349,11 @@ class AppStateNotifier extends StateNotifier<AppState> {
   }
 
   void addSegment(TranscriptionSegment segment) {
+    Log.instance.d('state', 'Adding segment: "${segment.text}"');
     final updatedSegments = [...state.segments, segment];
     final fullText = updatedSegments.map((s) => s.text).join(' ');
     state = state.copyWith(
-      segments: updatedSegments,
-      currentTranscription: fullText
-    );
+        segments: updatedSegments, currentTranscription: fullText);
   }
 
   void completeTranscription(
@@ -369,10 +372,7 @@ class AppStateNotifier extends StateNotifier<AppState> {
   }
 
   void setError(String error) {
-    state = state.copyWith(
-      isTranscribing: false,
-      errorMessage: error
-    );
+    state = state.copyWith(isTranscribing: false, errorMessage: error);
   }
 
   void clearTranscription() {

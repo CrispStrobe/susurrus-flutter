@@ -87,9 +87,8 @@ class _AdvancedDecodingSectionState
           subtitle: Text(l.advancedTranslateSubtitle,
               style: const TextStyle(fontSize: 11)),
           value: opts.translate,
-          onChanged: (v) => ref
-              .read(advancedOptionsProvider.notifier)
-              .state = opts.copyWith(translate: v),
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(translate: v),
         ),
         SwitchListTile(
           dense: true,
@@ -98,9 +97,8 @@ class _AdvancedDecodingSectionState
           subtitle: Text(l.advancedBeamSearchSubtitle,
               style: const TextStyle(fontSize: 11)),
           value: opts.beamSearch,
-          onChanged: (v) => ref
-              .read(advancedOptionsProvider.notifier)
-              .state = opts.copyWith(beamSearch: v),
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(beamSearch: v),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -115,9 +113,8 @@ class _AdvancedDecodingSectionState
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
-            onChanged: (v) => ref
-                .read(advancedOptionsProvider.notifier)
-                .state = opts.copyWith(initialPrompt: v),
+            onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(initialPrompt: v),
           ),
         ),
       ],

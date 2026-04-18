@@ -34,13 +34,11 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
     final jobs = ref.watch(batchQueueProvider);
     final l = AppLocalizations.of(context);
 
-    final queued =
-        jobs.where((j) => j.status == BatchJobStatus.queued).length;
+    final queued = jobs.where((j) => j.status == BatchJobStatus.queued).length;
     final running =
         jobs.where((j) => j.status == BatchJobStatus.running).length;
     final done = jobs.where((j) => j.status == BatchJobStatus.done).length;
-    final errored =
-        jobs.where((j) => j.status == BatchJobStatus.error).length;
+    final errored = jobs.where((j) => j.status == BatchJobStatus.error).length;
 
     return DropTarget(
       onDragEntered: (_) => setState(() => _hover = true),
@@ -73,8 +71,8 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(l.batchQueueTitle,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         Text(
                           jobs.isEmpty
                               ? l.batchQueueDropHint
@@ -128,8 +126,9 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
         .toList();
     if (supported.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)
-            .transcribeUnsupportedFile(details.files.first.name))),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .transcribeUnsupportedFile(details.files.first.name))),
       );
       return;
     }
@@ -168,8 +167,7 @@ class _EmptyDropHint extends StatelessWidget {
           Text(
             l.batchQueueDropHint,
             textAlign: TextAlign.center,
-            style:
-                TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
         ],
       ),
@@ -189,8 +187,7 @@ class _JobRow extends ConsumerWidget {
       BatchJobStatus.running => (Icons.refresh, Colors.blue.shade700),
       BatchJobStatus.done => (Icons.check, Colors.green.shade700),
       BatchJobStatus.error => (Icons.error_outline, Colors.red.shade700),
-      BatchJobStatus.cancelled =>
-        (Icons.block, Colors.grey.shade500),
+      BatchJobStatus.cancelled => (Icons.block, Colors.grey.shade500),
     };
 
     return Padding(
@@ -222,8 +219,7 @@ class _JobRow extends ConsumerWidget {
                   Text(
                     job.errorMessage!,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.red.shade700),
+                    style: TextStyle(fontSize: 11, color: Colors.red.shade700),
                   ),
               ],
             ),

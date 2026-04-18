@@ -87,7 +87,8 @@ class FileUtils {
     final transcriptionsDir = await getTranscriptionsDirectory();
     final extension = _getExtensionForFormat(format);
     final safeFileName = sanitizeFilename(fileName);
-    final filePath = path.join(transcriptionsDir.path, '$safeFileName.$extension');
+    final filePath =
+        path.join(transcriptionsDir.path, '$safeFileName.$extension');
 
     final file = File(filePath);
 
@@ -145,7 +146,8 @@ class FileUtils {
   }
 
   /// Copy file to another location
-  static Future<File> copyFile(String sourcePath, String destinationPath) async {
+  static Future<File> copyFile(
+      String sourcePath, String destinationPath) async {
     final sourceFile = File(sourcePath);
     final destinationFile = File(destinationPath);
 
@@ -161,7 +163,8 @@ class FileUtils {
   }
 
   /// Move file to another location
-  static Future<File> moveFile(String sourcePath, String destinationPath) async {
+  static Future<File> moveFile(
+      String sourcePath, String destinationPath) async {
     final sourceFile = File(sourcePath);
 
     if (!await sourceFile.exists()) {
@@ -217,9 +220,8 @@ class FileUtils {
     }
 
     final files = <FileInfo>[];
-    final entities = recursive
-        ? directory.list(recursive: true)
-        : directory.list();
+    final entities =
+        recursive ? directory.list(recursive: true) : directory.list();
 
     await for (final entity in entities) {
       if (entity is File) {
@@ -310,14 +312,11 @@ class FileUtils {
     final cacheDir = await getAppCacheDirectory();
 
     final transcriptionsSize = await getDirectorySize(
-      path.join(documentsDir.path, transcriptionsFolder)
-    );
-    final modelsSize = await getDirectorySize(
-      path.join(documentsDir.path, modelsFolder)
-    );
-    final audioSize = await getDirectorySize(
-      path.join(documentsDir.path, audioFolder)
-    );
+        path.join(documentsDir.path, transcriptionsFolder));
+    final modelsSize =
+        await getDirectorySize(path.join(documentsDir.path, modelsFolder));
+    final audioSize =
+        await getDirectorySize(path.join(documentsDir.path, audioFolder));
     final cacheSize = await getDirectorySize(cacheDir.path);
 
     return StorageUsage(
@@ -347,7 +346,8 @@ class FileUtils {
     for (int i = 0; i < segments.length; i++) {
       final segment = segments[i];
       buffer.writeln('${i + 1}');
-      buffer.writeln('${_formatSrtTime(segment.startTime)} --> ${_formatSrtTime(segment.endTime)}');
+      buffer.writeln(
+          '${_formatSrtTime(segment.startTime)} --> ${_formatSrtTime(segment.endTime)}');
       buffer.writeln('${segment.speaker ?? ''}: ${segment.text}');
       buffer.writeln();
     }
@@ -362,7 +362,8 @@ class FileUtils {
     for (int i = 0; i < segments.length; i++) {
       final segment = segments[i];
       buffer.writeln('${i + 1}');
-      buffer.writeln('${_formatVttTime(segment.startTime)} --> ${_formatVttTime(segment.endTime)}');
+      buffer.writeln(
+          '${_formatVttTime(segment.startTime)} --> ${_formatVttTime(segment.endTime)}');
       buffer.writeln('${segment.speaker ?? ''}: ${segment.text}');
       buffer.writeln();
     }
@@ -370,13 +371,15 @@ class FileUtils {
   }
 
   static String _generateJsonContent(List<TranscriptionSegment> segments) {
-    final data = segments.map((segment) => {
-      'text': segment.text,
-      'startTime': segment.startTime,
-      'endTime': segment.endTime,
-      'speaker': segment.speaker,
-      'confidence': segment.confidence,
-    }).toList();
+    final data = segments
+        .map((segment) => {
+              'text': segment.text,
+              'startTime': segment.startTime,
+              'endTime': segment.endTime,
+              'speaker': segment.speaker,
+              'confidence': segment.confidence,
+            })
+        .toList();
 
     return const JsonEncoder.withIndent('  ').convert(data);
   }
@@ -388,9 +391,9 @@ class FileUtils {
     final ms = ((secs % 1) * 1000).round();
 
     return '${hours.toString().padLeft(2, '0')}:'
-           '${minutes.toString().padLeft(2, '0')}:'
-           '${secs.floor().toString().padLeft(2, '0')},'
-           '${ms.toString().padLeft(3, '0')}';
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${secs.floor().toString().padLeft(2, '0')},'
+        '${ms.toString().padLeft(3, '0')}';
   }
 
   static String _formatVttTime(double seconds) {
@@ -400,9 +403,9 @@ class FileUtils {
     final ms = ((secs % 1) * 1000).round();
 
     return '${hours.toString().padLeft(2, '0')}:'
-           '${minutes.toString().padLeft(2, '0')}:'
-           '${secs.floor().toString().padLeft(2, '0')}.'
-           '${ms.toString().padLeft(3, '0')}';
+        '${minutes.toString().padLeft(2, '0')}:'
+        '${secs.floor().toString().padLeft(2, '0')}.'
+        '${ms.toString().padLeft(3, '0')}';
   }
 }
 
