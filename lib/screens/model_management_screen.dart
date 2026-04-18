@@ -23,6 +23,16 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   void initState() {
     super.initState();
     _loadModels();
+    // Auto-probe HuggingFace the first time the screen opens so users see
+    // every available quant for every backend without having to know the
+    // cloud-download button exists. Subsequent visits reuse the cached
+    // results (no re-probe unless the user taps the button explicitly).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final svc = ref.read(modelServiceProvider);
+      if (!svc.hasProbedQuants) {
+        _probeHf();
+      }
+    });
   }
 
   Future<void> _loadModels() async {

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:isolate';
-import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -304,19 +303,11 @@ class ModelService {
       quantization: 'q5_0',
       backend: 'canary',
     ),
-    // Cohere — Conformer encoder + transformer decoder.
-    'cohere-transcribe-03-2026-q5_0': ModelDefinition(
-      name: 'cohere-transcribe-03-2026-q5_0',
-      displayName: 'Cohere Transcribe 03-2026 (q5_0)',
-      fileName: 'cohere-transcribe-03-2026-q5_0.gguf',
-      url:
-          'https://huggingface.co/cstr/cohere-transcribe-03-2026-GGUF/resolve/main/cohere-transcribe-03-2026-q5_0.gguf',
-      sizeBytes: 1200 * 1024 * 1024,
-      checksum: '',
-      description: 'Cohere high-accuracy ASR — ~1.2 GB',
-      quantization: 'q5_0',
-      backend: 'cohere',
-    ),
+    // Cohere / Granite / FastConformer-CTC / Wav2Vec2 have the widest
+    // naming drift between our guess and the actual HF layouts, so they
+    // are populated lazily via refreshAvailableQuants() (auto-probed on
+    // model-manager open). No hardcoded entries here — the probe builds
+    // them with real sizes + correct URLs at runtime.
     // Voxtral — speech translation (Mistral family).
     'voxtral-mini-3b-2507-q4_k': ModelDefinition(
       name: 'voxtral-mini-3b-2507-q4_k',
@@ -356,45 +347,7 @@ class ModelService {
       quantization: 'q4_k',
       backend: 'qwen3',
     ),
-    // Granite — IBM's speech model.
-    'granite-4.0-1b-speech-q4_k': ModelDefinition(
-      name: 'granite-4.0-1b-speech-q4_k',
-      displayName: 'Granite 4.0 1B Speech (q4_k)',
-      fileName: 'granite-4.0-1b-speech-q4_k.gguf',
-      url:
-          'https://huggingface.co/cstr/granite-speech-4.0-1b-GGUF/resolve/main/granite-4.0-1b-speech-q4_k.gguf',
-      sizeBytes: 900 * 1024 * 1024,
-      checksum: '',
-      description: 'IBM Granite speech — ~900 MB',
-      quantization: 'q4_k',
-      backend: 'granite',
-    ),
-    // FastConformer-CTC — low-latency CTC backbone.
-    'fastconformer-ctc-en-q4_k': ModelDefinition(
-      name: 'fastconformer-ctc-en-q4_k',
-      displayName: 'FastConformer CTC (en, q4_k)',
-      fileName: 'fastconformer-ctc-en-q4_k.gguf',
-      url:
-          'https://huggingface.co/cstr/stt-en-fastconformer-ctc-large-GGUF/resolve/main/fastconformer-ctc-en-q4_k.gguf',
-      sizeBytes: 400 * 1024 * 1024,
-      checksum: '',
-      description: 'Low-latency CTC ASR (English) — ~400 MB',
-      quantization: 'q4_k',
-      backend: 'fastconformer-ctc',
-    ),
-    // Wav2Vec2 — self-supervised speech model.
-    'wav2vec2-base-en-q4_k': ModelDefinition(
-      name: 'wav2vec2-base-en-q4_k',
-      displayName: 'Wav2Vec2 base (en, q4_k)',
-      fileName: 'wav2vec2-base-en-q4_k.gguf',
-      url:
-          'https://huggingface.co/cstr/wav2vec2-large-xlsr-53-english-GGUF/resolve/main/wav2vec2-base-en-q4_k.gguf',
-      sizeBytes: 100 * 1024 * 1024,
-      checksum: '',
-      description: 'Self-supervised (facebook/wav2vec2) — ~100 MB',
-      quantization: 'q4_k',
-      backend: 'wav2vec2',
-    ),
+    // Granite / FastConformer-CTC / Wav2Vec2 — populated by HF probe.
     'qwen2-audio-7b-q4_k': ModelDefinition(
       name: 'qwen2-audio-7b-q4_k',
       displayName: 'Qwen2-Audio 7B (q4_k)',
@@ -452,7 +405,7 @@ class ModelService {
     'cohere': BackendRepo(
       backend: 'cohere',
       repoId: 'cstr/cohere-transcribe-03-2026-GGUF',
-      baseName: 'cohere-transcribe-03-2026',
+      baseName: 'cohere-transcribe',
       displayPrefix: 'Cohere Transcribe',
       description: 'Cohere high-accuracy ASR',
     ),
@@ -480,21 +433,21 @@ class ModelService {
     'granite': BackendRepo(
       backend: 'granite',
       repoId: 'cstr/granite-speech-4.0-1b-GGUF',
-      baseName: 'granite-4.0-1b-speech',
+      baseName: 'granite-speech-4.0-1b',
       displayPrefix: 'Granite 4.0 1B Speech',
       description: 'IBM Granite speech (instruction-tuned)',
     ),
     'fastconformer-ctc': BackendRepo(
       backend: 'fastconformer-ctc',
       repoId: 'cstr/stt-en-fastconformer-ctc-large-GGUF',
-      baseName: 'fastconformer-ctc-en',
+      baseName: 'stt-en-fastconformer-ctc-large',
       displayPrefix: 'FastConformer CTC (en)',
       description: 'Low-latency CTC ASR (English)',
     ),
     'wav2vec2': BackendRepo(
       backend: 'wav2vec2',
       repoId: 'cstr/wav2vec2-large-xlsr-53-english-GGUF',
-      baseName: 'wav2vec2-base-en',
+      baseName: 'wav2vec2-xlsr-en',
       displayPrefix: 'Wav2Vec2 base (en)',
       description: 'Self-supervised (facebook/wav2vec2)',
     ),
@@ -519,16 +472,10 @@ class ModelService {
       },
     );
 
-    if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(
-        requestHeader: true,
-        requestBody: false,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
-        logPrint: (obj) => Log.instance.d('dio', obj.toString()),
-      ));
-    }
+    // Dio's LogInterceptor dumps 50+ trace lines per HTTP request
+    // (every header, every response body). Our own `download start` /
+    // `download done` + the DioException catch already capture what we
+    // need. Leave it off so the in-app Log view is actually readable.
 
     // Add interceptors for debugging and retry logic
     _dio.interceptors.add(

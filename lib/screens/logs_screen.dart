@@ -139,10 +139,10 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: RichText(
                     text: TextSpan(
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 11,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       children: [
                         TextSpan(
