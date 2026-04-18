@@ -36,13 +36,51 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     setState(() => _isLoading = false);
   }
 
+  bool _probing = false;
+
+  Future<void> _probeHf() async {
+    setState(() => _probing = true);
+    try {
+      final added =
+          await ref.read(modelServiceProvider).refreshAvailableQuants();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(added == 0
+              ? 'No new quants discovered on HuggingFace.'
+              : 'Discovered $added new quant variant${added == 1 ? "" : "s"}.'),
+        ),
+      );
+      await _loadModels();
+    } catch (e) {
+      _showErrorDialog('HuggingFace probe failed: $e');
+    } finally {
+      if (mounted) setState(() => _probing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Model Management'),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadModels),
+          IconButton(
+            icon: _probing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.cloud_download),
+            tooltip: 'Refresh quants from HuggingFace',
+            onPressed: _probing ? null : _probeHf,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reload local state',
+            onPressed: _loadModels,
+          ),
         ],
       ),
       body: _isLoading

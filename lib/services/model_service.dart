@@ -408,6 +408,90 @@ class ModelService {
     ),
   };
 
+  /// HuggingFace repos we probe dynamically to discover every available
+  /// quantisation (q4_0, q4_k, q5_0, q5_k, q8_0, f16, …). The static
+  /// catalogs above are the offline default; on first open of the model
+  /// manager the app calls `refreshAvailableQuants()` and merges new
+  /// entries discovered via the HF API.
+  static const Map<String, BackendRepo> backendRepos = {
+    'whisper': BackendRepo(
+      backend: 'whisper',
+      repoId: 'cstr/whisper-ggml-quants',
+      baseName: 'ggml-',
+      displayPrefix: 'Whisper',
+      description: 'Whisper (quantised GGML)',
+      extension: '.bin',
+    ),
+    'parakeet': BackendRepo(
+      backend: 'parakeet',
+      repoId: 'cstr/parakeet-tdt-0.6b-v3-GGUF',
+      baseName: 'parakeet-tdt-0.6b-v3',
+      displayPrefix: 'Parakeet TDT 0.6B v3',
+      description: 'Fast English ASR (NVIDIA Parakeet)',
+    ),
+    'canary': BackendRepo(
+      backend: 'canary',
+      repoId: 'cstr/canary-1b-v2-GGUF',
+      baseName: 'canary-1b-v2',
+      displayPrefix: 'Canary 1B v2',
+      description: 'NVIDIA Canary — speech translation',
+    ),
+    'cohere': BackendRepo(
+      backend: 'cohere',
+      repoId: 'cstr/cohere-transcribe-03-2026-GGUF',
+      baseName: 'cohere-transcribe-03-2026',
+      displayPrefix: 'Cohere Transcribe',
+      description: 'Cohere high-accuracy ASR',
+    ),
+    'voxtral': BackendRepo(
+      backend: 'voxtral',
+      repoId: 'cstr/voxtral-mini-3b-2507-GGUF',
+      baseName: 'voxtral-mini-3b-2507',
+      displayPrefix: 'Voxtral Mini 3B 2507',
+      description: 'Mistral Voxtral — speech translation + ASR',
+    ),
+    'voxtral4b': BackendRepo(
+      backend: 'voxtral4b',
+      repoId: 'cstr/voxtral-mini-4b-realtime-GGUF',
+      baseName: 'voxtral-mini-4b-realtime',
+      displayPrefix: 'Voxtral Mini 4B realtime',
+      description: 'Voxtral realtime variant',
+    ),
+    'qwen3': BackendRepo(
+      backend: 'qwen3',
+      repoId: 'cstr/qwen3-asr-0.6b-GGUF',
+      baseName: 'qwen3-asr-0.6b',
+      displayPrefix: 'Qwen3-ASR 0.6B',
+      description: 'Multilingual (30+ langs incl. Chinese dialects)',
+    ),
+    'granite': BackendRepo(
+      backend: 'granite',
+      repoId: 'cstr/granite-speech-4.0-1b-GGUF',
+      baseName: 'granite-4.0-1b-speech',
+      displayPrefix: 'Granite 4.0 1B Speech',
+      description: 'IBM Granite speech (instruction-tuned)',
+    ),
+    'fastconformer-ctc': BackendRepo(
+      backend: 'fastconformer-ctc',
+      repoId: 'cstr/stt-en-fastconformer-ctc-large-GGUF',
+      baseName: 'fastconformer-ctc-en',
+      displayPrefix: 'FastConformer CTC (en)',
+      description: 'Low-latency CTC ASR (English)',
+    ),
+    'wav2vec2': BackendRepo(
+      backend: 'wav2vec2',
+      repoId: 'cstr/wav2vec2-large-xlsr-53-english-GGUF',
+      baseName: 'wav2vec2-base-en',
+      displayPrefix: 'Wav2Vec2 base (en)',
+      description: 'Self-supervised (facebook/wav2vec2)',
+    ),
+  };
+
+  // Live-probed quants, keyed by model name (same as the hardcoded maps).
+  // Merged with the static catalog in getWhisperCppModels().
+  final Map<String, ModelDefinition> _discoveredModels = {};
+  DateTime? _lastProbeAt;
+
   ModelService(this._settingsService) {
     _configureDio();
   }
@@ -481,8 +565,13 @@ class ModelService {
 
     // Non-Whisper CrispASR backends. They share the same on-disk directory
     // since each file is just a GGUF blob, but their `backend` field tells
-    // the engine which runtime path to dispatch to.
-    for (final entry in crispasrBackendModels.entries) {
+    // the engine which runtime path to dispatch to. We merge discovered
+    // quants on top of the hardcoded defaults, keyed by model name.
+    final merged = <String, ModelDefinition>{
+      ...crispasrBackendModels,
+      ..._discoveredModels,
+    };
+    for (final entry in merged.entries) {
       final modelDef = entry.value;
       final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
       final isDownloaded = await _isModelDownloaded(localPath, modelDef);
@@ -504,9 +593,93 @@ class ModelService {
     return modelInfos;
   }
 
-  /// Unified lookup — finds a model by name across both catalogs.
+  /// Unified lookup — finds a model by name across every catalog including
+  /// quants probed from HuggingFace.
   ModelDefinition? lookupDefinition(String name) {
-    return whisperCppModels[name] ?? crispasrBackendModels[name];
+    return whisperCppModels[name] ??
+        crispasrBackendModels[name] ??
+        _discoveredModels[name];
+  }
+
+  /// Whether a probe has succeeded at least once in this session.
+  bool get hasProbedQuants => _lastProbeAt != null;
+  DateTime? get lastQuantProbeAt => _lastProbeAt;
+
+  /// Enumerate every available quant variant in each CrispASR backend's
+  /// HuggingFace repo via `GET /api/models/<repo>`. Results are merged
+  /// into the model picker on success; on error we fall back to the
+  /// hardcoded catalog and log.
+  ///
+  /// Returns the total number of freshly-discovered ModelDefinitions
+  /// (can be 0 if every file was already in the hardcoded catalog).
+  Future<int> refreshAvailableQuants() async {
+    int added = 0;
+    for (final repo in backendRepos.values) {
+      try {
+        final models = await _probeRepo(repo);
+        for (final m in models) {
+          final existed = _discoveredModels.containsKey(m.name) ||
+              crispasrBackendModels.containsKey(m.name) ||
+              whisperCppModels.containsKey(m.name);
+          _discoveredModels[m.name] = m;
+          if (!existed) added++;
+        }
+        Log.instance.i('model',
+            'Probed ${repo.repoId}: ${models.length} variants');
+      } catch (e, st) {
+        Log.instance.w('model', 'Quant probe failed for ${repo.repoId}',
+            error: e, stack: st);
+      }
+    }
+    _lastProbeAt = DateTime.now();
+    return added;
+  }
+
+  Future<List<ModelDefinition>> _probeRepo(BackendRepo repo) async {
+    final headers = <String, dynamic>{};
+    final token = hfToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    // `?blobs=true` surfaces per-file sizes in a stable shape.
+    final url = 'https://huggingface.co/api/models/${repo.repoId}?blobs=true';
+    final resp = await _dio.get(url, options: Options(headers: headers));
+    if (resp.data is! Map) return const [];
+    final siblings = ((resp.data as Map)['siblings'] as List?) ?? const [];
+
+    final out = <ModelDefinition>[];
+    for (final raw in siblings) {
+      if (raw is! Map) continue;
+      final fname = raw['rfilename'] as String? ?? '';
+      if (!fname.endsWith(repo.extension)) continue;
+      // Expect "<baseName>-<quant><extension>" or plain "<baseName><extension>".
+      final stem = fname.substring(0, fname.length - repo.extension.length);
+      String? quant;
+      String modelNameKey;
+      if (stem == repo.baseName) {
+        quant = 'f16';
+        modelNameKey = '${repo.baseName}-f16';
+      } else if (stem.startsWith('${repo.baseName}-')) {
+        quant = stem.substring(repo.baseName.length + 1);
+        modelNameKey = '${repo.baseName}-$quant';
+      } else {
+        // Skip files that don't follow the expected naming convention.
+        continue;
+      }
+      final sizeBytes = (raw['size'] as num?)?.toInt() ?? 0;
+      out.add(ModelDefinition(
+        name: modelNameKey,
+        displayName: '${repo.displayPrefix} ($quant)',
+        fileName: fname,
+        url: 'https://huggingface.co/${repo.repoId}/resolve/main/$fname',
+        sizeBytes: sizeBytes,
+        checksum: '',
+        description: '${repo.description} — ${_formatSize(sizeBytes)}',
+        quantization: quant,
+        backend: repo.backend,
+      ));
+    }
+    return out;
   }
 
   /// Whether the user has disabled SHA-1 checksum validation for downloads.
@@ -939,6 +1112,26 @@ class ModelDefinition {
     required this.description,
     this.quantization = 'f16',
     this.backend = 'whisper',
+  });
+}
+
+/// Points at a HuggingFace repo that the model service can enumerate to
+/// discover every available quantisation variant.
+class BackendRepo {
+  final String backend;       // CrispASR backend id
+  final String repoId;        // e.g. "cstr/parakeet-tdt-0.6b-v3-GGUF"
+  final String baseName;      // filename stem without -quant; e.g. "parakeet-tdt-0.6b-v3"
+  final String displayPrefix; // UI-friendly name; e.g. "Parakeet TDT 0.6B v3"
+  final String description;
+  final String extension;     // typically ".gguf", Whisper uses ".bin"
+
+  const BackendRepo({
+    required this.backend,
+    required this.repoId,
+    required this.baseName,
+    required this.displayPrefix,
+    required this.description,
+    this.extension = '.gguf',
   });
 }
 
