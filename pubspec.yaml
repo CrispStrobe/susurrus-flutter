@@ -3,7 +3,7 @@ description: A cross-platform Flutter app for fully-offline audio transcription.
 
 publish_to: 'none'
 
-version: 0.1.5+1
+version: 0.1.6+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -56,7 +56,10 @@ dependencies:
   # Additional required dependencies
   share_plus: ^12.0.2
   package_info_plus: ^9.0.1
-  device_info_plus: ^12.4.0
+  # Pinned below 12.4 because 12.4.0 calls NSProcessInfo.isiOSAppOnVision
+  # (iOS 26.1 selector), which the GitHub Actions macos-latest Xcode SDK
+  # doesn't know about yet → "No visible @interface" compile error.
+  device_info_plus: ">=11.0.0 <12.4.0"
 
   # For model downloads and verification - ENHANCED
   crypto: ^3.0.3
