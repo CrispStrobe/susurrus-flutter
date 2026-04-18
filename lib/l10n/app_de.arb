@@ -2,7 +2,7 @@
   "@@locale": "de",
 
   "appName": "CrisperWeaver",
-  "appTagline": "Audio-Transkription mit Sprecher-Diarisierung",
+  "appTagline": "Audio-Transkription mit Sprecher-Unterscheidung",
 
   "menuHistory": "Verlauf",
   "menuSettings": "Einstellungen",
@@ -55,9 +55,9 @@
   "perfFasterThanRealtime": "schneller als Echtzeit",
   "perfSlowerThanRealtime": "langsamer als Echtzeit",
 
-  "diarizationTitle": "Sprecher-Diarisierung",
+  "diarizationTitle": "Sprecher-Unterscheidung",
   "diarizationSubtitle": "Verschiedene Sprecher in Aufnahmen identifizieren",
-  "diarizationModel": "Diarisierungs-Modell",
+  "diarizationModel": "Unterscheidungs-Modell",
   "minSpeakers": "Min. Sprecher",
   "maxSpeakers": "Max. Sprecher",
   "auto": "Auto",
@@ -182,9 +182,9 @@
   "settingsAudioQuality": "Audio-Qualität",
   "settingsKeepAudioFiles": "Audio-Dateien behalten",
   "settingsKeepAudioFilesSubtitle": "Heruntergeladene/aufgenommene Dateien nach der Transkription behalten",
-  "settingsDiarization": "Sprecher-Diarisierung",
+  "settingsDiarization": "Sprecher-Unterscheidung",
   "settingsEnableDiarizationByDefault": "Standardmäßig aktivieren",
-  "settingsEnableDiarizationByDefaultSubtitle": "Diarisierung für neue Transkriptionen automatisch aktivieren",
+  "settingsEnableDiarizationByDefaultSubtitle": "Unterscheidung für neue Transkriptionen automatisch aktivieren",
   "settingsStorage": "Speicher",
   "settingsClearCache": "Cache leeren",
   "settingsClearCacheSubtitle": "Temporäre Dateien und Cache entfernen",

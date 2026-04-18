@@ -12,7 +12,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appName => 'CrisperWeaver';
 
   @override
-  String get appTagline => 'Audio-Transkription mit Sprecher-Diarisierung';
+  String get appTagline => 'Audio-Transkription mit Sprecher-Unterscheidung';
 
   @override
   String get menuHistory => 'Verlauf';
@@ -148,14 +148,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get perfSlowerThanRealtime => 'langsamer als Echtzeit';
 
   @override
-  String get diarizationTitle => 'Sprecher-Diarisierung';
+  String get diarizationTitle => 'Sprecher-Unterscheidung';
 
   @override
   String get diarizationSubtitle =>
       'Verschiedene Sprecher in Aufnahmen identifizieren';
 
   @override
-  String get diarizationModel => 'Diarisierungs-Modell';
+  String get diarizationModel => 'Unterscheidungs-Modell';
 
   @override
   String get minSpeakers => 'Min. Sprecher';
@@ -418,14 +418,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Heruntergeladene/aufgenommene Dateien nach der Transkription behalten';
 
   @override
-  String get settingsDiarization => 'Sprecher-Diarisierung';
+  String get settingsDiarization => 'Sprecher-Unterscheidung';
 
   @override
   String get settingsEnableDiarizationByDefault => 'Standardmäßig aktivieren';
 
   @override
   String get settingsEnableDiarizationByDefaultSubtitle =>
-      'Diarisierung für neue Transkriptionen automatisch aktivieren';
+      'Unterscheidung für neue Transkriptionen automatisch aktivieren';
 
   @override
   String get settingsStorage => 'Speicher';

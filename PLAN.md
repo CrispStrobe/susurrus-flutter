@@ -133,11 +133,44 @@ Where: add a new `build-android-native` job to `.github/workflows/release.yml` (
 
 **Where:** `lib/screens/transcription_screen.dart` + `lib/engines/crispasr_engine.dart` (pass through to `CrispasrSession`).
 
-### 5.7 Dependency refresh
+### 5.7 Batch transcription
+
+**What:** let the user drop/pick multiple files at once and process them in a queue. Results become separate history entries; overall progress + per-item progress both visible.
+
+**Design:**
+- File picker and `desktop_drop` already support multi-select / multi-drop. Change `_selectedFilePath` in `transcription_screen.dart` to a `List<String>` plus an active-index pointer.
+- Introduce `TranscriptionJob` (filePath, status = queued|running|done|error, progress, result). Queue lives in a Riverpod `StateNotifier` so the UI can watch and the engine worker can advance it.
+- Serialize: one transcription at a time to share the loaded model's context — concurrent FFI calls into the same whisper_context are unsafe. If we want parallelism, it'd be one isolate per file each holding its own context (memory-expensive for Whisper-large).
+- UI: a new `BatchQueueCard` above the current transcription output, showing a list with `[filename · progress · status · delete]` rows. Individual completion streams into the existing TranscriptionOutput widget; "Export all" emits one ZIP of SRT/TXT files.
+- Persistence: save `BatchJobState` to SharedPreferences so a user can close the app mid-batch and resume.
+
+**Where:** new `lib/services/batch_queue_service.dart`, new `lib/widgets/batch_queue_card.dart`, mods to `lib/screens/transcription_screen.dart`.
+
+**Risk:** medium. Handling large queues (100s of files at hours each) means we need to stream history writes, not buffer in RAM, plus clean error recovery (OOM on one file shouldn't kill the whole queue).
+
+### 5.8 Expose more CrispASR capabilities in Advanced Options
+
+CrispASR has a larger knob-set than the UI currently surfaces. Most are already wired at the FFI layer in `package:crispasr` but hidden behind defaults. Ship them as collapsible "Power-user" sections in transcription-screen Advanced Options + Settings.
+
+- **VAD** — `crispasr_vad_segments` is bound. Add a toggle + drop-down for Silero vs FastConformer VAD model, plus a threshold slider. On-by-default would skip silence at start/end + split long audio into voiced chunks, cutting transcription time on sparse content.
+- **Beam search / best-of-N** — Whisper supports `best_of` + `beam_size`; Voxtral/Qwen3/Granite support `best-of-N` LLM sampling. Two sliders gated behind "Show advanced decoding".
+- **Temperature** — `crispasr_params_set_temperature`. 0 = greedy (default), 0.2–1.0 = more creative; useful for noisy audio where greedy hallucinates.
+- **Initial prompt** — `crispasr_params_set_initial_prompt` biases the decoder toward a specific vocabulary (names, jargon). A small text field.
+- **Source / target language** — Canary, Voxtral, Qwen3 support translation via `-sl / -tl`. UI switches from one `language` dropdown to two when the selected backend supports translation (detect from `CrispasrSession` capability flags).
+- **Audio Q&A (`--ask`)** — Voxtral and Qwen3 can answer free-form questions about audio. A prompt text box below the Transcribe button, active only when the model supports it; results stored as a separate kind of history entry (not segments).
+- **Grammar (GBNF)** — Whisper-only; a text area under Advanced that loads a .gbnf file to constrain output. Niche but valuable for structured-output use cases.
+- **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired. Add a live-transcription pane that scrolls as the user speaks (10 s sliding window / 3 s step).
+- **Auto-download default** — CrispASR's `-m auto` per backend. Add a "Auto-download default model" button per backend-card in Model Management.
+
+**Where:** `lib/widgets/advanced_options_widget.dart` (new), swap the inline block in `transcription_screen.dart`. Also a new enum `EngineCapability { vad, beamSearch, bestOf, temperature, initialPrompt, translation, audioQA, grammar, streaming }` on `TranscriptionEngine` so the UI knows which controls to show.
+
+**Risk:** low-medium. Each knob is independently wired — incremental shipping works. The FFI is already in place for most of these; we're adding surface, not behaviour.
+
+### 5.9 Dependency refresh
 
 37 packages have newer versions blocked by constraint overrides (`intl`, `material_color_utilities`, `record_linux`). Revisit after Flutter 3.39 lands: many of the overrides are there to paper over SDK transitions.
 
-### 5.8 Release polish
+### 5.10 Release polish
 
 - Tag-based code signing for macOS + notarization (currently ad-hoc sign only).
 - Signed Android APK.

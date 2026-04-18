@@ -160,6 +160,8 @@ The short version:
 
 - CoreML acceleration for Whisper on iOS/macOS (enable `WHISPER_USE_COREML` inside CrispASR, ship the paired `.mlmodelc` next to the `.bin`).
 - Real speaker diarization (blocked on upstream CrispASR diarization API — MFCC/k-means stopgap currently in place).
+- Batch file processing (queue multi-select / multi-drop; see PLAN.md §5.7).
+- Expose more CrispASR power-user knobs: VAD toggle, beam search / best-of-N, temperature, initial prompt, source/target languages for translation backends, audio Q&A mode, streaming UI (see PLAN.md §5.8).
 - Windows CI job + dll bundling script.
 - Android CI: cross-build `libwhisper.so` + sibling backends, drop into `jniLibs/`, ship a real-ASR APK.
 - iOS `pod install` + device-build CI verification.
