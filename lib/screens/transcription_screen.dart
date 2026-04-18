@@ -14,12 +14,15 @@ import '../main.dart';
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/batch_queue_service.dart';
 import '../services/log_service.dart';
 import '../services/transcription_service.dart';
 import '../services/model_service.dart';
 import '../services/settings_service.dart';
 import '../utils/file_utils.dart';
+import '../widgets/advanced_options_widget.dart';
 import '../widgets/audio_recorder_widget.dart';
+import '../widgets/batch_queue_card.dart';
 import '../widgets/transcription_output_widget.dart';
 import '../widgets/diarization_settings_widget.dart';
 
@@ -225,29 +228,40 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   /// Called when the OS hands us one or more files dropped on the window.
+  /// Multi-drop: first file becomes the active selection; any additional
+  /// supported files go into the batch queue.
   void _onFilesDropped(DropDoneDetails details) {
     setState(() => _dropHover = false);
     if (details.files.isEmpty) return;
 
-    // Prefer the first file whose extension is an audio format we can
-    // plausibly decode. If none match, fall back to the first file and
-    // let the audio decoder produce a clear error.
-    final first = details.files.firstWhere(
-      (f) => AudioUtils.isSupportedAudioFile(f.path),
-      orElse: () => details.files.first,
-    );
-    if (!AudioUtils.isSupportedAudioFile(first.path)) {
+    final supported = details.files
+        .where((f) => AudioUtils.isSupportedAudioFile(f.path))
+        .toList();
+    if (supported.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).transcribeUnsupportedFile(first.name))),
+        SnackBar(content: Text(AppLocalizations.of(context)
+            .transcribeUnsupportedFile(details.files.first.name))),
       );
       return;
     }
 
-    setState(() => _selectedFilePath = first.path);
+    // First: active single-select pick (for the inline transcribe button).
+    setState(() => _selectedFilePath = supported.first.path);
     ref.read(selectedAudioPathProvider.notifier).state = null;
+
+    // Rest: enqueue for batch processing.
+    final extras = supported.skip(1).toList();
+    final q = ref.read(batchQueueProvider.notifier);
+    for (final f in extras) {
+      q.enqueue(f.path);
+    }
+
+    final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Loaded ${first.name}'),
+        content: Text(extras.isEmpty
+            ? l.transcribeLoadedFile(supported.first.name)
+            : '${l.transcribeLoadedFile(supported.first.name)} · ${l.batchEnqueueAdded(extras.length)}'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -599,6 +613,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               },
             ),
           ),
+
+        const SizedBox(height: 16),
+
+        // Advanced decoding knobs (translate / beam / initial prompt).
+        const AdvancedDecodingSection(),
       ],
     );
   }
@@ -641,41 +660,58 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
   Widget _buildControlsSection(AppState appState, TranscriptionService transcriptionService) {
     final l = AppLocalizations.of(context);
+    final queue = ref.watch(batchQueueProvider);
+    final hasQueued = queue.any((j) => j.status == BatchJobStatus.queued);
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Wrap(
-        alignment: WrapAlignment.spaceEvenly,
-        spacing: 16,
-        runSpacing: 16,
+      child: Column(
         children: [
-          // Transcribe Button
-          ElevatedButton.icon(
-            icon: appState.isTranscribing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.play_arrow),
-            label: Text(appState.isTranscribing ? l.transcribing : l.transcribe),
-            onPressed: appState.isTranscribing ? null : _startTranscription,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            ),
-          ),
-
-          // Stop Button
-          if (appState.isTranscribing)
-            ElevatedButton.icon(
-              icon: const Icon(Icons.stop),
-              label: Text(l.stop),
-              onPressed: _stopTranscription,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          const BatchQueueCard(),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.spaceEvenly,
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              // Transcribe Button
+              ElevatedButton.icon(
+                icon: appState.isTranscribing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.play_arrow),
+                label: Text(appState.isTranscribing ? l.transcribing : l.transcribe),
+                onPressed: appState.isTranscribing ? null : _startTranscription,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                ),
               ),
-            ),
+
+              // Transcribe all — visible only when the queue has queued items.
+              if (hasQueued && !appState.isTranscribing)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.playlist_play),
+                  label: Text(l.batchRunAll),
+                  onPressed: _startBatchRun,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  ),
+                ),
+
+              // Stop Button
+              if (appState.isTranscribing)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.stop),
+                  label: Text(l.stop),
+                  onPressed: _stopTranscription,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  ),
+                ),
 
           // Clear Button
           ElevatedButton.icon(
@@ -741,6 +777,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 ),
               ],
             ),
+            ],
+          ),
         ],
       ),
     );
@@ -812,16 +850,30 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Future<void> _selectAudioFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
-      allowMultiple: false,
+      allowMultiple: true,
     );
 
     if (result != null && result.files.isNotEmpty) {
+      final paths = result.files
+          .where((f) => f.path != null)
+          .map((f) => f.path!)
+          .toList();
       setState(() {
-        _selectedFilePath = result.files.first.path;
+        _selectedFilePath = paths.first;
       });
-      // Clear any previously-kept recording so the user's most recent
-      // explicit pick wins.
       ref.read(selectedAudioPathProvider.notifier).state = null;
+      if (paths.length > 1) {
+        final q = ref.read(batchQueueProvider.notifier);
+        for (final p in paths.skip(1)) {
+          q.enqueue(p);
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)
+                .batchEnqueueAdded(paths.length - 1))),
+          );
+        }
+      }
     }
   }
 
@@ -858,11 +910,16 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       List<TranscriptionSegment> segments = [];
       final language = _language == 'auto' ? null : _language;
 
+      final adv = ref.read(advancedOptionsProvider);
+
       if (filePath != null) {
         segments = await transcriptionService.transcribeFile(
           File(filePath),
           language: language,
           enableDiarization: _enableDiarization,
+          translate: adv.translate,
+          beamSearch: adv.beamSearch,
+          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -910,6 +967,92 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
     final appStateNotifier = ref.read(appStateProvider.notifier);
     appStateNotifier.setError('Transcription stopped by user');
+  }
+
+  /// Drain the batch queue serially. One file at a time — concurrent FFI
+  /// into a single whisper_context is unsafe.
+  Future<void> _startBatchRun() async {
+    final transcriptionService = ref.read(transcriptionServiceProvider);
+    final queue = ref.read(batchQueueProvider.notifier);
+    final appStateNotifier = ref.read(appStateProvider.notifier);
+    final adv = ref.read(advancedOptionsProvider);
+    final language = _language == 'auto' ? null : _language;
+
+    // Load the model once for the whole batch.
+    if (!_engineReady) await _ensureEngineReady();
+    final status = transcriptionService.getEngineStatus();
+    if (status.currentModelId != _modelName) {
+      try {
+        await transcriptionService.loadModel(_modelName);
+      } catch (e) {
+        _showErrorDialog('Failed to load model $_modelName: $e');
+        return;
+      }
+    }
+
+    while (true) {
+      final next = queue.nextQueued();
+      if (next == null) break;
+      queue.setRunning(next.id);
+      Log.instance.i('batch', 'job start', fields: {
+        'id': next.id,
+        'file': next.filePath,
+      });
+      try {
+        appStateNotifier.startTranscription();
+        final started = DateTime.now();
+        final segments = await transcriptionService.transcribeFile(
+          File(next.filePath),
+          language: language,
+          enableDiarization: _enableDiarization,
+          translate: adv.translate,
+          beamSearch: adv.beamSearch,
+          initialPrompt:
+              adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          onProgress: (p) {
+            queue.setProgress(next.id, p);
+            appStateNotifier.updateProgress(p);
+          },
+          onSegment: appStateNotifier.addSegment,
+        );
+        final engine = transcriptionService.currentEngine;
+        final perf = PerformanceStats.fromMetadata(
+          transcriptionService.lastResult?.metadata,
+          engineId: engine?.engineId,
+          modelId: engine?.currentModelId,
+        );
+        appStateNotifier.completeTranscription(segments, performance: perf);
+
+        String? historyId;
+        try {
+          final saved = await ref.read(historyServiceProvider).save(
+                engineId: engine?.engineId ?? 'unknown',
+                modelId: engine?.currentModelId,
+                language: language,
+                segments: segments,
+                sourcePath: next.filePath,
+                diarizationEnabled: _enableDiarization,
+                processingTime: DateTime.now().difference(started),
+              );
+          historyId = saved.id;
+        } catch (e, st) {
+          Log.instance.w('batch', 'history save failed',
+              error: e, stack: st);
+        }
+        queue.setDone(next.id,
+            resultText: segments.map((s) => s.text).join(' ').trim(),
+            historyEntryId: historyId);
+        Log.instance.i('batch', 'job done', fields: {
+          'id': next.id,
+          'segments': segments.length,
+        });
+      } catch (e, st) {
+        queue.setError(next.id, e.toString());
+        Log.instance.e('batch', 'job failed',
+            fields: {'id': next.id}, error: e, stack: st);
+        appStateNotifier.setError(e.toString());
+      }
+    }
   }
 
   void _clearTranscription() {

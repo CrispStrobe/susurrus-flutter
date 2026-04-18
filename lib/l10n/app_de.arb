@@ -274,5 +274,32 @@
       "count": {"type": "int"},
       "plural": {"type": "String"}
     }
-  }
+  },
+
+  "batchQueueTitle": "Stapel-Warteschlange",
+  "batchQueueSummary": "{queued} wartend · {running} läuft · {done} fertig · {errored} fehlgeschlagen",
+  "@batchQueueSummary": {
+    "placeholders": {
+      "queued": {"type": "int"},
+      "running": {"type": "int"},
+      "done": {"type": "int"},
+      "errored": {"type": "int"}
+    }
+  },
+  "batchClearCompleted": "Fertige entfernen",
+  "batchRemove": "Aus Warteschlange entfernen",
+  "batchEnqueueAdded": "{count} Datei(en) zur Warteschlange hinzugefügt.",
+  "@batchEnqueueAdded": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "batchRunAll": "Alle transkribieren",
+  "batchStop": "Stapel stoppen",
+
+  "advancedSection": "Erweiterte Decodierung",
+  "advancedTranslate": "Ins Englische übersetzen",
+  "advancedTranslateSubtitle": "Nur Whisper — erzwingt englische Ausgabe unabhängig von der Quellsprache.",
+  "advancedBeamSearch": "Beam-Search",
+  "advancedBeamSearchSubtitle": "Langsamer, meist genauer. Standard ist greedy.",
+  "advancedInitialPrompt": "Initial-Prompt (Vokabular / Kontext)",
+  "advancedInitialPromptHint": "z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“"
 }

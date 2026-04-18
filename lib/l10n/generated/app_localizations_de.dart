@@ -648,4 +648,53 @@ class AppLocalizationsDe extends AppLocalizations {
   String modelsProbedCount(int count, String plural) {
     return '$count neue Quant-Variante$plural gefunden.';
   }
+
+  @override
+  String get batchQueueTitle => 'Stapel-Warteschlange';
+
+  @override
+  String batchQueueSummary(int queued, int running, int done, int errored) {
+    return '$queued wartend · $running läuft · $done fertig · $errored fehlgeschlagen';
+  }
+
+  @override
+  String get batchClearCompleted => 'Fertige entfernen';
+
+  @override
+  String get batchRemove => 'Aus Warteschlange entfernen';
+
+  @override
+  String batchEnqueueAdded(int count) {
+    return '$count Datei(en) zur Warteschlange hinzugefügt.';
+  }
+
+  @override
+  String get batchRunAll => 'Alle transkribieren';
+
+  @override
+  String get batchStop => 'Stapel stoppen';
+
+  @override
+  String get advancedSection => 'Erweiterte Decodierung';
+
+  @override
+  String get advancedTranslate => 'Ins Englische übersetzen';
+
+  @override
+  String get advancedTranslateSubtitle =>
+      'Nur Whisper — erzwingt englische Ausgabe unabhängig von der Quellsprache.';
+
+  @override
+  String get advancedBeamSearch => 'Beam-Search';
+
+  @override
+  String get advancedBeamSearchSubtitle =>
+      'Langsamer, meist genauer. Standard ist greedy.';
+
+  @override
+  String get advancedInitialPrompt => 'Initial-Prompt (Vokabular / Kontext)';
+
+  @override
+  String get advancedInitialPromptHint =>
+      'z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“';
 }

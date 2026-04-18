@@ -153,6 +153,9 @@ class MockEngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
+    bool translate = false,
+    bool beamSearch = false,
+    String? initialPrompt,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {

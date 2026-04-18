@@ -36,6 +36,11 @@ abstract class TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
+    // "Advanced decoding" knobs — engines that don't support them
+    // silently ignore.
+    bool translate = false,
+    bool beamSearch = false,
+    String? initialPrompt,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

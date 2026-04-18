@@ -274,5 +274,32 @@
       "count": {"type": "int"},
       "plural": {"type": "String"}
     }
-  }
+  },
+
+  "batchQueueTitle": "Batch queue",
+  "batchQueueSummary": "{queued} queued · {running} running · {done} done · {errored} failed",
+  "@batchQueueSummary": {
+    "placeholders": {
+      "queued": {"type": "int"},
+      "running": {"type": "int"},
+      "done": {"type": "int"},
+      "errored": {"type": "int"}
+    }
+  },
+  "batchClearCompleted": "Clear done",
+  "batchRemove": "Remove from queue",
+  "batchEnqueueAdded": "{count} file(s) added to queue.",
+  "@batchEnqueueAdded": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "batchRunAll": "Transcribe all",
+  "batchStop": "Stop batch",
+
+  "advancedSection": "Advanced decoding",
+  "advancedTranslate": "Translate to English",
+  "advancedTranslateSubtitle": "Whisper only — forces output to English regardless of source.",
+  "advancedBeamSearch": "Beam search",
+  "advancedBeamSearchSubtitle": "Slower, usually more accurate. Default is greedy.",
+  "advancedInitialPrompt": "Initial prompt (vocabulary / context)",
+  "advancedInitialPromptHint": "e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\""
 }

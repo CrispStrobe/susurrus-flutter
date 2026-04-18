@@ -644,4 +644,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String modelsProbedCount(int count, String plural) {
     return 'Discovered $count new quant variant$plural.';
   }
+
+  @override
+  String get batchQueueTitle => 'Batch queue';
+
+  @override
+  String batchQueueSummary(int queued, int running, int done, int errored) {
+    return '$queued queued · $running running · $done done · $errored failed';
+  }
+
+  @override
+  String get batchClearCompleted => 'Clear done';
+
+  @override
+  String get batchRemove => 'Remove from queue';
+
+  @override
+  String batchEnqueueAdded(int count) {
+    return '$count file(s) added to queue.';
+  }
+
+  @override
+  String get batchRunAll => 'Transcribe all';
+
+  @override
+  String get batchStop => 'Stop batch';
+
+  @override
+  String get advancedSection => 'Advanced decoding';
+
+  @override
+  String get advancedTranslate => 'Translate to English';
+
+  @override
+  String get advancedTranslateSubtitle =>
+      'Whisper only — forces output to English regardless of source.';
+
+  @override
+  String get advancedBeamSearch => 'Beam search';
+
+  @override
+  String get advancedBeamSearchSubtitle =>
+      'Slower, usually more accurate. Default is greedy.';
+
+  @override
+  String get advancedInitialPrompt => 'Initial prompt (vocabulary / context)';
+
+  @override
+  String get advancedInitialPromptHint =>
+      'e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"';
 }

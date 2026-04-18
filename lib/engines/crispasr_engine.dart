@@ -276,6 +276,9 @@ class CrispASREngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
     bool enableSpeakerDiarization = false,
+    bool translate = false,
+    bool beamSearch = false,
+    String? initialPrompt,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -313,6 +316,9 @@ class CrispASREngine implements TranscriptionEngine {
       'lang': language ?? 'auto',
       'word_ts': enableWordTimestamps,
       'diarize': enableSpeakerDiarization,
+      'translate': translate,
+      'beam': beamSearch,
+      'prompt_chars': initialPrompt?.length ?? 0,
     });
 
     try {
@@ -324,6 +330,9 @@ class CrispASREngine implements TranscriptionEngine {
           audioData,
           language: language,
           wordTimestamps: enableWordTimestamps,
+          translate: translate,
+          beamSearch: beamSearch,
+          initialPrompt: initialPrompt,
         );
         segments = _mapWhisperSegments(nativeSegments, enableWordTimestamps, onSegment);
       } else {
@@ -395,6 +404,9 @@ class CrispASREngine implements TranscriptionEngine {
     Float32List pcm, {
     String? language,
     bool wordTimestamps = false,
+    bool translate = false,
+    bool beamSearch = false,
+    String? initialPrompt,
   }) async {
     // Keep FFI call off the UI thread where possible. `Isolate.run` requires
     // sending the model handle across isolates which FFI can't do, so we
@@ -405,6 +417,9 @@ class CrispASREngine implements TranscriptionEngine {
     // runs transcription. For auto-detect we just leave `language = null`;
     // whisper then transcribes in auto-language mode, picking up the
     // detected language internally on the first window.
+    final prompt = (initialPrompt == null || initialPrompt.trim().isEmpty)
+        ? null
+        : initialPrompt.trim();
     return _model!.transcribePcm(
       pcm,
       options: crispasr.TranscribeOptions(
@@ -412,6 +427,9 @@ class CrispASREngine implements TranscriptionEngine {
         detectLanguage: false,
         wordTimestamps: wordTimestamps,
         silent: false,
+        translate: translate,
+        strategy: beamSearch ? 1 : 0, // 0 = greedy, 1 = beam search
+        initialPrompt: prompt,
       ),
     );
   }

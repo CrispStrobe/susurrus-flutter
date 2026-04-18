@@ -1255,6 +1255,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discovered {count} new quant variant{plural}.'**
   String modelsProbedCount(int count, String plural);
+
+  /// No description provided for @batchQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch queue'**
+  String get batchQueueTitle;
+
+  /// No description provided for @batchQueueSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{queued} queued · {running} running · {done} done · {errored} failed'**
+  String batchQueueSummary(int queued, int running, int done, int errored);
+
+  /// No description provided for @batchClearCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear done'**
+  String get batchClearCompleted;
+
+  /// No description provided for @batchRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get batchRemove;
+
+  /// No description provided for @batchEnqueueAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} file(s) added to queue.'**
+  String batchEnqueueAdded(int count);
+
+  /// No description provided for @batchRunAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe all'**
+  String get batchRunAll;
+
+  /// No description provided for @batchStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop batch'**
+  String get batchStop;
+
+  /// No description provided for @advancedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced decoding'**
+  String get advancedSection;
+
+  /// No description provided for @advancedTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate to English'**
+  String get advancedTranslate;
+
+  /// No description provided for @advancedTranslateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper only — forces output to English regardless of source.'**
+  String get advancedTranslateSubtitle;
+
+  /// No description provided for @advancedBeamSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Beam search'**
+  String get advancedBeamSearch;
+
+  /// No description provided for @advancedBeamSearchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slower, usually more accurate. Default is greedy.'**
+  String get advancedBeamSearchSubtitle;
+
+  /// No description provided for @advancedInitialPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Initial prompt (vocabulary / context)'**
+  String get advancedInitialPrompt;
+
+  /// No description provided for @advancedInitialPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"'**
+  String get advancedInitialPromptHint;
 }
 
 class _AppLocalizationsDelegate
