@@ -160,6 +160,9 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    Log.instance.d('locale',
+        'MaterialApp.build locale=$locale '
+        'supported=${AppLocalizations.supportedLocales}');
 
     return MaterialApp.router(
       title: 'CrisperWeaver',
@@ -174,7 +177,13 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       // Make the title locale-aware too.
-      onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appName,
+      onGenerateTitle: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        Log.instance.d('locale',
+            'onGenerateTitle resolved to locale=${Localizations.localeOf(ctx)} '
+            'appName="${l.appName}"');
+        return l.appName;
+      },
     );
   }
 }
