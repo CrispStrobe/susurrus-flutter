@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -110,6 +112,8 @@ class CrisperWeaverApp extends ConsumerStatefulWidget {
 }
 
 class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +122,36 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(shareIntakeServiceProvider).start();
     });
+
+    // On desktop, the user clicking the red close button fires
+    // `applicationShouldTerminate:` → Flutter's onExitRequested. We need
+    // to dispose the CrispASR engine here so ggml-metal's background
+    // residency-set dispatch queue gets cancelled BEFORE the process
+    // calls exit(). Otherwise `ggml_metal_rsets_free` asserts from
+    // inside __cxa_finalize_ranges and macOS pops a "closed
+    // unexpectedly" dialog.
+    _lifecycle = AppLifecycleListener(
+      onExitRequested: _onExitRequested,
+    );
+  }
+
+  Future<AppExitResponse> _onExitRequested() async {
+    try {
+      Log.instance.i('main', 'exit requested — disposing engine');
+      final t = ref.read(transcriptionServiceProvider);
+      t.dispose();
+      await Log.instance.enableFileSink(false); // flush + close sink
+    } catch (e, st) {
+      Log.instance.w('main', 'dispose on exit failed',
+          error: e, stack: st);
+    }
+    return AppExitResponse.exit;
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
   }
 
 
