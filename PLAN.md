@@ -53,7 +53,7 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 | -------- | ----- | -------------------------------------------------------------------------------------------- |
 | macOS    | ✅    | None. `flutter build macos` + `scripts/bundle_macos_dylibs.sh` produces a runnable `.app`.   |
 | Linux    | ✅    | None. CI `build-linux` job bundles all `.so`'s; local build needs a Linux host.              |
-| Windows  | ⚠️    | Flutter runner scaffold + CI job + `scripts/bundle_windows_dlls.ps1` all in place. Job is `continue-on-error` in `release.yml` until CrispASR's shared-DLL build is verified end-to-end (upstream CI only tests static libs). |
+| Windows  | ✅    | Released via `release.yml`; `.zip` with `whisper.dll` + sibling backend DLLs produced on every tag. Still `continue-on-error` until a user confirms the runtime works on a real Windows machine. |
 | Android  | ⚠️    | KTS gradle only (Groovy + legacy CMakeLists removed). APK builds with Mock engine out of the box; real ASR needs `libwhisper.so` cross-built via `CrispASR/build-android.sh` and dropped into `android/app/src/main/jniLibs/<abi>/`. That wiring isn't automated in CI. |
 | iOS      | ⚠️    | Podfile rewritten to a clean minimal Flutter template. `pod install` should now succeed, but hasn't been CI-verified; the Xcode project still contains a Runner-Bridging-Header.h reference that's now a no-op. |
 
@@ -133,9 +133,9 @@ Where: add a new `build-android-native` job to `.github/workflows/release.yml` (
 
 **Where:** `lib/screens/transcription_screen.dart` + `lib/engines/crispasr_engine.dart` (pass through to `CrispasrSession`).
 
-### 5.7 Batch transcription
+### 5.7 Batch transcription ✅ shipped in v0.1.4
 
-**What:** let the user drop/pick multiple files at once and process them in a queue. Results become separate history entries; overall progress + per-item progress both visible.
+Let the user drop/pick multiple files at once and process them in a queue. Results become separate history entries; overall progress + per-item progress both visible.
 
 **Design:**
 - File picker and `desktop_drop` already support multi-select / multi-drop. Change `_selectedFilePath` in `transcription_screen.dart` to a `List<String>` plus an active-index pointer.
@@ -150,17 +150,17 @@ Where: add a new `build-android-native` job to `.github/workflows/release.yml` (
 
 ### 5.8 Expose more CrispASR capabilities in Advanced Options
 
-CrispASR has a larger knob-set than the UI currently surfaces. Most are already wired at the FFI layer in `package:crispasr` but hidden behind defaults. Ship them as collapsible "Power-user" sections in transcription-screen Advanced Options + Settings.
+Shipped in v0.1.4 (first slice): **translate-to-English**, **beam search** toggle, **initial prompt** text field. Live in the Advanced Options → Advanced decoding block; applies to both single-file and batch runs.
 
-- **VAD** — `crispasr_vad_segments` is bound. Add a toggle + drop-down for Silero vs FastConformer VAD model, plus a threshold slider. On-by-default would skip silence at start/end + split long audio into voiced chunks, cutting transcription time on sparse content.
-- **Beam search / best-of-N** — Whisper supports `best_of` + `beam_size`; Voxtral/Qwen3/Granite support `best-of-N` LLM sampling. Two sliders gated behind "Show advanced decoding".
-- **Temperature** — `crispasr_params_set_temperature`. 0 = greedy (default), 0.2–1.0 = more creative; useful for noisy audio where greedy hallucinates.
-- **Initial prompt** — `crispasr_params_set_initial_prompt` biases the decoder toward a specific vocabulary (names, jargon). A small text field.
-- **Source / target language** — Canary, Voxtral, Qwen3 support translation via `-sl / -tl`. UI switches from one `language` dropdown to two when the selected backend supports translation (detect from `CrispasrSession` capability flags).
-- **Audio Q&A (`--ask`)** — Voxtral and Qwen3 can answer free-form questions about audio. A prompt text box below the Transcribe button, active only when the model supports it; results stored as a separate kind of history entry (not segments).
-- **Grammar (GBNF)** — Whisper-only; a text area under Advanced that loads a .gbnf file to constrain output. Niche but valuable for structured-output use cases.
-- **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired. Add a live-transcription pane that scrolls as the user speaks (10 s sliding window / 3 s step).
-- **Auto-download default** — CrispASR's `-m auto` per backend. Add a "Auto-download default model" button per backend-card in Model Management.
+Remaining (follow-up):
+- **VAD** — `crispasr_vad_segments` is bound. Add a toggle + Silero vs FastConformer model + threshold slider. Default-on would skip silence + split long audio into voiced chunks, cutting transcription time on sparse content.
+- **Best-of-N** — LLM backends (Voxtral/Qwen3/Granite) support it; Whisper has `best_of`. One slider.
+- **Temperature** — `crispasr_params_set_temperature`. Greedy default; 0.2–1.0 useful for noisy audio where greedy hallucinates.
+- **Source / target language** — Canary, Voxtral, Qwen3 support translation via `-sl / -tl`. UI switches from one `language` dropdown to two when the selected backend advertises translation capability.
+- **Audio Q&A (`--ask`)** — Voxtral and Qwen3 answer free-form questions about audio. Prompt box below Transcribe, active only when the backend supports it.
+- **Grammar (GBNF)** — Whisper-only, niche but valuable for structured output.
+- **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired yet.
+- **Auto-download default** — CrispASR's `-m auto` per backend. "Auto-download default" button per card in Model Management.
 
 **Where:** `lib/widgets/advanced_options_widget.dart` (new), swap the inline block in `transcription_screen.dart`. Also a new enum `EngineCapability { vad, beamSearch, bestOf, temperature, initialPrompt, translation, audioQA, grammar, streaming }` on `TranscriptionEngine` so the UI knows which controls to show.
 

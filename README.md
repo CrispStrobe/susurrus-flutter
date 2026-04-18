@@ -13,12 +13,14 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 ## What you can do
 
 - **Transcribe any audio file** — WAV / MP3 / FLAC decoded on-device, no ffmpeg required.
+- **Batch-process multiple files** — drop many onto the window or onto the Batch Queue card, "Transcribe all" drains serially; each run lands in History.
 - **Record from the mic** and transcribe live.
 - **Paste a URL** to a remote file; CrisperWeaver downloads and processes it.
-- **Drag and drop** files onto the transcription screen (desktop).
+- **Drag and drop** files onto the transcription screen (desktop) or directly on the batch queue.
 - **Receive shared audio** from the OS share sheet (Android / iOS / macOS).
-- **Choose your model family and quantisation** — q4_0 / q5_0 / q8_0 variants, plus f16 originals.
+- **Choose your model family and quantisation** — q4_0 / q5_0 / q4_k / q5_k / q6_k / q8_0 variants plus f16 originals. Model picker filters by name + backend; Model Management screen auto-probes HuggingFace to discover every available quant.
 - **Download and manage models** from a built-in browser — parallel queue, resume, SHA-1 verify, cancel, delete.
+- **Advanced decoding knobs** — translate-to-English (Whisper), beam search, initial-prompt vocabulary bias (huge win for domain audio).
 - **See live performance numbers** — real-time factor, words per second, wall-clock.
 - **Get word-level timestamps** and language auto-detection (via Whisper).
 - **Stream transcription** from long-running mic or file input (10 s sliding window / 3 s step).
@@ -52,11 +54,11 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 
 | Platform | State                                                                 |
 | -------- | --------------------------------------------------------------------- |
-| macOS    | ✅ Released — `.app.zip` in GitHub Releases, Metal-enabled, all 10 backend dylibs bundled |
-| Linux    | ✅ Released — `.tar.gz` bundle in GitHub Releases                      |
+| macOS    | ✅ Released — `.app.zip`, Metal-enabled, all 10 backend dylibs bundled |
+| Linux    | ✅ Released — `.tar.gz` bundle                                         |
+| Windows  | ✅ Released — `.zip` with `whisper.dll` + sibling backend DLLs         |
 | Android  | ✅ Released — real-ASR APK (`arm64-v8a`) with `libwhisper.so` cross-built in CI |
-| iOS      | ⚠️ Unsigned IPA in GitHub Releases — sideload via SideStore / AltStore / Feather |
-| Windows  | ⚠️ CI job added, `continue-on-error` until CrispASR shared DLL build is proven. Artifact name (if produced): `crisper_weaver-windows-x64.zip`. |
+| iOS      | ⚠️ Unsigned IPA — sideload via [SideStore](https://sidestore.io/) / AltStore / Feather |
 
 Roadmap and blockers: see [`PLAN.md`](PLAN.md).
 

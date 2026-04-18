@@ -215,6 +215,56 @@ Classic off-by-one-bit mistake. Reading the sample as unsigned and subtracting 3
 
 WAV chunks are padded to 2-byte boundaries. After reading a chunk, `if (chunkSize % 2 != 0) offset++;` — otherwise a fmt chunk with odd size (rare but legal) misaligns every subsequent chunk and you get "No data chunk found".
 
+## macOS lifecycle + ggml teardown race
+
+### Dispose heavy native state on `AppLifecycleListener.onExitRequested`
+
+On the red-X close of a Flutter macOS app, the runtime calls `exit()` → `__cxa_finalize_ranges()`. Any global `std::vector<ggml_metal_device>` destructor that runs at that moment tries to free residency sets, but ggml-metal's background 500 ms keep-alive dispatch queue (`__ggml_metal_rsets_init_block_invoke`) is still alive → `ggml_metal_rsets_free` asserts → `abort` → macOS shows a "closed unexpectedly" dialog.
+
+**Fix:** wire `AppLifecycleListener(onExitRequested: ...)` in the root Stateful widget. Inside it: dispose the engine (which tears down the whisper context, which cancels ggml-metal's dispatch queue), flush your log sink, *then* return `AppExitResponse.exit`. By the time `exit()` runs the global destructors, the Metal state is gone.
+
+```dart
+_lifecycle = AppLifecycleListener(onExitRequested: () async {
+  ref.read(transcriptionServiceProvider).dispose();
+  await Log.instance.enableFileSink(false);  // flush + close
+  return AppExitResponse.exit;
+});
+```
+
+`AppExitResponse` is in `dart:ui`, not `package:flutter/services.dart` as the name suggests — `import 'dart:ui' show AppExitResponse;`.
+
+### Heavyweight Swift code in `MainFlutterWindow.swift` lingers forever
+
+The standard Flutter-for-macOS template has a 26-line `MainFlutterWindow.swift`. Ours had 387 lines of dead `AudioProcessingPlugin` Swift (AVFoundation + Accelerate FFT via `DSPSplitComplex`). It was legacy from the method-channel audio path — replaced by CrispASR's FFI `crispasr_audio_load` long ago — but the Swift was still compiled, still registered the plugin, and still held `AVAudioEngine` references that contributed to the "closed unexpectedly" crash.
+
+**Lesson:** when you rip out a method-channel-based feature on one platform, search for its *other* platform counterparts. I missed this on macOS after cleaning it from iOS. Grep for the plugin name across `ios/` AND `macos/`.
+
+## Remote catalog naming drift
+
+### Don't hardcode third-party file names — probe and build the catalog at runtime
+
+We shipped a hardcoded catalog of `ModelDefinition` entries pointing at `huggingface.co/cstr/*-GGUF/resolve/main/*.gguf` URLs. Each entry was a guess based on the backend's HF-Space naming. Four of them were wrong — e.g. `cohere-transcribe-03-2026-q5_0.gguf` (our guess) vs `cohere-transcribe-q5_0.gguf` (actual). Users got `HTTP 404 "Entry not found"` with no way to recover.
+
+**Fix:** add a `BackendRepo` struct with just `repoId` + `baseName`, and call `GET huggingface.co/api/models/<repo>?blobs=true` at runtime. Parse every `.gguf` sibling into a `ModelDefinition` with the **real** filename and **real** byte-size. Merge live-probed entries over the hardcoded defaults. Auto-probe on first model-manager open so users never have to know about a "refresh" button.
+
+**Corollary:** at most, hardcode repo-level info (repo ID, display prefix), never file-level (filename, URL, size). HF file names drift when model authors republish.
+
+## Logging infrastructure
+
+### Disable Dio's `LogInterceptor` in apps that have their own log view
+
+`package:dio`'s `LogInterceptor(requestHeader:true, responseHeader:true, responseBody:true)` emits ~50 trace lines per HTTP request (every header, every response body byte). We gated it on `kDebugMode` — which is true under `flutter run`, which is where users actually read in-app logs. Our own `download start` / `download done` + DioException summary in the catch already capture the signal. The interceptor was pure noise.
+
+**Lesson:** log only at application-event granularity (download started, download failed with HTTP 404), not at network-protocol granularity. If you need network-protocol logs, gate them behind a separate "HTTP verbose" toggle, not a debug-mode flag.
+
+## Theming and dark mode
+
+### Don't hardcode text colors — use `Theme.of(context).colorScheme.onSurface`
+
+The Logs screen hardcoded `Colors.black87` as the default text colour for every log row. Black-on-dark-surface in dark mode → invisible text. Same mistake lurks wherever `Colors.black*` / `Colors.white*` is used without a theme-aware fallback. The fix is always `Theme.of(context).colorScheme.onSurface` (or `onPrimary` etc. for tinted backgrounds).
+
+Legitimate uses of `Colors.white` still exist — specifically `foregroundColor: Colors.white` paired with `backgroundColor: Colors.red` on destructive-action buttons. Those are OK because both colors are explicit.
+
 ## Architecture decisions
 
 ### CoreML as an opt-in inside whisper.cpp, not a separate engine
