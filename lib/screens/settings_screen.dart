@@ -167,7 +167,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Engine switch failed: $e')),
+                    SnackBar(content: Text('${AppLocalizations.of(context).settingsEngineSwitchFailed}: $e')),
                   );
                 }
               },
@@ -302,10 +302,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showLanguageSelector(SettingsService settings) {
+    final l = AppLocalizations.of(context);
     final languages = {
-      'auto': 'Auto-detect', 'en': 'English', 'es': 'Spanish', 'fr': 'French',
-      'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese',
-      'ja': 'Japanese', 'ko': 'Korean',
+      'auto': l.languageAuto,
+      'en': l.languageEn,
+      'es': l.languageEs,
+      'fr': l.languageFr,
+      'de': l.languageDe,
+      'it': l.languageIt,
+      'pt': l.languagePt,
+      'zh': l.languageZh,
+      'ja': l.languageJa,
+      'ko': l.languageKo,
     };
 
     showDialog(
@@ -336,11 +344,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       icon: Icons.audiotrack,
       children: [
         ListTile(
-          title: const Text('Audio Quality'),
+          title: Text(AppLocalizations.of(context).settingsAudioQuality),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Recording quality: ${(settings.audioQuality * 100).toInt()}%'),
+              Text(AppLocalizations.of(context)
+                  .settingsAudioQualityCurrent((settings.audioQuality * 100).toInt())),
               Slider(
                 value: settings.audioQuality,
                 onChanged: (value) {
@@ -353,8 +362,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         SwitchListTile(
-          title: const Text('Keep Audio Files'),
-          subtitle: const Text('Keep downloaded/recorded audio files after transcription'),
+          title: Text(AppLocalizations.of(context).settingsKeepAudioFiles),
+          subtitle: Text(AppLocalizations.of(context).settingsKeepAudioFilesSubtitle),
           value: settings.keepAudioFiles,
           onChanged: (value) {
             setState(() => settings.keepAudioFiles = value);
@@ -370,8 +379,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       icon: Icons.people,
       children: [
         SwitchListTile(
-          title: const Text('Enable by Default'),
-          subtitle: const Text('Automatically enable diarization for new transcriptions'),
+          title: Text(AppLocalizations.of(context).settingsEnableDiarizationByDefault),
+          subtitle: Text(AppLocalizations.of(context).settingsEnableDiarizationByDefaultSubtitle),
           value: settings.enableDiarizationByDefault,
           onChanged: (value) {
             setState(() => settings.enableDiarizationByDefault = value);
@@ -437,13 +446,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         ListTile(
-          title: const Text('Hugging Face API Token'),
+          title: Text(AppLocalizations.of(context).settingsHfToken),
           subtitle: Text(settings.hfToken.isEmpty ? 'Not set (required for gated models)' : '••••••••${settings.hfToken.length > 8 ? settings.hfToken.substring(settings.hfToken.length - 4) : ""}'),
           trailing: const Icon(Icons.vpn_key),
           onTap: () => _showHfTokenDialog(settings),
         ),
         ListTile(
-          title: const Text('Open log viewer'),
+          title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/logs'),
         ),
@@ -455,7 +464,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Log level'),
+        title: Text(AppLocalizations.of(context).settingsLogLevel),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: LogLevel.values.map((l) => RadioListTile<LogLevel>(
@@ -519,7 +528,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         FutureBuilder<Map<String, String>>(
           future: _getSystemInfo(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return const ListTile(title: Text('Loading...'));
+            if (!snapshot.hasData) return ListTile(title: Text(AppLocalizations.of(context).settingsLoading));
             return Column(
               children: snapshot.data!.entries.map((entry) => ListTile(
                 title: Text(entry.key),
@@ -541,12 +550,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: Text(AppLocalizations.of(context).settingsVersion),
           subtitle: FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
-            builder: (context, snapshot) => Text(snapshot.hasData ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})' : 'Loading...'),
+            builder: (context, snapshot) => Text(snapshot.hasData
+                ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})'
+                : AppLocalizations.of(context).settingsLoading),
           ),
         ),
         ListTile(
-          title: const Text('About CrisperWeaver'),
-          subtitle: const Text('Author, contact, disclaimer, licenses'),
+          title: Text(AppLocalizations.of(context).settingsAboutCrisperWeaver),
+          subtitle: Text(AppLocalizations.of(context).settingsAboutCrisperWeaverSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/about'),
         ),
@@ -593,11 +604,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   String _getLanguageDisplayName(String languageCode) {
-    const languages = {
-      'auto': 'Auto-detect', 'en': 'English', 'es': 'Spanish', 'fr': 'French',
-      'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese',
-      'ja': 'Japanese', 'ko': 'Korean',
-    };
-    return languages[languageCode] ?? languageCode;
+    final l = AppLocalizations.of(context);
+    switch (languageCode) {
+      case 'auto': return l.languageAuto;
+      case 'en': return l.languageEn;
+      case 'es': return l.languageEs;
+      case 'fr': return l.languageFr;
+      case 'de': return l.languageDe;
+      case 'it': return l.languageIt;
+      case 'pt': return l.languagePt;
+      case 'zh': return l.languageZh;
+      case 'ja': return l.languageJa;
+      case 'ko': return l.languageKo;
+      default: return languageCode;
+    }
   }
 }

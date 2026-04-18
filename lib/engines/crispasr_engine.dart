@@ -82,7 +82,13 @@ class CrispASREngine implements TranscriptionEngine {
         await _modelService!.initialize();
       }
       _isInitialized = true;
-      Log.instance.i('crispasr', 'Initialized (lib=${crispasr.CrispASR.defaultLibName()})');
+      final libName = crispasr.CrispASR.defaultLibName();
+      final backends = crispasr.CrispasrSession.availableBackends();
+      Log.instance.i('crispasr', 'engine initialised', fields: {
+        'lib': libName,
+        'backends': backends.join(','),
+        'count': backends.length,
+      });
       return true;
     } catch (e, st) {
       Log.instance.e('crispasr', 'Initialize failed', error: e, stack: st);
@@ -192,9 +198,22 @@ class CrispASREngine implements TranscriptionEngine {
     // Free previous model before loading a new one.
     await unloadModel();
 
-    final loadStart = DateTime.now();
+    int fileBytes = 0;
+    try { fileBytes = await File(modelPath).length(); } catch (_) {}
+    final done = Log.instance.stopwatch(
+      'crispasr',
+      msg: 'model loaded',
+      fields: {
+        'model': modelId,
+        'backend': def.backend,
+        'path': modelPath,
+        'bytes': fileBytes,
+        'quant': def.quantization,
+      },
+    );
     try {
-      Log.instance.d('crispasr', 'Loading model $modelId (backend=${def.backend}) from $modelPath');
+      Log.instance.d('crispasr', 'loading model',
+          fields: {'model': modelId, 'backend': def.backend, 'path': modelPath, 'bytes': fileBytes});
       if (def.backend == 'whisper') {
         _model = crispasr.CrispASR(modelPath);
       } else {
@@ -203,15 +222,17 @@ class CrispASREngine implements TranscriptionEngine {
       _currentModelId = modelId;
       _currentModelPath = modelPath;
       onProgress?.call(1.0);
-      final ms = DateTime.now().difference(loadStart).inMilliseconds;
-      Log.instance.i('crispasr', 'Loaded $modelId in ${ms}ms');
+      done();
       return true;
     } catch (e, st) {
       _model = null;
       _session = null;
       _currentModelId = null;
       _currentModelPath = null;
-      Log.instance.e('crispasr', 'Model load failed for $modelId', error: e, stack: st);
+      done(error: e);
+      Log.instance.e('crispasr', 'Model load failed',
+          error: e, stack: st,
+          fields: {'model': modelId, 'backend': def.backend, 'path': modelPath});
       throw ModelLoadException(
         'CrispASR failed to load $modelId: $e',
         engineId,
@@ -283,6 +304,17 @@ class CrispASREngine implements TranscriptionEngine {
     final started = DateTime.now();
     onProgress?.call(0.05);
 
+    final audioSeconds0 = audioData.length / 16000.0;
+    Log.instance.i('crispasr', 'transcribe start', fields: {
+      'model': _currentModelId,
+      'backend': _model != null ? 'whisper' : 'session',
+      'samples': audioData.length,
+      'audio_s': audioSeconds0.toStringAsFixed(2),
+      'lang': language ?? 'auto',
+      'word_ts': enableWordTimestamps,
+      'diarize': enableSpeakerDiarization,
+    });
+
     try {
       final List<TranscriptionSegment> segments;
 
@@ -319,12 +351,17 @@ class CrispASREngine implements TranscriptionEngine {
           : fullText.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
       final wps = wallSeconds > 0 ? wordCount / wallSeconds : 0.0;
 
-      Log.instance.i(
-        'crispasr',
-        'Transcribed ${audioSeconds.toStringAsFixed(1)}s of audio in '
-        '${wallSeconds.toStringAsFixed(2)}s → RTF ${rtf.toStringAsFixed(2)}× '
-        '/ $wordCount words / ${wps.toStringAsFixed(1)} wps',
-      );
+      Log.instance.i('crispasr', 'transcribe done', fields: {
+        'model': _currentModelId,
+        'audio_s': audioSeconds.toStringAsFixed(2),
+        'wall_s': wallSeconds.toStringAsFixed(3),
+        'rtf': rtf.toStringAsFixed(2),
+        'segments': segments.length,
+        'words': wordCount,
+        'wps': wps.toStringAsFixed(1),
+        'avg_conf': averageConfidence?.toStringAsFixed(3) ?? 'n/a',
+        'chars': fullText.length,
+      });
 
       return TranscriptionResult(
         fullText: fullText,

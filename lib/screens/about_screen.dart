@@ -38,7 +38,7 @@ class AboutScreen extends ConsumerWidget {
               children: [
                 InkWell(
                   onTap: () => _open('mailto:$_email'),
-                  child: Text('Email: $_email',
+                  child: Text(l.aboutEmail(_email),
                       style: const TextStyle(
                           color: Colors.blue,
                           decoration: TextDecoration.underline)),
@@ -46,7 +46,7 @@ class AboutScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () => _open('tel:${_phone.replaceAll(' ', '')}'),
-                  child: Text('Phone: $_phone',
+                  child: Text(l.aboutPhone(_phone),
                       style: const TextStyle(
                           color: Colors.blue,
                           decoration: TextDecoration.underline)),
@@ -153,7 +153,7 @@ class _AppHeader extends StatelessWidget {
                       Text('CrisperWeaver',
                           style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 4),
-                      Text('Version $v',
+                      Text(AppLocalizations.of(context).aboutVersion(v),
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 4),
                       Text(

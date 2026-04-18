@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
+import '../l10n/generated/app_localizations.dart';
 
 class TranscriptionOutputWidget extends StatefulWidget {
   final List<TranscriptionSegment> segments;
@@ -88,13 +89,12 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
               Expanded(
                 child: TextField(
                   controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search transcription…',
-                    prefixIcon: Icon(Icons.search, size: 18),
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context).searchTranscription,
+                    prefixIcon: const Icon(Icons.search, size: 18),
                     isDense: true,
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
                   style: const TextStyle(fontSize: 13),
                   onChanged: (value) {
@@ -115,32 +115,32 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                   CheckedPopupMenuItem(
                     value: 'timestamps',
                     checked: _showTimestamps,
-                    child: const Text('Show Timestamps'),
+                    child: Text(AppLocalizations.of(context).outputShowTimestamps),
                   ),
                   CheckedPopupMenuItem(
                     value: 'speakers',
                     checked: _showSpeakers,
-                    child: const Text('Show Speakers'),
+                    child: Text(AppLocalizations.of(context).outputShowSpeakers),
                   ),
                   CheckedPopupMenuItem(
                     value: 'confidence',
                     checked: _showConfidence,
-                    child: const Text('Show Confidence'),
+                    child: Text(AppLocalizations.of(context).outputShowConfidence),
                   ),
                   const PopupMenuDivider(),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'copy_all',
                     child: ListTile(
-                      leading: Icon(Icons.copy),
-                      title: Text('Copy All'),
+                      leading: const Icon(Icons.copy),
+                      title: Text(AppLocalizations.of(context).outputCopyAll),
                       dense: true,
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'export',
                     child: ListTile(
-                      leading: Icon(Icons.download),
-                      title: Text('Export'),
+                      leading: const Icon(Icons.download),
+                      title: Text(AppLocalizations.of(context).outputExport),
                       dense: true,
                     ),
                   ),
@@ -258,27 +258,27 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
                     icon: const Icon(Icons.more_horiz, size: 16),
                     onSelected: (action) => _handleSegmentAction(action, segment),
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'play',
                         child: ListTile(
-                          leading: Icon(Icons.play_arrow, size: 16),
-                          title: Text('Play'),
+                          leading: const Icon(Icons.play_arrow, size: 16),
+                          title: Text(AppLocalizations.of(context).outputPlay),
                           dense: true,
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'copy',
                         child: ListTile(
-                          leading: Icon(Icons.copy, size: 16),
-                          title: Text('Copy'),
+                          leading: const Icon(Icons.copy, size: 16),
+                          title: Text(AppLocalizations.of(context).outputCopy),
                           dense: true,
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: ListTile(
-                          leading: Icon(Icons.edit, size: 16),
-                          title: Text('Edit'),
+                          leading: const Icon(Icons.edit, size: 16),
+                          title: Text(AppLocalizations.of(context).outputEdit),
                           dense: true,
                         ),
                       ),
@@ -486,7 +486,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     // TODO: Implement audio playback for specific segment
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Playing segment: ${segment.formattedTime}'),
+        content: Text(AppLocalizations.of(context).outputPlayingSegment(segment.formattedTime)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -499,9 +499,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Segment copied to clipboard'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).outputSegmentCopied),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -511,9 +511,9 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     if (text.isNotEmpty) {
       Clipboard.setData(ClipboardData(text: text));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All transcription copied to clipboard'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).outputAllCopied),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -524,12 +524,12 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Segment'),
-        content: const Text('Segment editing not yet implemented'),
+        title: Text(AppLocalizations.of(context).outputEditSegment),
+        content: Text(AppLocalizations.of(context).outputEditNotImplemented),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),
@@ -541,12 +541,12 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Export Transcription'),
-        content: const Text('Export functionality not yet implemented'),
+        title: Text(AppLocalizations.of(context).outputExport),
+        content: Text(AppLocalizations.of(context).outputExportNotImplemented),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),
@@ -561,7 +561,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
         children: [
           ListTile(
             leading: const Icon(Icons.play_arrow),
-            title: const Text('Play Segment'),
+            title: Text(AppLocalizations.of(context).outputPlaySegment),
             onTap: () {
               Navigator.of(context).pop();
               _playSegment(segment);
@@ -569,7 +569,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
           ),
           ListTile(
             leading: const Icon(Icons.copy),
-            title: const Text('Copy Text'),
+            title: Text(AppLocalizations.of(context).outputCopyText),
             onTap: () {
               Navigator.of(context).pop();
               _copySegmentText(segment);
@@ -577,7 +577,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
           ),
           ListTile(
             leading: const Icon(Icons.edit),
-            title: const Text('Edit Segment'),
+            title: Text(AppLocalizations.of(context).outputEditSegment),
             onTap: () {
               Navigator.of(context).pop();
               _editSegment(segment);

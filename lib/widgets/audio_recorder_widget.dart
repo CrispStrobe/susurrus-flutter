@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
 import '../services/settings_service.dart';
 
@@ -316,19 +317,19 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Recording'),
-        content: const Text('Are you sure you want to delete this recording?'),
+        title: Text(AppLocalizations.of(context).recorderDeleteTitle),
+        content: Text(AppLocalizations.of(context).recorderDeleteBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _performDeleteRecording();
             },
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context).delete),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
           ),
         ],
@@ -355,7 +356,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     _stopPlayback();
     ref.read(selectedAudioPathProvider.notifier).state = _recordingPath;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recording queued for transcription.')),
+      SnackBar(content: Text(AppLocalizations.of(context).recorderQueuedForTranscription)),
     );
   }
 
@@ -380,12 +381,12 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: Text(AppLocalizations.of(context).error),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),

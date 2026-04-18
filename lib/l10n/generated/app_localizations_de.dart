@@ -57,7 +57,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get language => 'Sprache';
 
   @override
-  String get languageAuto => 'Auto-Erkennung';
+  String get languageAuto => 'Automatisch erkennen';
 
   @override
   String get model => 'Modell';
@@ -196,9 +196,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsEngineSwitchFailed => 'Engine-Wechsel fehlgeschlagen';
 
   @override
-  String get settingsAudioQuality => 'Audio-Qualität';
-
-  @override
   String settingsAudioQualityCurrent(int percent) {
     return 'Aufnahmequalität: $percent%';
   }
@@ -241,6 +238,150 @@ class AppLocalizationsDe extends AppLocalizations {
   String get languageKo => 'Koreanisch';
 
   @override
+  String modelSize(String size) {
+    return 'Größe: $size';
+  }
+
+  @override
+  String modelDeleteConfirm(String name) {
+    return 'Möchten Sie $name wirklich löschen?';
+  }
+
+  @override
+  String get historyCopy => 'Kopieren';
+
+  @override
+  String get historyExportSrt => 'SRT exportieren';
+
+  @override
+  String get historyExportTxt => 'TXT exportieren';
+
+  @override
+  String get historyExportJson => 'JSON exportieren';
+
+  @override
+  String get historyDelete => 'Löschen';
+
+  @override
+  String historyFailedToLoad(String error) {
+    return 'Verlauf konnte nicht geladen werden: $error';
+  }
+
+  @override
+  String historySaved(String path) {
+    return 'Gespeichert: $path';
+  }
+
+  @override
+  String historyExportFailed(String error) {
+    return 'Export fehlgeschlagen: $error';
+  }
+
+  @override
+  String get recorderDeleteTitle => 'Aufnahme löschen';
+
+  @override
+  String get recorderDeleteBody =>
+      'Möchten Sie diese Aufnahme wirklich löschen?';
+
+  @override
+  String get recorderQueuedForTranscription =>
+      'Aufnahme zur Transkription eingereiht.';
+
+  @override
+  String get outputShowTimestamps => 'Zeitstempel anzeigen';
+
+  @override
+  String get outputShowSpeakers => 'Sprecher anzeigen';
+
+  @override
+  String get outputShowConfidence => 'Konfidenz anzeigen';
+
+  @override
+  String get outputCopyAll => 'Alle kopieren';
+
+  @override
+  String get outputExport => 'Exportieren';
+
+  @override
+  String get outputPlay => 'Abspielen';
+
+  @override
+  String get outputCopy => 'Kopieren';
+
+  @override
+  String get outputEdit => 'Bearbeiten';
+
+  @override
+  String get outputPlaySegment => 'Segment abspielen';
+
+  @override
+  String get outputCopyText => 'Text kopieren';
+
+  @override
+  String get outputEditSegment => 'Segment bearbeiten';
+
+  @override
+  String get outputEditNotImplemented =>
+      'Segment-Bearbeitung noch nicht implementiert';
+
+  @override
+  String get outputExportNotImplemented =>
+      'Export-Funktion noch nicht implementiert';
+
+  @override
+  String get outputSegmentCopied => 'Segment in Zwischenablage kopiert';
+
+  @override
+  String get outputAllCopied =>
+      'Gesamte Transkription in Zwischenablage kopiert';
+
+  @override
+  String outputPlayingSegment(String time) {
+    return 'Segment wird abgespielt: $time';
+  }
+
+  @override
+  String get settingsHfTokenSubtitle =>
+      'Für gated oder private Repositories erforderlich.';
+
+  @override
+  String get settingsLoading => 'Lade…';
+
+  @override
+  String get transcribeLanguageLabel => 'Sprache';
+
+  @override
+  String transcribeStarting(String model) {
+    return 'Download startet: $model';
+  }
+
+  @override
+  String transcribeUnsupportedFile(String name) {
+    return 'Nicht unterstützter Dateityp: $name';
+  }
+
+  @override
+  String transcribeLoadedFile(String name) {
+    return 'Geladen: $name';
+  }
+
+  @override
+  String aboutEmail(String email) {
+    return 'E-Mail: $email';
+  }
+
+  @override
+  String aboutPhone(String phone) {
+    return 'Telefon: $phone';
+  }
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
   String get settingsTranscription => 'Transkription';
 
   @override
@@ -265,6 +406,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAudio => 'Audio';
+
+  @override
+  String get settingsAudioQuality => 'Audio-Qualität';
 
   @override
   String get settingsKeepAudioFiles => 'Audio-Dateien behalten';

@@ -116,25 +116,42 @@ class AudioService {
   
   /// Convert an arbitrary audio file to mono 16 kHz float32 PCM.
   Future<WavData> _convertToWav(File audioFile) async {
+    int fileBytes = 0;
+    try { fileBytes = await audioFile.length(); } catch (_) {}
+    final done = Log.instance.stopwatch('audio',
+        msg: 'decode done',
+        fields: {'file': path.basename(audioFile.path), 'file_bytes': fileBytes});
     try {
       final decoded = crispasr.decodeAudioFile(audioFile.path);
-      Log.instance.d('audio',
-          'Decoded ${path.basename(audioFile.path)} via FFI: '
-          '${decoded.samples.length} samples @${decoded.sampleRate} Hz');
+      final seconds = decoded.samples.length / decoded.sampleRate;
+      done(extra: {
+        'via': 'ffi',
+        'samples': decoded.samples.length,
+        'sr': decoded.sampleRate,
+        'duration_s': seconds.toStringAsFixed(2),
+      });
       return WavData(
         samples: decoded.samples,
         sampleRate: decoded.sampleRate,
         channels: 1,
       );
     } on UnsupportedError catch (e) {
-      Log.instance.w('audio', 'FFI decoder not available: $e');
+      Log.instance.w('audio', 'FFI decoder not available, falling back',
+          fields: {'file': path.basename(audioFile.path)}, error: e);
     } catch (e, st) {
-      Log.instance.w('audio',
-          'FFI decoder rejected ${audioFile.path}; falling back to WAV parser',
-          error: e, stack: st);
+      Log.instance.w('audio', 'FFI decoder rejected, falling back',
+          error: e, stack: st,
+          fields: {'file': path.basename(audioFile.path), 'file_bytes': fileBytes});
     }
 
-    return await _basicWavProcessing(audioFile);
+    final wav = await _basicWavProcessing(audioFile);
+    Log.instance.i('audio', 'decoded via Dart WAV parser', fields: {
+      'file': path.basename(audioFile.path),
+      'samples': wav.samples.length,
+      'sr': wav.sampleRate,
+      'channels': wav.channels,
+    });
+    return wav;
   }
   
   /// Basic WAV file processing fallback

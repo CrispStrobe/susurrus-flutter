@@ -35,6 +35,7 @@ class LogEntry {
   final String message;
   final Object? error;
   final StackTrace? stack;
+  final Map<String, Object?>? fields; // structured k/v context
 
   const LogEntry({
     required this.timestamp,
@@ -43,14 +44,25 @@ class LogEntry {
     required this.message,
     this.error,
     this.stack,
+    this.fields,
   });
 
   String format({bool includeStack = false}) {
     final ts = timestamp.toIso8601String();
     final errPart = error != null ? ' :: $error' : '';
+    final kvPart = (fields == null || fields!.isEmpty)
+        ? ''
+        : ' ' + fields!.entries.map((e) => '${e.key}=${_q(e.value)}').join(' ');
     final stackPart =
         (includeStack && stack != null) ? '\n$stack' : '';
-    return '$ts ${level.tag} [$tag] $message$errPart$stackPart';
+    return '$ts ${level.tag} [$tag] $message$kvPart$errPart$stackPart';
+  }
+
+  static String _q(Object? v) {
+    if (v == null) return 'null';
+    final s = v.toString();
+    if (s.contains(' ') || s.contains('"')) return '"${s.replaceAll('"', r'\"')}"';
+    return s;
   }
 
   @override
@@ -162,16 +174,26 @@ class Log {
     ));
   }
 
-  void t(String tag, String message, {Object? error, StackTrace? stack}) =>
-      log(LogLevel.trace, tag, message, error: error, stack: stack);
-  void d(String tag, String message, {Object? error, StackTrace? stack}) =>
-      log(LogLevel.debug, tag, message, error: error, stack: stack);
-  void i(String tag, String message, {Object? error, StackTrace? stack}) =>
-      log(LogLevel.info, tag, message, error: error, stack: stack);
-  void w(String tag, String message, {Object? error, StackTrace? stack}) =>
-      log(LogLevel.warn, tag, message, error: error, stack: stack);
-  void e(String tag, String message, {Object? error, StackTrace? stack}) =>
-      log(LogLevel.error, tag, message, error: error, stack: stack);
+  void t(String tag, String message,
+          {Object? error, StackTrace? stack, Map<String, Object?>? fields}) =>
+      log(LogLevel.trace, tag, message,
+          error: error, stack: stack, fields: fields);
+  void d(String tag, String message,
+          {Object? error, StackTrace? stack, Map<String, Object?>? fields}) =>
+      log(LogLevel.debug, tag, message,
+          error: error, stack: stack, fields: fields);
+  void i(String tag, String message,
+          {Object? error, StackTrace? stack, Map<String, Object?>? fields}) =>
+      log(LogLevel.info, tag, message,
+          error: error, stack: stack, fields: fields);
+  void w(String tag, String message,
+          {Object? error, StackTrace? stack, Map<String, Object?>? fields}) =>
+      log(LogLevel.warn, tag, message,
+          error: error, stack: stack, fields: fields);
+  void e(String tag, String message,
+          {Object? error, StackTrace? stack, Map<String, Object?>? fields}) =>
+      log(LogLevel.error, tag, message,
+          error: error, stack: stack, fields: fields);
 
   void log(
     LogLevel level,
@@ -179,6 +201,7 @@ class Log {
     String message, {
     Object? error,
     StackTrace? stack,
+    Map<String, Object?>? fields,
   }) {
     if (level.rank < _minLevel.rank) return;
     final entry = LogEntry(
@@ -188,9 +211,39 @@ class Log {
       message: message,
       error: error,
       stack: stack,
+      fields: fields,
     );
     _emit(entry);
   }
+
+  /// Convenience for per-op timers — returns a closure that, on call,
+  /// logs a single "done" line with ms elapsed + the caller's fields.
+  /// Use:
+  ///   final done = Log.instance.stopwatch('load-model', fields: {'name': n});
+  ///   …work…
+  ///   done(extra: {'bytes': size});
+  void Function({Map<String, Object?>? extra, Object? error}) stopwatch(
+      String tag, {
+      String msg = 'done',
+      Map<String, Object?>? fields,
+      LogLevel level = LogLevel.info,
+      }) {
+    final start = DateTime.now();
+    return ({extra, error}) {
+      final ms = DateTime.now().difference(start).inMilliseconds;
+      final merged = <String, Object?>{
+        ...?fields,
+        ...?extra,
+        'ms': ms,
+      };
+      log(error != null ? LogLevel.error : level, tag, msg,
+          fields: merged, error: error);
+    };
+  }
+
+  // Rotation threshold — 5 MiB.
+  static const int _rotateAtBytes = 5 * 1024 * 1024;
+  int _sinkBytes = 0;
 
   void _emit(LogEntry entry) {
     _buffer.add(entry);
@@ -198,18 +251,61 @@ class Log {
       _buffer.removeFirst();
     }
     _stream.add(entry);
-    // Mirror to console in debug.
+    final formatted = entry.format(includeStack: entry.stack != null);
+    // Mirror to stderr so `flutter run` + standalone-launched apps
+    // both surface it; debugPrint truncates at 800 chars in release,
+    // stderr does not.
     if (kDebugMode) {
-      debugPrint(entry.format());
+      debugPrint(formatted);
+    } else {
+      try {
+        stderr.writeln(formatted);
+      } catch (_) {}
     }
     // Mirror to file sink when enabled.
     final sink = _sink;
     if (sink != null) {
       try {
-        sink.writeln(entry.format(includeStack: entry.stack != null));
+        sink.writeln(formatted);
+        _sinkBytes += formatted.length + 1;
+        if (_sinkBytes > _rotateAtBytes) {
+          unawaited(_rotate());
+        }
       } catch (_) {
         // Swallow — don't crash the app over a log failure.
       }
+    }
+  }
+
+  Future<void> _rotate() async {
+    try {
+      final sink = _sink;
+      final file = _sinkFile;
+      if (sink == null || file == null) return;
+      await sink.flush();
+      await sink.close();
+      _sink = null;
+      final rotated = File('${file.path}.1');
+      if (await rotated.exists()) await rotated.delete();
+      await file.rename(rotated.path);
+      _sinkFile = File(file.path); // recreate pointer
+      _sink = _sinkFile!.openWrite(mode: FileMode.append);
+      _sinkBytes = 0;
+      _emit(LogEntry(
+        timestamp: DateTime.now(),
+        level: LogLevel.info,
+        tag: 'log',
+        message: 'Rotated session.log → session.log.1',
+      ));
+    } catch (e, st) {
+      _emit(LogEntry(
+        timestamp: DateTime.now(),
+        level: LogLevel.error,
+        tag: 'log',
+        message: 'Log rotation failed',
+        error: e,
+        stack: st,
+      ));
     }
   }
 
@@ -219,6 +315,37 @@ class Log {
       buf.writeln(e.format(includeStack: e.stack != null));
     }
     return buf.toString();
+  }
+
+  /// Dump a rich multi-line boot banner capturing platform / paths /
+  /// sizes. Called once from main.dart after file sink init.
+  Future<void> logBootBanner() async {
+    Map<String, String> info = {
+      'platform': Platform.operatingSystem,
+      'os_version': Platform.operatingSystemVersion,
+      'locale': Platform.localeName,
+      'cpu_cores': '${Platform.numberOfProcessors}',
+      'dart_version': Platform.version,
+      'cwd': Directory.current.path,
+    };
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      info['docs_dir'] = docs.path;
+    } catch (_) {}
+    if (_sinkFile != null) info['log_file'] = _sinkFile!.path;
+    _emit(LogEntry(
+      timestamp: DateTime.now(),
+      level: LogLevel.info,
+      tag: 'boot',
+      message: '============================================================',
+    ));
+    _emit(LogEntry(
+      timestamp: DateTime.now(),
+      level: LogLevel.info,
+      tag: 'boot',
+      message: 'CrisperWeaver session',
+      fields: {...info},
+    ));
   }
 
   /// Dumps the current buffer to a timestamped file and returns its path.

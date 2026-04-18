@@ -33,9 +33,9 @@ void main() async {
   // Persist the rolling session log from the very first line so bug reports
   // always have the startup trail on disk.
   await Log.instance.enableFileSink(true);
-  Log.instance.i('main',
-      'CrisperWeaver starting — platform=${Platform.operatingSystem} '
-      'level=${Log.instance.minLevel.tag}');
+  await Log.instance.logBootBanner();
+  Log.instance.i('main', 'CrisperWeaver starting',
+      fields: {'level': Log.instance.minLevel.tag});
 
   FlutterError.onError = (details) {
     Log.instance.e(

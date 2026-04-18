@@ -74,7 +74,6 @@
     "placeholders": {"engine": {"type": "String"}}
   },
   "settingsEngineSwitchFailed": "Engine switch failed",
-  "settingsAudioQuality": "Audio quality",
   "settingsAudioQualityCurrent": "Recording quality: {percent}%",
   "@settingsAudioQualityCurrent": {
     "placeholders": {"percent": {"type": "int"}}
@@ -82,7 +81,6 @@
   "settingsCacheCleared": "Cache cleared successfully",
   "settingsHfToken": "HuggingFace API token",
   "settingsHfTokenNotSet": "Not set (required for gated models)",
-  "languageAuto": "Auto-detect",
   "languageEn": "English",
   "languageDe": "German",
   "languageEs": "Spanish",
@@ -92,6 +90,87 @@
   "languageZh": "Chinese",
   "languageJa": "Japanese",
   "languageKo": "Korean",
+
+  "modelSize": "Size: {size}",
+  "@modelSize": {
+    "placeholders": {"size": {"type": "String"}}
+  },
+  "modelDeleteConfirm": "Are you sure you want to delete {name}?",
+  "@modelDeleteConfirm": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+
+  "historyCopy": "Copy",
+  "historyExportSrt": "Export SRT",
+  "historyExportTxt": "Export TXT",
+  "historyExportJson": "Export JSON",
+  "historyDelete": "Delete",
+  "historyFailedToLoad": "Failed to load history: {error}",
+  "@historyFailedToLoad": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+  "historySaved": "Saved {path}",
+  "@historySaved": {
+    "placeholders": {"path": {"type": "String"}}
+  },
+  "historyExportFailed": "Export failed: {error}",
+  "@historyExportFailed": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+
+  "recorderDeleteTitle": "Delete recording",
+  "recorderDeleteBody": "Are you sure you want to delete this recording?",
+  "recorderQueuedForTranscription": "Recording queued for transcription.",
+
+  "outputShowTimestamps": "Show timestamps",
+  "outputShowSpeakers": "Show speakers",
+  "outputShowConfidence": "Show confidence",
+  "outputCopyAll": "Copy all",
+  "outputExport": "Export",
+  "outputPlay": "Play",
+  "outputCopy": "Copy",
+  "outputEdit": "Edit",
+  "outputPlaySegment": "Play segment",
+  "outputCopyText": "Copy text",
+  "outputEditSegment": "Edit segment",
+  "outputEditNotImplemented": "Segment editing not yet implemented",
+  "outputExportNotImplemented": "Export functionality not yet implemented",
+  "outputSegmentCopied": "Segment copied to clipboard",
+  "outputAllCopied": "All transcription copied to clipboard",
+  "outputPlayingSegment": "Playing segment: {time}",
+  "@outputPlayingSegment": {
+    "placeholders": {"time": {"type": "String"}}
+  },
+
+  "settingsHfTokenSubtitle": "Required for gated or private repositories.",
+  "settingsLoading": "Loading…",
+
+  "transcribeLanguageLabel": "Language",
+  "transcribeStarting": "Starting download: {model}",
+  "@transcribeStarting": {
+    "placeholders": {"model": {"type": "String"}}
+  },
+  "transcribeUnsupportedFile": "Unsupported file type: {name}",
+  "@transcribeUnsupportedFile": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "transcribeLoadedFile": "Loaded {name}",
+  "@transcribeLoadedFile": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+
+  "aboutEmail": "Email: {email}",
+  "@aboutEmail": {
+    "placeholders": {"email": {"type": "String"}}
+  },
+  "aboutPhone": "Phone: {phone}",
+  "@aboutPhone": {
+    "placeholders": {"phone": {"type": "String"}}
+  },
+  "aboutVersion": "Version {version}",
+  "@aboutVersion": {
+    "placeholders": {"version": {"type": "String"}}
+  },
   "settingsTranscription": "Transcription",
   "settingsDefaultModel": "Default model",
   "settingsDefaultLanguage": "Default language",

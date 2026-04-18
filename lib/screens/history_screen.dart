@@ -80,7 +80,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('Failed to load history: ${snap.error}'));
+            return Center(child: Text(AppLocalizations.of(context).historyFailedToLoad('${snap.error}')));
           }
           final items = snap.data ?? const <HistoryEntry>[];
           if (items.isEmpty) {
@@ -167,33 +167,33 @@ class _HistoryTile extends StatelessWidget {
                   children: [
                     OutlinedButton.icon(
                       icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('Copy'),
+                      label: Text(AppLocalizations.of(context).historyCopy),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: entry.fullText));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Copied')),
+                          SnackBar(content: Text(AppLocalizations.of(context).copied)),
                         );
                       },
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.save_alt, size: 16),
-                      label: const Text('Export SRT'),
+                      label: Text(AppLocalizations.of(context).historyExportSrt),
                       onPressed: () => _exportAs(context, TranscriptFormat.srt),
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.save_alt, size: 16),
-                      label: const Text('Export TXT'),
+                      label: Text(AppLocalizations.of(context).historyExportTxt),
                       onPressed: () => _exportAs(context, TranscriptFormat.txt),
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.save_alt, size: 16),
-                      label: const Text('Export JSON'),
+                      label: Text(AppLocalizations.of(context).historyExportJson),
                       onPressed: () => _exportAs(context, TranscriptFormat.json),
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.delete_outline, size: 16),
                       style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                      label: const Text('Delete'),
+                      label: Text(AppLocalizations.of(context).historyDelete),
                       onPressed: onDelete,
                     ),
                   ],
@@ -216,13 +216,13 @@ class _HistoryTile extends StatelessWidget {
       );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved ${file.path}')),
+        SnackBar(content: Text(AppLocalizations.of(context).historySaved(file.path))),
       );
       await FileUtils.shareFile(file.path, subject: entry.title);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).historyExportFailed('$e'))),
       );
     }
   }

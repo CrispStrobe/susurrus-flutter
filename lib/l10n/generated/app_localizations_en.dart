@@ -196,9 +196,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsEngineSwitchFailed => 'Engine switch failed';
 
   @override
-  String get settingsAudioQuality => 'Audio quality';
-
-  @override
   String settingsAudioQualityCurrent(int percent) {
     return 'Recording quality: $percent%';
   }
@@ -240,6 +237,148 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageKo => 'Korean';
 
   @override
+  String modelSize(String size) {
+    return 'Size: $size';
+  }
+
+  @override
+  String modelDeleteConfirm(String name) {
+    return 'Are you sure you want to delete $name?';
+  }
+
+  @override
+  String get historyCopy => 'Copy';
+
+  @override
+  String get historyExportSrt => 'Export SRT';
+
+  @override
+  String get historyExportTxt => 'Export TXT';
+
+  @override
+  String get historyExportJson => 'Export JSON';
+
+  @override
+  String get historyDelete => 'Delete';
+
+  @override
+  String historyFailedToLoad(String error) {
+    return 'Failed to load history: $error';
+  }
+
+  @override
+  String historySaved(String path) {
+    return 'Saved $path';
+  }
+
+  @override
+  String historyExportFailed(String error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String get recorderDeleteTitle => 'Delete recording';
+
+  @override
+  String get recorderDeleteBody =>
+      'Are you sure you want to delete this recording?';
+
+  @override
+  String get recorderQueuedForTranscription =>
+      'Recording queued for transcription.';
+
+  @override
+  String get outputShowTimestamps => 'Show timestamps';
+
+  @override
+  String get outputShowSpeakers => 'Show speakers';
+
+  @override
+  String get outputShowConfidence => 'Show confidence';
+
+  @override
+  String get outputCopyAll => 'Copy all';
+
+  @override
+  String get outputExport => 'Export';
+
+  @override
+  String get outputPlay => 'Play';
+
+  @override
+  String get outputCopy => 'Copy';
+
+  @override
+  String get outputEdit => 'Edit';
+
+  @override
+  String get outputPlaySegment => 'Play segment';
+
+  @override
+  String get outputCopyText => 'Copy text';
+
+  @override
+  String get outputEditSegment => 'Edit segment';
+
+  @override
+  String get outputEditNotImplemented => 'Segment editing not yet implemented';
+
+  @override
+  String get outputExportNotImplemented =>
+      'Export functionality not yet implemented';
+
+  @override
+  String get outputSegmentCopied => 'Segment copied to clipboard';
+
+  @override
+  String get outputAllCopied => 'All transcription copied to clipboard';
+
+  @override
+  String outputPlayingSegment(String time) {
+    return 'Playing segment: $time';
+  }
+
+  @override
+  String get settingsHfTokenSubtitle =>
+      'Required for gated or private repositories.';
+
+  @override
+  String get settingsLoading => 'Loading…';
+
+  @override
+  String get transcribeLanguageLabel => 'Language';
+
+  @override
+  String transcribeStarting(String model) {
+    return 'Starting download: $model';
+  }
+
+  @override
+  String transcribeUnsupportedFile(String name) {
+    return 'Unsupported file type: $name';
+  }
+
+  @override
+  String transcribeLoadedFile(String name) {
+    return 'Loaded $name';
+  }
+
+  @override
+  String aboutEmail(String email) {
+    return 'Email: $email';
+  }
+
+  @override
+  String aboutPhone(String phone) {
+    return 'Phone: $phone';
+  }
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
   String get settingsTranscription => 'Transcription';
 
   @override
@@ -264,6 +403,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAudio => 'Audio';
+
+  @override
+  String get settingsAudioQuality => 'Audio quality';
 
   @override
   String get settingsKeepAudioFiles => 'Keep audio files';

@@ -157,7 +157,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final modelService = ref.read(modelServiceProvider);
     try {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Starting download: ${model.displayName}')),
+        SnackBar(content: Text(AppLocalizations.of(context).transcribeStarting(model.displayName))),
       );
       
       final success = await modelService.downloadWhisperCppModel(
@@ -238,7 +238,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     );
     if (!AudioUtils.isSupportedAudioFile(first.path)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unsupported file type: ${first.name}')),
+        SnackBar(content: Text(AppLocalizations.of(context).transcribeUnsupportedFile(first.name))),
       );
       return;
     }
@@ -439,35 +439,41 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         const SizedBox(height: 16),
 
         // Language Selection
-        Row(
-          children: [
-            const Text('Language: '),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        Builder(
+          builder: (context) {
+            final l = AppLocalizations.of(context);
+            return Row(
+              children: [
+                Text('${l.transcribeLanguageLabel}: '),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: 'auto', child: Text(l.languageAuto)),
+                      DropdownMenuItem(value: 'en', child: Text(l.languageEn)),
+                      DropdownMenuItem(value: 'es', child: Text(l.languageEs)),
+                      DropdownMenuItem(value: 'fr', child: Text(l.languageFr)),
+                      DropdownMenuItem(value: 'de', child: Text(l.languageDe)),
+                      DropdownMenuItem(value: 'it', child: Text(l.languageIt)),
+                      DropdownMenuItem(value: 'pt', child: Text(l.languagePt)),
+                      DropdownMenuItem(value: 'zh', child: Text(l.languageZh)),
+                      DropdownMenuItem(value: 'ja', child: Text(l.languageJa)),
+                      DropdownMenuItem(value: 'ko', child: Text(l.languageKo)),
+                    ],
+                    value: _language,
+                    onChanged: (value) {
+                      if (value != null) setState(() => _language = value);
+                    },
+                  ),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'auto', child: Text('Auto-detect')),
-                  DropdownMenuItem(value: 'en', child: Text('English')),
-                  DropdownMenuItem(value: 'es', child: Text('Spanish')),
-                  DropdownMenuItem(value: 'fr', child: Text('French')),
-                  DropdownMenuItem(value: 'de', child: Text('German')),
-                  DropdownMenuItem(value: 'it', child: Text('Italian')),
-                  DropdownMenuItem(value: 'pt', child: Text('Portuguese')),
-                  DropdownMenuItem(value: 'zh', child: Text('Chinese')),
-                  DropdownMenuItem(value: 'ja', child: Text('Japanese')),
-                  DropdownMenuItem(value: 'ko', child: Text('Korean')),
-                ],
-                value: _language,
-                onChanged: (value) {
-                  if (value != null) setState(() => _language = value);
-                },
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
 
         const SizedBox(height: 16),
@@ -485,7 +491,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 decoration: InputDecoration(
                   isDense: true,
                   prefixIcon: const Icon(Icons.search, size: 18),
-                  hintText: 'Filter models (name / quant)',
+                  hintText: AppLocalizations.of(context).modelFilterHint,
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 8),
@@ -507,7 +513,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             DropdownButton<String>(
               value: _backendFilter,
               items: [
-                const DropdownMenuItem(value: '', child: Text('Any backend')),
+                DropdownMenuItem(value: '', child: Text(AppLocalizations.of(context).modelAnyBackend)),
                 for (final b in _uniqueBackends()) ...[
                   DropdownMenuItem(value: b, child: Text(b)),
                 ],
@@ -621,7 +627,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       await ref.read(transcriptionServiceProvider).loadModel(value);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loaded $value')),
+          SnackBar(content: Text(AppLocalizations.of(context).transcribeLoadedFile(value))),
         );
       }
     } catch (e) {

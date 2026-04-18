@@ -739,18 +739,41 @@ class ModelService {
       onStatusChange?.call('Starting download...');
       onProgress?.call(0.0);
 
-      Log.instance.i('model', 'Starting download: ${modelDef.url}');
-      Log.instance.d('model', 'Target path: $tempPath');
+      final dlDone = Log.instance.stopwatch('model',
+          msg: 'download done',
+          fields: {
+            'name': modelName,
+            'url': modelDef.url,
+            'expected_bytes': modelDef.sizeBytes,
+            'backend': modelDef.backend,
+            'quant': modelDef.quantization,
+            'target': tempPath,
+          });
+      Log.instance.i('model', 'download start', fields: {
+        'name': modelName,
+        'url': modelDef.url,
+        'expected_bytes': modelDef.sizeBytes,
+        'backend': modelDef.backend,
+        'quant': modelDef.quantization,
+      });
 
       // Download with resume capability
-      await _downloadWithResume(
-        modelDef.url,
-        tempPath,
-        expectedSize: modelDef.sizeBytes,
-        onProgress: onProgress,
-        onStatusChange: onStatusChange,
-        cancelToken: cancelToken,
-      );
+      try {
+        await _downloadWithResume(
+          modelDef.url,
+          tempPath,
+          expectedSize: modelDef.sizeBytes,
+          onProgress: onProgress,
+          onStatusChange: onStatusChange,
+          cancelToken: cancelToken,
+        );
+        int realBytes = 0;
+        try { realBytes = await File(tempPath).length(); } catch (_) {}
+        dlDone(extra: {'actual_bytes': realBytes});
+      } catch (e) {
+        dlDone(error: e);
+        rethrow;
+      }
 
       onStatusChange?.call('Verifying download...');
       onProgress?.call(0.95);

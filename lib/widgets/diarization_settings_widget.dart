@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 class DiarizationSettingsWidget extends StatefulWidget {
   final bool enabled;
   final Function(bool enabled) onChanged;
@@ -42,7 +44,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                 const Icon(Icons.people, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Speaker Diarization',
+                  AppLocalizations.of(context).diarizationTitle,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
@@ -52,11 +54,11 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             Text(
-              'Identify different speakers in audio recordings',
+              AppLocalizations.of(context).diarizationSubtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey.shade600,
               ),
@@ -83,7 +85,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Diarization Model'),
+                  Text(AppLocalizations.of(context).diarizationModel),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
                     value: _diarizationModel,
@@ -127,7 +129,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Min. Speakers'),
+                  Text(AppLocalizations.of(context).minSpeakers),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<int?>(
                     value: _minSpeakers,
@@ -169,7 +171,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Max. Speakers'),
+                  Text(AppLocalizations.of(context).maxSpeakers),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<int?>(
                     value: _maxSpeakers,

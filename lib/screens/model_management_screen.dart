@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show modelServiceProvider;
 import '../services/model_service.dart';
 
@@ -63,7 +64,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Model Management'),
+        title: Text(AppLocalizations.of(context).modelsTitle),
         actions: [
           IconButton(
             icon: _probing
@@ -73,12 +74,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.cloud_download),
-            tooltip: 'Refresh quants from HuggingFace',
+            tooltip: AppLocalizations.of(context).modelsRefreshFromHf,
             onPressed: _probing ? null : _probeHf,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Reload local state',
+            tooltip: AppLocalizations.of(context).modelsReloadLocal,
             onPressed: _loadModels,
           ),
         ],
@@ -222,11 +223,11 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Size: ${model.size}'),
+            Text(AppLocalizations.of(context).modelSize(model.size)),
             Text(model.description),
             if (model.isDownloaded)
               Text(
-                'Downloaded',
+                AppLocalizations.of(context).modelsDownloaded,
                 style: TextStyle(
                   color: Colors.green.shade700,
                   fontWeight: FontWeight.bold,
@@ -237,7 +238,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Downloading... ${(_downloadProgress * 100).toStringAsFixed(1)}%',
+                    AppLocalizations.of(context).modelsDownloadingPercent(
+                        (_downloadProgress * 100).toStringAsFixed(1)),
                     style: TextStyle(color: Colors.blue.shade700),
                   ),
                   const SizedBox(height: 4),
@@ -245,7 +247,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
                 ],
               )
             else
-              const Text('Not downloaded'),
+              Text(AppLocalizations.of(context).modelsNotDownloaded),
           ],
         ),
         trailing: Row(
@@ -255,12 +257,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _deleteModel(model),
-                tooltip: 'Delete model',
+                tooltip: AppLocalizations.of(context).modelsDelete,
               ),
             ] else if (!isDownloading) ...[
               ElevatedButton.icon(
                 icon: const Icon(Icons.download),
-                label: const Text('Download'),
+                label: Text(AppLocalizations.of(context).modelsDownload),
                 onPressed: () => _downloadModel(model),
               ),
             ],
@@ -279,22 +281,15 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           Icon(Icons.memory, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            'No models available',
+            AppLocalizations.of(context).modelsNoneAvailable,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Failed to load model list',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade500,
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+            label: Text(AppLocalizations.of(context).modelsRetry),
             onPressed: _loadModels,
           ),
         ],
@@ -340,17 +335,17 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Model'),
-        content: Text('Are you sure you want to delete ${model.displayName}?'),
+        title: Text(AppLocalizations.of(context).modelsDelete),
+        content: Text(AppLocalizations.of(context).modelDeleteConfirm(model.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context).delete),
           ),
         ],
       ),
@@ -400,12 +395,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: Text(AppLocalizations.of(context).error),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),

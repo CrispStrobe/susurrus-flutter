@@ -464,12 +464,6 @@ abstract class AppLocalizations {
   /// **'Engine switch failed'**
   String get settingsEngineSwitchFailed;
 
-  /// No description provided for @settingsAudioQuality.
-  ///
-  /// In en, this message translates to:
-  /// **'Audio quality'**
-  String get settingsAudioQuality;
-
   /// No description provided for @settingsAudioQualityCurrent.
   ///
   /// In en, this message translates to:
@@ -548,6 +542,234 @@ abstract class AppLocalizations {
   /// **'Korean'**
   String get languageKo;
 
+  /// No description provided for @modelSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size: {size}'**
+  String modelSize(String size);
+
+  /// No description provided for @modelDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {name}?'**
+  String modelDeleteConfirm(String name);
+
+  /// No description provided for @historyCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get historyCopy;
+
+  /// No description provided for @historyExportSrt.
+  ///
+  /// In en, this message translates to:
+  /// **'Export SRT'**
+  String get historyExportSrt;
+
+  /// No description provided for @historyExportTxt.
+  ///
+  /// In en, this message translates to:
+  /// **'Export TXT'**
+  String get historyExportTxt;
+
+  /// No description provided for @historyExportJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Export JSON'**
+  String get historyExportJson;
+
+  /// No description provided for @historyDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get historyDelete;
+
+  /// No description provided for @historyFailedToLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load history: {error}'**
+  String historyFailedToLoad(String error);
+
+  /// No description provided for @historySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {path}'**
+  String historySaved(String path);
+
+  /// No description provided for @historyExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String historyExportFailed(String error);
+
+  /// No description provided for @recorderDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete recording'**
+  String get recorderDeleteTitle;
+
+  /// No description provided for @recorderDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this recording?'**
+  String get recorderDeleteBody;
+
+  /// No description provided for @recorderQueuedForTranscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording queued for transcription.'**
+  String get recorderQueuedForTranscription;
+
+  /// No description provided for @outputShowTimestamps.
+  ///
+  /// In en, this message translates to:
+  /// **'Show timestamps'**
+  String get outputShowTimestamps;
+
+  /// No description provided for @outputShowSpeakers.
+  ///
+  /// In en, this message translates to:
+  /// **'Show speakers'**
+  String get outputShowSpeakers;
+
+  /// No description provided for @outputShowConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Show confidence'**
+  String get outputShowConfidence;
+
+  /// No description provided for @outputCopyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy all'**
+  String get outputCopyAll;
+
+  /// No description provided for @outputExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get outputExport;
+
+  /// No description provided for @outputPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get outputPlay;
+
+  /// No description provided for @outputCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get outputCopy;
+
+  /// No description provided for @outputEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get outputEdit;
+
+  /// No description provided for @outputPlaySegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Play segment'**
+  String get outputPlaySegment;
+
+  /// No description provided for @outputCopyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy text'**
+  String get outputCopyText;
+
+  /// No description provided for @outputEditSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit segment'**
+  String get outputEditSegment;
+
+  /// No description provided for @outputEditNotImplemented.
+  ///
+  /// In en, this message translates to:
+  /// **'Segment editing not yet implemented'**
+  String get outputEditNotImplemented;
+
+  /// No description provided for @outputExportNotImplemented.
+  ///
+  /// In en, this message translates to:
+  /// **'Export functionality not yet implemented'**
+  String get outputExportNotImplemented;
+
+  /// No description provided for @outputSegmentCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Segment copied to clipboard'**
+  String get outputSegmentCopied;
+
+  /// No description provided for @outputAllCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'All transcription copied to clipboard'**
+  String get outputAllCopied;
+
+  /// No description provided for @outputPlayingSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing segment: {time}'**
+  String outputPlayingSegment(String time);
+
+  /// No description provided for @settingsHfTokenSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Required for gated or private repositories.'**
+  String get settingsHfTokenSubtitle;
+
+  /// No description provided for @settingsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get settingsLoading;
+
+  /// No description provided for @transcribeLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get transcribeLanguageLabel;
+
+  /// No description provided for @transcribeStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting download: {model}'**
+  String transcribeStarting(String model);
+
+  /// No description provided for @transcribeUnsupportedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported file type: {name}'**
+  String transcribeUnsupportedFile(String name);
+
+  /// No description provided for @transcribeLoadedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded {name}'**
+  String transcribeLoadedFile(String name);
+
+  /// No description provided for @aboutEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email: {email}'**
+  String aboutEmail(String email);
+
+  /// No description provided for @aboutPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone: {phone}'**
+  String aboutPhone(String phone);
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String aboutVersion(String version);
+
   /// No description provided for @settingsTranscription.
   ///
   /// In en, this message translates to:
@@ -595,6 +817,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Audio'**
   String get settingsAudio;
+
+  /// No description provided for @settingsAudioQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio quality'**
+  String get settingsAudioQuality;
 
   /// No description provided for @settingsKeepAudioFiles.
   ///
