@@ -52,11 +52,11 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 
 | Platform | State                                                                 |
 | -------- | --------------------------------------------------------------------- |
-| macOS    | ✅ Verified — CI builds Metal-enabled `.app`, local build green        |
-| Linux    | ✅ CI-built desktop bundle with DT_NEEDED dylibs                       |
+| macOS    | ✅ Released — `.app.zip` in GitHub Releases, Metal-enabled, all 10 backend dylibs bundled |
+| Linux    | ✅ Released — `.tar.gz` bundle in GitHub Releases                      |
+| Android  | ✅ Released — real-ASR APK (`arm64-v8a`) with `libwhisper.so` cross-built in CI |
+| iOS      | ⚠️ Unsigned IPA in GitHub Releases — sideload via SideStore / AltStore / Feather |
 | Windows  | ⚠️ Flutter runner scaffold in place; no CI job yet                    |
-| Android  | ⚠️ APK builds with Mock engine out of the box; `libwhisper.so` wiring via `CrispASR/build-android.sh` is manual |
-| iOS      | ⚠️ Xcode project + Podfile ready; `pod install` + device build not yet CI-verified |
 
 Roadmap and blockers: see [`PLAN.md`](PLAN.md).
 
@@ -134,9 +134,23 @@ Useful Settings:
 ## CI & releases
 
 - **`ci.yml`** — on push / PR: `flutter analyze` + `flutter test` on Ubuntu and macOS, plus debug `.app` and Linux bundle uploaded as workflow artifacts. Checks out sibling `CrispStrobe/CrispASR` automatically.
-- **`release.yml`** — on a `vX.Y.Z` tag (or manual dispatch): Release `.app` with Metal-enabled `libwhisper` + all ten backend dylibs bundled, ad-hoc codesigned, zipped, and attached to the matching GitHub Release. Also uploads an unsigned Android APK.
+- **`release.yml`** — on a `vX.Y.Z` tag (or manual dispatch): builds and uploads
+    - `crisper_weaver-macos.zip` — Metal-enabled `.app`, ad-hoc signed, all 10 backend dylibs bundled.
+    - `crisper_weaver-linux-x64.tar.gz` — GTK-3 desktop bundle with all 10 backend `.so`'s.
+    - `crisper_weaver-android-arm64.apk` — real ASR. CrispASR cross-built via `build-android.sh --abi arm64-v8a`; `libwhisper.so` and sibling backend `.so`'s dropped into `jniLibs/arm64-v8a/`.
+    - `crisper_weaver-ios-unsigned.ipa` — sideload-compatible (see below).
 
 Both workflows honour `CRISPASR_REPO` / `CRISPASR_REF` env vars at the top of each file, in case you maintain a fork of CrispASR.
+
+### Sideloading iOS
+
+We don't pay for the Apple Developer Program yet, so the iOS IPA in releases is **unsigned**. To install it on your own device, use a sideload service:
+
+- **[SideStore](https://sidestore.io/)** — iOS app installer that uses your own Apple ID for signing (free: 7-day re-sign; paid ADP: 1-year). Self-hosted via StosVPN or pair-with-computer.
+- **[AltStore](https://altstore.io/)** — the original self-sign flow; requires a desktop-side companion (AltServer).
+- **[Feather](https://github.com/khcrysalis/Feather)** — open-source alternative.
+
+All three accept the `.ipa` directly: download `crisper_weaver-ios-unsigned.ipa` from the release page, open in SideStore (Files → share to SideStore), tap Install. The free-tier 7-day limit means you'll need to re-sign weekly unless you also have a paid Apple Developer account.
 
 ---
 

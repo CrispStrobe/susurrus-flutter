@@ -87,8 +87,8 @@ jobs:
           prerelease: false
           fail_on_unmatched_files: true
 
-  build-android:
-    name: Android (APK)
+  build-linux:
+    name: Linux (.tar.gz bundle)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -99,7 +99,99 @@ jobs:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
-      - name: Check out sibling CrispASR (Dart package only)
+      - name: Check out sibling CrispASR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+          submodules: recursive
+
+      - name: Install Linux desktop toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libsecret-1-dev libjsoncpp-dev libglu1-mesa
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build libwhisper.so (Release)
+        working-directory: repos/CrispASR
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+          cmake --build build --config Release --parallel --target whisper
+          ls -lh build/src/libwhisper*.so*
+
+      - name: Enable Linux desktop + pub get
+        working-directory: repos/CrisperWeaver
+        run: |
+          flutter config --enable-linux-desktop
+          flutter pub get
+
+      - name: Build Linux (Release)
+        working-directory: repos/CrisperWeaver
+        run: flutter build linux --release
+
+      - name: Bundle all CrispASR .so's into bundle/lib/
+        working-directory: repos/CrisperWeaver
+        run: |
+          BUNDLE=build/linux/x64/release/bundle
+          mkdir -p "$BUNDLE/lib"
+
+          SO=$(ls ../CrispASR/build/src/libwhisper.so.[0-9]* 2>/dev/null | head -1)
+          [ -z "$SO" ] && SO=../CrispASR/build/src/libwhisper.so
+          cp "$SO" "$BUNDLE/lib/libwhisper.so"
+          ln -sf libwhisper.so "$BUNDLE/lib/libcrispasr.so"
+
+          for name in parakeet canary qwen3_asr cohere granite_speech \
+                      canary_ctc voxtral voxtral4b; do
+            src="../CrispASR/build/src/lib${name}.so"
+            if [ -f "$src" ]; then
+              cp "$src" "$BUNDLE/lib/lib${name}.so"
+            else
+              echo "warn: $src missing, backend ${name} not runtime-ready" >&2
+            fi
+          done
+          ls -lh "$BUNDLE/lib/"
+
+      - name: Tarball
+        working-directory: repos/CrisperWeaver/build/linux/x64/release
+        run: |
+          mv bundle crisper_weaver
+          tar -czf crisper_weaver-linux-x64.tar.gz crisper_weaver
+          sha256sum crisper_weaver-linux-x64.tar.gz | tee crisper_weaver-linux-x64.tar.gz.sha256
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            repos/CrisperWeaver/build/linux/x64/release/crisper_weaver-linux-x64.tar.gz
+            repos/CrisperWeaver/build/linux/x64/release/crisper_weaver-linux-x64.tar.gz.sha256
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+
+  build-android:
+    name: Android APK (real ASR, arm64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out CrisperWeaver
+        uses: actions/checkout@v4
+        with:
+          path: repos/CrisperWeaver
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check out sibling CrispASR
         uses: actions/checkout@v4
         with:
           repository: ${{ env.CRISPASR_REPO }}
@@ -112,6 +204,102 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Android SDK + NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK 26
+        run: |
+          sdkmanager --install "ndk;26.3.11579264" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.3.11579264" >> $GITHUB_ENV
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # Cross-build libwhisper.so + sibling backend .so's for arm64.
+      # We only build arm64-v8a in CI to keep the job under ~15 min;
+      # add more ABIs locally if you need them.
+      - name: Cross-build libwhisper.so for Android arm64
+        working-directory: repos/CrispASR
+        run: |
+          chmod +x ./build-android.sh
+          ./build-android.sh --abi arm64-v8a
+          ls -lh build-android/arm64-v8a/src/libwhisper*.so
+
+      - name: Copy native libs into jniLibs/
+        working-directory: repos/CrisperWeaver
+        run: |
+          DEST=android/app/src/main/jniLibs/arm64-v8a
+          mkdir -p "$DEST"
+
+          SRC_DIR=../CrispASR/build-android/arm64-v8a/src
+          cp "$SRC_DIR/libwhisper.so" "$DEST/libwhisper.so"
+          # Also register under libcrispasr.so for the Dart loader
+          # first-candidate.
+          cp "$DEST/libwhisper.so" "$DEST/libcrispasr.so"
+          for name in parakeet canary qwen3_asr cohere granite_speech \
+                      canary_ctc voxtral voxtral4b; do
+            s="$SRC_DIR/lib${name}.so"
+            if [ -f "$s" ]; then
+              cp "$s" "$DEST/lib${name}.so"
+            fi
+          done
+          ls -lh "$DEST/"
+
+      - name: Pub get
+        working-directory: repos/CrisperWeaver
+        run: flutter pub get
+
+      - name: Build APK (release, unsigned)
+        working-directory: repos/CrisperWeaver
+        run: flutter build apk --release --target-platform=android-arm64
+
+      - name: Rename APK
+        working-directory: repos/CrisperWeaver
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             crisper_weaver-android-arm64.apk
+          sha256sum crisper_weaver-android-arm64.apk | tee crisper_weaver-android-arm64.apk.sha256
+
+      - name: Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            repos/CrisperWeaver/crisper_weaver-android-arm64.apk
+            repos/CrisperWeaver/crisper_weaver-android-arm64.apk.sha256
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+
+  # Unsigned iOS IPA — sideload-compatible (AltStore / SideStore / Feather).
+  # End-users re-sign with their own free Apple ID (7-day renewal); developers
+  # with a paid Apple Developer Program can re-sign for 1-year installs.
+  # This job is marked continue-on-error since the iOS build path isn't yet
+  # verified end-to-end (first release in which we attempt it).
+  build-ios:
+    name: iOS IPA (unsigned, sideload-ready)
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    continue-on-error: true
+    steps:
+      - name: Check out CrisperWeaver
+        uses: actions/checkout@v4
+        with:
+          path: repos/CrisperWeaver
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check out sibling CrispASR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CRISPASR_REPO }}
+          ref: ${{ env.CRISPASR_REF }}
+          path: repos/CrispASR
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -123,19 +311,27 @@ jobs:
         working-directory: repos/CrisperWeaver
         run: flutter pub get
 
-      # NOTE: This build produces an APK that runs with the Mock engine
-      # only — CrispASR on Android needs `libwhisper.so` cross-compiled via
-      # `CrispASR/build-android.sh` and bundled through jniLibs. See the
-      # README for the manual steps; we skip it here to keep CI fast.
-      - name: Build APK (release, unsigned)
+      - name: Build iOS (no codesign)
         working-directory: repos/CrisperWeaver
-        run: flutter build apk --release
+        run: |
+          flutter build ios --release --no-codesign
 
-      - name: Upload APK
+      - name: Package IPA
+        working-directory: repos/CrisperWeaver
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qr crisper_weaver-ios-unsigned.ipa Payload
+          shasum -a 256 crisper_weaver-ios-unsigned.ipa | tee crisper_weaver-ios-unsigned.ipa.sha256
+          ls -lh crisper_weaver-ios-unsigned.ipa
+
+      - name: Upload IPA
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          files: repos/CrisperWeaver/build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            repos/CrisperWeaver/crisper_weaver-ios-unsigned.ipa
+            repos/CrisperWeaver/crisper_weaver-ios-unsigned.ipa.sha256
           draft: false
           prerelease: false
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
