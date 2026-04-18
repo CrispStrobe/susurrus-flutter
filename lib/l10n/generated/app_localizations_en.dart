@@ -386,4 +386,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get settingsSaved => 'Settings saved';
+
+  @override
+  String get settingsDefaultBackend => 'Default backend';
+
+  @override
+  String get settingsSelectBackend => 'Select default backend';
+
+  @override
+  String settingsSelectModel(String backend) {
+    return 'Select default model ($backend)';
+  }
+
+  @override
+  String get settingsSelectLanguage => 'Select default language';
+
+  @override
+  String get settingsSelectInterfaceLanguage => 'Select interface language';
+
+  @override
+  String settingsNoModelsForBackend(String backend) {
+    return 'No models known for backend \"$backend\". Use the model manager → cloud-download icon to probe HuggingFace.';
+  }
+
+  @override
+  String get modelFilterHint => 'Filter models (name / quant)';
+
+  @override
+  String get modelAnyBackend => 'Any backend';
+
+  @override
+  String get modelNoMatch => 'No models match this filter.';
+
+  @override
+  String get modelsRefreshFromHf => 'Refresh quants from HuggingFace';
+
+  @override
+  String get modelsReloadLocal => 'Reload local state';
+
+  @override
+  String get modelsProbedCountZero =>
+      'No new quants discovered on HuggingFace.';
+
+  @override
+  String modelsProbedCount(int count, String plural) {
+    return 'Discovered $count new quant variant$plural.';
+  }
 }

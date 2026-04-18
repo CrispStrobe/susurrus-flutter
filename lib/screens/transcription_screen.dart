@@ -40,6 +40,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   bool _engineReady = false;
   List<ModelInfo> _availableModels = [];
   bool _loadingModels = false;
+  // Model picker filters
+  String _modelNameFilter = '';
+  String _backendFilter = '';   // '' = any
+  final TextEditingController _modelFilterController = TextEditingController();
   // Memoized init future — the first `_ensureEngineReady()` call kicks it
   // off and any subsequent callers await the same future rather than
   // racing a second init through the service. Without this, tapping
@@ -68,6 +72,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   @override
   void dispose() {
     _urlController.dispose();
+    _modelFilterController.dispose();
     super.dispose();
   }
 
@@ -102,6 +107,29 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     }
     if (mounted) setState(() => _engineReady = ok);
     return ok;
+  }
+
+  /// Unique backend ids present in the current model list, sorted for UI.
+  List<String> _uniqueBackends() {
+    final set = <String>{
+      for (final m in _availableModels)
+        if (m.backend.isNotEmpty) m.backend
+    };
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  /// Apply the live name / backend filters.
+  List<ModelInfo> _filteredModels() {
+    return _availableModels.where((m) {
+      if (_backendFilter.isNotEmpty && m.backend != _backendFilter) {
+        return false;
+      }
+      if (_modelNameFilter.isEmpty) return true;
+      final hay = ('${m.displayName} ${m.name} ${m.backend} ${m.quantization}')
+          .toLowerCase();
+      return hay.contains(_modelNameFilter);
+    }).toList();
   }
 
   Future<void> _loadModels() async {
@@ -447,6 +475,49 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         // Model Selection
         const Text('Model:', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
+
+        // Filter row — name search + backend dropdown.
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _modelFilterController,
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  hintText: 'Filter models (name / quant)',
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  suffixIcon: _modelNameFilter.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _modelFilterController.clear();
+                            setState(() => _modelNameFilter = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) =>
+                    setState(() => _modelNameFilter = v.toLowerCase()),
+              ),
+            ),
+            const SizedBox(width: 8),
+            DropdownButton<String>(
+              value: _backendFilter,
+              items: [
+                const DropdownMenuItem(value: '', child: Text('Any backend')),
+                for (final b in _uniqueBackends()) ...[
+                  DropdownMenuItem(value: b, child: Text(b)),
+                ],
+              ],
+              onChanged: (v) => setState(() => _backendFilter = v ?? ''),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
         if (_loadingModels && _availableModels.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16.0),
@@ -481,22 +552,43 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _availableModels.length,
-              itemBuilder: (context, index) {
-                if (index == 0) Log.instance.t('ui', 'ListView.builder building item 0');
-                final model = _availableModels[index];
-                final isSelected = _modelName == model.name;
-                return ListTile(
-                  dense: true,
-                  selected: isSelected,
-                  title: Text(model.displayName, style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  )),
-                  subtitle: Text('${model.size} • ${model.backend}'),
-                  trailing: _buildModelAction(model),
-                  onTap: () => _selectModelWithDownloadPrompt(model),
+            child: Builder(
+              builder: (context) {
+                final filtered = _filteredModels();
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No models match this filter.',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final model = filtered[index];
+                    final isSelected = _modelName == model.name;
+                    return ListTile(
+                      dense: true,
+                      selected: isSelected,
+                      title: Text(
+                        model.displayName,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(
+                          '${model.size} • ${model.backend} • ${model.quantization.isEmpty ? "f16" : model.quantization}'),
+                      trailing: _buildModelAction(model),
+                      onTap: () => _selectModelWithDownloadPrompt(model),
+                    );
+                  },
                 );
               },
             ),

@@ -817,6 +817,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get ok;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @settingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved'**
+  String get settingsSaved;
+
+  /// No description provided for @settingsDefaultBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Default backend'**
+  String get settingsDefaultBackend;
+
+  /// No description provided for @settingsSelectBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Select default backend'**
+  String get settingsSelectBackend;
+
+  /// No description provided for @settingsSelectModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select default model ({backend})'**
+  String settingsSelectModel(String backend);
+
+  /// No description provided for @settingsSelectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select default language'**
+  String get settingsSelectLanguage;
+
+  /// No description provided for @settingsSelectInterfaceLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select interface language'**
+  String get settingsSelectInterfaceLanguage;
+
+  /// No description provided for @settingsNoModelsForBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'No models known for backend \"{backend}\". Use the model manager → cloud-download icon to probe HuggingFace.'**
+  String settingsNoModelsForBackend(String backend);
+
+  /// No description provided for @modelFilterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter models (name / quant)'**
+  String get modelFilterHint;
+
+  /// No description provided for @modelAnyBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Any backend'**
+  String get modelAnyBackend;
+
+  /// No description provided for @modelNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No models match this filter.'**
+  String get modelNoMatch;
+
+  /// No description provided for @modelsRefreshFromHf.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh quants from HuggingFace'**
+  String get modelsRefreshFromHf;
+
+  /// No description provided for @modelsReloadLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload local state'**
+  String get modelsReloadLocal;
+
+  /// No description provided for @modelsProbedCountZero.
+  ///
+  /// In en, this message translates to:
+  /// **'No new quants discovered on HuggingFace.'**
+  String get modelsProbedCountZero;
+
+  /// No description provided for @modelsProbedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered {count} new quant variant{plural}.'**
+  String modelsProbedCount(int count, String plural);
 }
 
 class _AppLocalizationsDelegate

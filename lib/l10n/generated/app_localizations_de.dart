@@ -387,4 +387,59 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get save => 'Speichern';
+
+  @override
+  String get done => 'Fertig';
+
+  @override
+  String get settingsSaved => 'Einstellungen gespeichert';
+
+  @override
+  String get settingsDefaultBackend => 'Standard-Backend';
+
+  @override
+  String get settingsSelectBackend => 'Standard-Backend wählen';
+
+  @override
+  String settingsSelectModel(String backend) {
+    return 'Standard-Modell wählen ($backend)';
+  }
+
+  @override
+  String get settingsSelectLanguage => 'Standard-Sprache wählen';
+
+  @override
+  String get settingsSelectInterfaceLanguage => 'Oberflächen-Sprache wählen';
+
+  @override
+  String settingsNoModelsForBackend(String backend) {
+    return 'Keine Modelle für Backend „$backend“ bekannt. Modell-Verwaltung → Cloud-Download-Symbol öffnen, um HuggingFace zu durchsuchen.';
+  }
+
+  @override
+  String get modelFilterHint => 'Modelle filtern (Name / Quant)';
+
+  @override
+  String get modelAnyBackend => 'Beliebiges Backend';
+
+  @override
+  String get modelNoMatch => 'Keine Modelle entsprechen diesem Filter.';
+
+  @override
+  String get modelsRefreshFromHf => 'Quants von HuggingFace aktualisieren';
+
+  @override
+  String get modelsReloadLocal => 'Lokalen Zustand neu laden';
+
+  @override
+  String get modelsProbedCountZero =>
+      'Keine neuen Quants auf HuggingFace gefunden.';
+
+  @override
+  String modelsProbedCount(int count, String plural) {
+    return '$count neue Quant-Variante$plural gefunden.';
+  }
 }

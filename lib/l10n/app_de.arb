@@ -140,5 +140,33 @@
   },
 
   "error": "Fehler",
-  "ok": "OK"
+  "ok": "OK",
+  "save": "Speichern",
+  "done": "Fertig",
+  "settingsSaved": "Einstellungen gespeichert",
+  "settingsDefaultBackend": "Standard-Backend",
+  "settingsSelectBackend": "Standard-Backend wählen",
+  "settingsSelectModel": "Standard-Modell wählen ({backend})",
+  "@settingsSelectModel": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "settingsSelectLanguage": "Standard-Sprache wählen",
+  "settingsSelectInterfaceLanguage": "Oberflächen-Sprache wählen",
+  "settingsNoModelsForBackend": "Keine Modelle für Backend „{backend}“ bekannt. Modell-Verwaltung → Cloud-Download-Symbol öffnen, um HuggingFace zu durchsuchen.",
+  "@settingsNoModelsForBackend": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "modelFilterHint": "Modelle filtern (Name / Quant)",
+  "modelAnyBackend": "Beliebiges Backend",
+  "modelNoMatch": "Keine Modelle entsprechen diesem Filter.",
+  "modelsRefreshFromHf": "Quants von HuggingFace aktualisieren",
+  "modelsReloadLocal": "Lokalen Zustand neu laden",
+  "modelsProbedCountZero": "Keine neuen Quants auf HuggingFace gefunden.",
+  "modelsProbedCount": "{count} neue Quant-Variante{plural} gefunden.",
+  "@modelsProbedCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "plural": {"type": "String"}
+    }
+  }
 }

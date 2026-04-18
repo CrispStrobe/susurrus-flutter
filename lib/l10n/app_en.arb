@@ -140,5 +140,33 @@
   },
 
   "error": "Error",
-  "ok": "OK"
+  "ok": "OK",
+  "save": "Save",
+  "done": "Done",
+  "settingsSaved": "Settings saved",
+  "settingsDefaultBackend": "Default backend",
+  "settingsSelectBackend": "Select default backend",
+  "settingsSelectModel": "Select default model ({backend})",
+  "@settingsSelectModel": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "settingsSelectLanguage": "Select default language",
+  "settingsSelectInterfaceLanguage": "Select interface language",
+  "settingsNoModelsForBackend": "No models known for backend \"{backend}\". Use the model manager → cloud-download icon to probe HuggingFace.",
+  "@settingsNoModelsForBackend": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "modelFilterHint": "Filter models (name / quant)",
+  "modelAnyBackend": "Any backend",
+  "modelNoMatch": "No models match this filter.",
+  "modelsRefreshFromHf": "Refresh quants from HuggingFace",
+  "modelsReloadLocal": "Reload local state",
+  "modelsProbedCountZero": "No new quants discovered on HuggingFace.",
+  "modelsProbedCount": "Discovered {count} new quant variant{plural}.",
+  "@modelsProbedCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "plural": {"type": "String"}
+    }
+  }
 }

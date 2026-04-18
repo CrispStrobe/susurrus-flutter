@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:go_router/go_router.dart';
 
 import '../engines/engine_factory.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
 import '../services/log_service.dart';
 import '../services/model_service.dart';
@@ -22,19 +23,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l.settingsTitle),
         actions: [
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings saved')),
+                SnackBar(content: Text(l.settingsSaved)),
               );
               Navigator.of(context).pop();
             },
-            child: const Text('DONE', style: TextStyle(color: Colors.white)),
+            child: Text(l.done.toUpperCase(),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -79,7 +82,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Interface Language'),
+        title: Text(AppLocalizations.of(context).settingsSelectInterfaceLanguage),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: locales.entries.map((entry) {
@@ -179,34 +182,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         if (settings.preferredEngine == EngineType.crispasr)
           ListTile(
-            title: const Text('Default Backend'),
+            title: Text(AppLocalizations.of(context).settingsDefaultBackend),
             subtitle: Text(settings.defaultBackend),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showBackendSelector(settings),
           ),
         ListTile(
-          title: const Text('Default Model'),
+          title: Text(AppLocalizations.of(context).settingsDefaultModel),
           subtitle: Text(settings.defaultModel),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showModelSelector(settings),
         ),
         ListTile(
-          title: const Text('Default Language'),
+          title: Text(AppLocalizations.of(context).settingsDefaultLanguage),
           subtitle: Text(_getLanguageDisplayName(settings.defaultLanguage)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showLanguageSelector(settings),
         ),
         SwitchListTile(
-          title: const Text('Auto-detect Language'),
-          subtitle: const Text('Automatically detect audio language'),
+          title: Text(AppLocalizations.of(context).settingsAutoDetectLanguage),
+          subtitle: Text(AppLocalizations.of(context)
+              .settingsAutoDetectLanguageSubtitle),
           value: settings.autoDetectLanguage,
           onChanged: (value) {
             setState(() => settings.autoDetectLanguage = value);
           },
         ),
         SwitchListTile(
-          title: const Text('Word Timestamps'),
-          subtitle: const Text('Generate timestamps for individual words'),
+          title: Text(AppLocalizations.of(context).settingsWordTimestamps),
+          subtitle: Text(
+              AppLocalizations.of(context).settingsWordTimestampsSubtitle),
           value: settings.enableWordTimestamps,
           onChanged: (value) {
             setState(() => settings.enableWordTimestamps = value);
@@ -225,7 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Select Default Backend'),
+        title: Text(AppLocalizations.of(context).settingsSelectBackend),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -245,34 +250,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showModelSelector(SettingsService settings) {
-    const models = {
-      'tiny': 'Tiny (fast, 74 MB)',
-      'base': 'Base (balanced, 142 MB)',
-      'small': 'Small (466 MB)',
-      'medium': 'Medium (1.5 GB)',
-      'large': 'Large (3 GB)',
-      'large-v2': 'Large v2 (3 GB)',
-      'large-v3': 'Large v3 (3 GB)',
-    };
+  void _showModelSelector(SettingsService settings) async {
+    final backendFilter = settings.defaultBackend;
+    List<ModelInfo> models = [];
+    try {
+      models = await ref.read(modelServiceProvider).getWhisperCppModels();
+    } catch (e) {
+      Log.instance.w('settings', 'Failed to load models for picker', error: e);
+    }
+    // Filter by currently-selected backend — user chose "parakeet" as
+    // default backend, picker shows parakeet quants only.
+    final filtered = models
+        .where((m) => m.backend == backendFilter)
+        .toList();
+
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Select Default Model'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: models.entries.map((e) => RadioListTile<String>(
-              title: Text(e.value),
-              value: e.key,
-              groupValue: settings.defaultModel,
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => settings.defaultModel = value);
-                Navigator.of(ctx).pop();
-              },
-            )).toList(),
-          ),
+        title: Text(l.settingsSelectModel(backendFilter)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: filtered.isEmpty
+              ? Text(l.settingsNoModelsForBackend(backendFilter))
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: filtered
+                        .map((m) => RadioListTile<String>(
+                              title: Text(m.displayName),
+                              subtitle: Text(
+                                  '${m.quantization.isEmpty ? "f16" : m.quantization} • ${m.size}'),
+                              value: m.name,
+                              groupValue: settings.defaultModel,
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() => settings.defaultModel = value);
+                                Navigator.of(ctx).pop();
+                              },
+                            ))
+                        .toList(),
+                  ),
+                ),
         ),
       ),
     );
@@ -288,7 +308,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Default Language'),
+        title: Text(AppLocalizations.of(context).settingsSelectLanguage),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: languages.entries.map((entry) => RadioListTile<String>(
