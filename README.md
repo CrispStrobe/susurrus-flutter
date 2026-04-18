@@ -56,7 +56,7 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 | Linux    | ✅ Released — `.tar.gz` bundle in GitHub Releases                      |
 | Android  | ✅ Released — real-ASR APK (`arm64-v8a`) with `libwhisper.so` cross-built in CI |
 | iOS      | ⚠️ Unsigned IPA in GitHub Releases — sideload via SideStore / AltStore / Feather |
-| Windows  | ⚠️ Flutter runner scaffold in place; no CI job yet                    |
+| Windows  | ⚠️ CI job added, `continue-on-error` until CrispASR shared DLL build is proven. Artifact name (if produced): `crisper_weaver-windows-x64.zip`. |
 
 Roadmap and blockers: see [`PLAN.md`](PLAN.md).
 

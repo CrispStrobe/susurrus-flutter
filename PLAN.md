@@ -53,7 +53,7 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 | -------- | ----- | -------------------------------------------------------------------------------------------- |
 | macOS    | ✅    | None. `flutter build macos` + `scripts/bundle_macos_dylibs.sh` produces a runnable `.app`.   |
 | Linux    | ✅    | None. CI `build-linux` job bundles all `.so`'s; local build needs a Linux host.              |
-| Windows  | ⚠️    | Flutter runner scaffold generated (`windows/runner/`, `windows/flutter/`). No CI job yet; libcrispasr.dll bundling script not yet written. |
+| Windows  | ⚠️    | Flutter runner scaffold + CI job + `scripts/bundle_windows_dlls.ps1` all in place. Job is `continue-on-error` in `release.yml` until CrispASR's shared-DLL build is verified end-to-end (upstream CI only tests static libs). |
 | Android  | ⚠️    | KTS gradle only (Groovy + legacy CMakeLists removed). APK builds with Mock engine out of the box; real ASR needs `libwhisper.so` cross-built via `CrispASR/build-android.sh` and dropped into `android/app/src/main/jniLibs/<abi>/`. That wiring isn't automated in CI. |
 | iOS      | ⚠️    | Podfile rewritten to a clean minimal Flutter template. `pod install` should now succeed, but hasn't been CI-verified; the Xcode project still contains a Runner-Bridging-Header.h reference that's now a no-op. |
 
@@ -113,11 +113,11 @@ Where: add a new `build-android-native` job to `.github/workflows/release.yml` (
 
 **Risk:** medium. Android NDK cross-builds are slow (~15-30 min); may want to cache the `.so`'s keyed on `CRISPASR_REF`.
 
-### 5.4 Windows CI + dll bundling
+### 5.4 Windows CI end-to-end validation
 
-**What:** the Flutter runner scaffold exists (`windows/runner/`). Remaining work: add a `build-windows` CI job to `.github/workflows/ci.yml` with Windows runner + MSVC 2022 + CMake + Flutter Windows toolchain. Build libcrispasr.dll + all sibling `.dll`'s in CrispASR; run `flutter build windows --debug`; bundle `.dll`'s into `build/windows/x64/runner/Debug/` (needs a bundler script analogous to `scripts/bundle_macos_dylibs.sh`).
+**What:** CI job, bundler script, Flutter scaffold — all in place. Release workflow runs CMake shared-DLL build of CrispASR on a Windows runner, drops DLLs next to `runner.exe` via `scripts/bundle_windows_dlls.ps1`, zips. Marked `continue-on-error` because CrispASR's upstream CI only exercises the STATIC lib path (`-DBUILD_SHARED_LIBS=OFF`) — our `-ON` build may hit symbol-export issues we haven't yet seen.
 
-**Risk:** medium. MSVC + ggml's SIMD headers can be fiddly; CrispASR CI already validates Windows builds, so cross-reference its config.
+**Remaining:** watch the first green run, verify `whisper.dll` contains all needed exports (`whisper_init_from_file_with_params`, `crispasr_session_open_explicit`, `crispasr_audio_load`, …), install on a real Windows box, transcribe. If export-mismatch: add explicit `__declspec(dllexport)` to the whisper.h decls.
 
 ### 5.5 Real speaker diarization
 
