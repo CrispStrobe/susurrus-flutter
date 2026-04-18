@@ -58,12 +58,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildLocaleSettings(SettingsService settings) {
+    final l = AppLocalizations.of(context);
     return _buildSettingsSection(
-      title: 'App Language',
+      title: l.settingsAppLanguage,
       icon: Icons.language,
       children: [
         ListTile(
-          title: const Text('Interface Language'),
+          title: Text(l.settingsInterfaceLanguage),
           subtitle: Text(_getAppLocaleDisplayName(settings.appLocale ?? '')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showAppLocaleSelector(settings),
@@ -73,8 +74,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showAppLocaleSelector(SettingsService settings) {
+    final l = AppLocalizations.of(context);
     final locales = {
-      '': 'System Default',
+      '': l.settingsSystemDefault,
       'en': 'English',
       'de': 'Deutsch',
     };
@@ -111,16 +113,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _getAppLocaleDisplayName(String code) {
     if (code == 'en') return 'English';
     if (code == 'de') return 'Deutsch';
-    return 'System Default';
+    return AppLocalizations.of(context).settingsSystemDefault;
   }
 
   Widget _buildEngineSettings(SettingsService settings) {
+    final l = AppLocalizations.of(context);
     return _buildSettingsSection(
-      title: 'Transcription Engine',
+      title: l.settingsEngineSection,
       icon: Icons.psychology,
       children: [
         ListTile(
-          title: const Text('Preferred Engine'),
+          title: Text(l.settingsEnginePreferred),
           subtitle: Text(settings.preferredEngine.displayName),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showEngineSelector(settings),
@@ -177,7 +180,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildTranscriptionSettings(SettingsService settings) {
     return _buildSettingsSection(
-      title: 'Transcription',
+      title: AppLocalizations.of(context).settingsTranscription,
       icon: Icons.transcribe,
       children: [
         if (settings.preferredEngine == EngineType.crispasr)
@@ -329,7 +332,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildAudioSettings(SettingsService settings) {
     return _buildSettingsSection(
-      title: 'Audio',
+      title: AppLocalizations.of(context).settingsAudio,
       icon: Icons.audiotrack,
       children: [
         ListTile(
@@ -363,7 +366,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildDiarizationSettings(SettingsService settings) {
     return _buildSettingsSection(
-      title: 'Speaker Diarization',
+      title: AppLocalizations.of(context).settingsDiarization,
       icon: Icons.people,
       children: [
         SwitchListTile(
@@ -380,22 +383,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildStorageSettings() {
     return _buildSettingsSection(
-      title: 'Storage',
+      title: AppLocalizations.of(context).settingsStorage,
       icon: Icons.storage,
       children: [
         ListTile(
-          title: const Text('Clear Cache'),
-          subtitle: const Text('Clear temporary files and cache'),
+          title: Text(AppLocalizations.of(context).settingsClearCache),
+          subtitle: Text(AppLocalizations.of(context).settingsClearCacheSubtitle),
           trailing: const Icon(Icons.delete_outline),
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Cache cleared successfully')),
+              SnackBar(content: Text(AppLocalizations.of(context).settingsCacheCleared)),
             );
           },
         ),
         ListTile(
-          title: const Text('Manage Models'),
-          subtitle: const Text('Download, update, or delete transcription models'),
+          title: Text(AppLocalizations.of(context).settingsManageModels),
+          subtitle: Text(AppLocalizations.of(context).settingsManageModelsSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/models'),
         ),
@@ -405,18 +408,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildDeveloperSettings(SettingsService settings) {
     return _buildSettingsSection(
-      title: 'Debugging & development',
+      title: AppLocalizations.of(context).settingsDebugging,
       icon: Icons.bug_report,
       children: [
         ListTile(
-          title: const Text('Log level'),
-          subtitle: Text('Currently ${settings.logLevel.tag}'),
+          title: Text(AppLocalizations.of(context).settingsLogLevel),
+          subtitle: Text(AppLocalizations.of(context)
+              .settingsLogLevelCurrent(settings.logLevel.tag)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showLogLevelSelector(settings),
         ),
         SwitchListTile(
-          title: const Text('Mirror logs to file'),
-          subtitle: const Text('Writes to logs/session.log in the app documents directory'),
+          title: Text(AppLocalizations.of(context).settingsMirrorLogs),
+          subtitle: Text(AppLocalizations.of(context).settingsMirrorLogsSubtitle),
           value: settings.logToFile,
           onChanged: (value) async {
             setState(() => settings.logToFile = value);
@@ -424,8 +428,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         SwitchListTile(
-          title: const Text('Skip checksum verification'),
-          subtitle: const Text('Accept downloaded models even if SHA-1 does not match'),
+          title: Text(AppLocalizations.of(context).settingsSkipChecksum),
+          subtitle: Text(AppLocalizations.of(context).settingsSkipChecksumSubtitle),
           value: settings.skipChecksum,
           onChanged: (value) {
             setState(() => settings.skipChecksum = value);
@@ -509,7 +513,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildSystemInfo() {
     return _buildSettingsSection(
-      title: 'System Information',
+      title: AppLocalizations.of(context).settingsSystemInfo,
       icon: Icons.info,
       children: [
         FutureBuilder<Map<String, String>>(
@@ -530,11 +534,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildAboutSection() {
     return _buildSettingsSection(
-      title: 'About',
+      title: AppLocalizations.of(context).settingsAbout,
       icon: Icons.help_outline,
       children: [
         ListTile(
-          title: const Text('Version'),
+          title: Text(AppLocalizations.of(context).settingsVersion),
           subtitle: FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) => Text(snapshot.hasData ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})' : 'Loading...'),

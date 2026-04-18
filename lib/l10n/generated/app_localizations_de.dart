@@ -57,7 +57,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get language => 'Sprache';
 
   @override
-  String get languageAuto => 'Automatisch erkennen';
+  String get languageAuto => 'Auto-Erkennung';
 
   @override
   String get model => 'Modell';
@@ -170,10 +170,75 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsTitle => 'Einstellungen';
 
   @override
+  String get settingsAppLanguage => 'App-Sprache';
+
+  @override
+  String get settingsInterfaceLanguage => 'Oberflächen-Sprache';
+
+  @override
+  String get settingsSystemDefault => 'Systemvorgabe';
+
+  @override
   String get settingsEngineSection => 'Transkriptions-Engine';
 
   @override
   String get settingsEnginePreferred => 'Bevorzugte Engine';
+
+  @override
+  String get settingsSelectEngine => 'Engine wählen';
+
+  @override
+  String settingsEngineSwitched(String engine) {
+    return 'Gewechselt zu $engine';
+  }
+
+  @override
+  String get settingsEngineSwitchFailed => 'Engine-Wechsel fehlgeschlagen';
+
+  @override
+  String get settingsAudioQuality => 'Audio-Qualität';
+
+  @override
+  String settingsAudioQualityCurrent(int percent) {
+    return 'Aufnahmequalität: $percent%';
+  }
+
+  @override
+  String get settingsCacheCleared => 'Cache erfolgreich geleert';
+
+  @override
+  String get settingsHfToken => 'HuggingFace-API-Token';
+
+  @override
+  String get settingsHfTokenNotSet =>
+      'Nicht gesetzt (erforderlich für gated-Modelle)';
+
+  @override
+  String get languageEn => 'Englisch';
+
+  @override
+  String get languageDe => 'Deutsch';
+
+  @override
+  String get languageEs => 'Spanisch';
+
+  @override
+  String get languageFr => 'Französisch';
+
+  @override
+  String get languageIt => 'Italienisch';
+
+  @override
+  String get languagePt => 'Portugiesisch';
+
+  @override
+  String get languageZh => 'Chinesisch';
+
+  @override
+  String get languageJa => 'Japanisch';
+
+  @override
+  String get languageKo => 'Koreanisch';
 
   @override
   String get settingsTranscription => 'Transkription';
@@ -200,9 +265,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAudio => 'Audio';
-
-  @override
-  String get settingsAudioQuality => 'Audio-Qualität';
 
   @override
   String get settingsKeepAudioFiles => 'Audio-Dateien behalten';

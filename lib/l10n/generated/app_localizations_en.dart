@@ -170,10 +170,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsAppLanguage => 'App language';
+
+  @override
+  String get settingsInterfaceLanguage => 'Interface language';
+
+  @override
+  String get settingsSystemDefault => 'System default';
+
+  @override
   String get settingsEngineSection => 'Transcription engine';
 
   @override
   String get settingsEnginePreferred => 'Preferred engine';
+
+  @override
+  String get settingsSelectEngine => 'Select engine';
+
+  @override
+  String settingsEngineSwitched(String engine) {
+    return 'Switched to $engine';
+  }
+
+  @override
+  String get settingsEngineSwitchFailed => 'Engine switch failed';
+
+  @override
+  String get settingsAudioQuality => 'Audio quality';
+
+  @override
+  String settingsAudioQualityCurrent(int percent) {
+    return 'Recording quality: $percent%';
+  }
+
+  @override
+  String get settingsCacheCleared => 'Cache cleared successfully';
+
+  @override
+  String get settingsHfToken => 'HuggingFace API token';
+
+  @override
+  String get settingsHfTokenNotSet => 'Not set (required for gated models)';
+
+  @override
+  String get languageEn => 'English';
+
+  @override
+  String get languageDe => 'German';
+
+  @override
+  String get languageEs => 'Spanish';
+
+  @override
+  String get languageFr => 'French';
+
+  @override
+  String get languageIt => 'Italian';
+
+  @override
+  String get languagePt => 'Portuguese';
+
+  @override
+  String get languageZh => 'Chinese';
+
+  @override
+  String get languageJa => 'Japanese';
+
+  @override
+  String get languageKo => 'Korean';
 
   @override
   String get settingsTranscription => 'Transcription';
@@ -200,9 +264,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAudio => 'Audio';
-
-  @override
-  String get settingsAudioQuality => 'Audio quality';
 
   @override
   String get settingsKeepAudioFiles => 'Keep audio files';

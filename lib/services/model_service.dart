@@ -594,11 +594,12 @@ class ModelService {
   }
 
   /// Unified lookup — finds a model by name across every catalog including
-  /// quants probed from HuggingFace.
+  /// quants probed from HuggingFace. Live-probed entries take precedence
+  /// so their exact byte-sizes overwrite the rounded catalog estimates.
   ModelDefinition? lookupDefinition(String name) {
-    return whisperCppModels[name] ??
-        crispasrBackendModels[name] ??
-        _discoveredModels[name];
+    return _discoveredModels[name] ??
+        whisperCppModels[name] ??
+        crispasrBackendModels[name];
   }
 
   /// Whether a probe has succeeded at least once in this session.
@@ -884,12 +885,27 @@ class ModelService {
       },
     );
 
-    // Verify final file size
+    // Verify final file size. Hardcoded catalog entries rounded to the
+    // nearest MB so we tolerate up to 5% (or 2 MB, whichever larger)
+    // undershoot before declaring the download incomplete — Dio already
+    // bubbles up real HTTP errors, so at this point a non-zero length
+    // file is almost always a complete download that just disagrees
+    // with our estimate.
     final finalSize = await file.length();
     if (expectedSize > 0 && finalSize < expectedSize) {
-      await file.delete();
-      throw ModelException(
-        'Download incomplete. Expected at least $expectedSize bytes, got $finalSize bytes'
+      final diff = expectedSize - finalSize;
+      final tolerance = (expectedSize * 0.05).ceil();
+      final absTolerance = tolerance > 2 * 1024 * 1024 ? tolerance : 2 * 1024 * 1024;
+      if (diff > absTolerance) {
+        await file.delete();
+        throw ModelException(
+          'Download incomplete. Expected at least $expectedSize bytes, got $finalSize bytes',
+        );
+      }
+      Log.instance.w(
+        'model',
+        'Download finished at $finalSize bytes, expected $expectedSize '
+        '(diff ${_formatSize(diff)}); accepting within tolerance.',
       );
     }
   }

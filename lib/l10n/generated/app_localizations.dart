@@ -416,6 +416,24 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsAppLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get settingsAppLanguage;
+
+  /// No description provided for @settingsInterfaceLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Interface language'**
+  String get settingsInterfaceLanguage;
+
+  /// No description provided for @settingsSystemDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'System default'**
+  String get settingsSystemDefault;
+
   /// No description provided for @settingsEngineSection.
   ///
   /// In en, this message translates to:
@@ -427,6 +445,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preferred engine'**
   String get settingsEnginePreferred;
+
+  /// No description provided for @settingsSelectEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Select engine'**
+  String get settingsSelectEngine;
+
+  /// No description provided for @settingsEngineSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to {engine}'**
+  String settingsEngineSwitched(String engine);
+
+  /// No description provided for @settingsEngineSwitchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine switch failed'**
+  String get settingsEngineSwitchFailed;
+
+  /// No description provided for @settingsAudioQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio quality'**
+  String get settingsAudioQuality;
+
+  /// No description provided for @settingsAudioQualityCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording quality: {percent}%'**
+  String settingsAudioQualityCurrent(int percent);
+
+  /// No description provided for @settingsCacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared successfully'**
+  String get settingsCacheCleared;
+
+  /// No description provided for @settingsHfToken.
+  ///
+  /// In en, this message translates to:
+  /// **'HuggingFace API token'**
+  String get settingsHfToken;
+
+  /// No description provided for @settingsHfTokenNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set (required for gated models)'**
+  String get settingsHfTokenNotSet;
+
+  /// No description provided for @languageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEn;
+
+  /// No description provided for @languageDe.
+  ///
+  /// In en, this message translates to:
+  /// **'German'**
+  String get languageDe;
+
+  /// No description provided for @languageEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish'**
+  String get languageEs;
+
+  /// No description provided for @languageFr.
+  ///
+  /// In en, this message translates to:
+  /// **'French'**
+  String get languageFr;
+
+  /// No description provided for @languageIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Italian'**
+  String get languageIt;
+
+  /// No description provided for @languagePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Portuguese'**
+  String get languagePt;
+
+  /// No description provided for @languageZh.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese'**
+  String get languageZh;
+
+  /// No description provided for @languageJa.
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese'**
+  String get languageJa;
+
+  /// No description provided for @languageKo.
+  ///
+  /// In en, this message translates to:
+  /// **'Korean'**
+  String get languageKo;
 
   /// No description provided for @settingsTranscription.
   ///
@@ -475,12 +595,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Audio'**
   String get settingsAudio;
-
-  /// No description provided for @settingsAudioQuality.
-  ///
-  /// In en, this message translates to:
-  /// **'Audio quality'**
-  String get settingsAudioQuality;
 
   /// No description provided for @settingsKeepAudioFiles.
   ///
