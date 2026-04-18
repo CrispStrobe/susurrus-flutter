@@ -297,6 +297,8 @@
   "batchQueueDropHint": "Audio-Dateien hier ablegen, um sie in die Warteschlange zu stellen",
 
   "advancedSection": "Erweiterte Decodierung",
+  "advancedVadTrim": "Stille schneiden (VAD)",
+  "advancedVadTrimSubtitle": "Stille am Anfang und Ende via Silero-VAD überspringen. Schneller bei Meetings / langen Aufnahmen mit Stille-Padding.",
   "advancedTranslate": "Ins Englische übersetzen",
   "advancedTranslateSubtitle": "Nur Whisper — erzwingt englische Ausgabe unabhängig von der Quellsprache.",
   "advancedBeamSearch": "Beam-Search",

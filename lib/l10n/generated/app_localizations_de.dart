@@ -682,6 +682,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get advancedSection => 'Erweiterte Decodierung';
 
   @override
+  String get advancedVadTrim => 'Stille schneiden (VAD)';
+
+  @override
+  String get advancedVadTrimSubtitle =>
+      'Stille am Anfang und Ende via Silero-VAD überspringen. Schneller bei Meetings / langen Aufnahmen mit Stille-Padding.';
+
+  @override
   String get advancedTranslate => 'Ins Englische übersetzen';
 
   @override

@@ -1310,6 +1310,18 @@ abstract class AppLocalizations {
   /// **'Advanced decoding'**
   String get advancedSection;
 
+  /// No description provided for @advancedVadTrim.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim silence (VAD)'**
+  String get advancedVadTrim;
+
+  /// No description provided for @advancedVadTrimSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip leading and trailing silence via Silero VAD. Faster on meetings / long recordings with silent padding.'**
+  String get advancedVadTrimSubtitle;
+
   /// No description provided for @advancedTranslate.
   ///
   /// In en, this message translates to:

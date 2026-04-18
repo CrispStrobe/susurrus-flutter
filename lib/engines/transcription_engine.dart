@@ -43,6 +43,8 @@ abstract class TranscriptionEngine {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
+    String? vadModelPath,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

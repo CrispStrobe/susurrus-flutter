@@ -969,6 +969,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           translate: adv.translate,
           beamSearch: adv.beamSearch,
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          vad: adv.vad,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -977,6 +978,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           _urlController.text,
           language: language,
           enableDiarization: _enableDiarization,
+          translate: adv.translate,
+          beamSearch: adv.beamSearch,
+          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          vad: adv.vad,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1057,6 +1062,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           translate: adv.translate,
           beamSearch: adv.beamSearch,
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          vad: adv.vad,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);

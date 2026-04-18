@@ -9,6 +9,7 @@ import 'audio_service.dart';
 import 'log_service.dart';
 import 'model_service.dart';
 import 'diarization_service.dart';
+import 'vad_service.dart';
 
 /// Main transcription service that coordinates engines, audio processing, and diarization
 class TranscriptionService {
@@ -16,6 +17,7 @@ class TranscriptionService {
   final ModelService _modelService;
   final DiarizationService _diarizationService = DiarizationService();
   final EngineManager _engineManager = EngineManager();
+  final VadService _vadService = VadService();
 
   bool _isTranscribing = false;
   StreamSubscription<TranscriptionSegment>? _streamSubscription;
@@ -79,6 +81,7 @@ class TranscriptionService {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -97,6 +100,17 @@ class TranscriptionService {
     _isTranscribing = true;
     onProgress?.call(0.0);
 
+    // If the user opted into VAD, make sure the Silero model is on disk.
+    // Extraction is cached after the first call.
+    String? vadModelPath;
+    if (vad) {
+      vadModelPath = await _vadService.ensureModel();
+      if (vadModelPath == null) {
+        Log.instance.w('service', 'VAD requested but model unavailable — '
+            'transcribing without VAD');
+      }
+    }
+
     try {
       // Step 1: Load and process audio (10% of progress)
       onProgress?.call(0.05);
@@ -111,6 +125,8 @@ class TranscriptionService {
         translate: translate,
         beamSearch: beamSearch,
         initialPrompt: initialPrompt,
+        vad: vad && vadModelPath != null,
+        vadModelPath: vadModelPath,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -152,6 +168,7 @@ class TranscriptionService {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -179,6 +196,7 @@ class TranscriptionService {
         translate: translate,
         beamSearch: beamSearch,
         initialPrompt: initialPrompt,
+        vad: vad,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
@@ -354,6 +372,8 @@ class TranscriptionService {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
+    String? vadModelPath,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -372,6 +392,8 @@ class TranscriptionService {
         translate: translate,
         beamSearch: beamSearch,
         initialPrompt: initialPrompt,
+        vad: vad,
+        vadModelPath: vadModelPath,
         onSegment: onSegment,
         onProgress: onProgress,
       );

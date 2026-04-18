@@ -175,7 +175,7 @@ packages:
       path: "../CrispASR/flutter/crispasr"
       relative: true
     source: path
-    version: "0.4.1"
+    version: "0.4.3"
   cross_file:
     dependency: transitive
     description:

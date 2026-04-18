@@ -297,6 +297,8 @@
   "batchQueueDropHint": "Drop audio files here to queue them",
 
   "advancedSection": "Advanced decoding",
+  "advancedVadTrim": "Trim silence (VAD)",
+  "advancedVadTrimSubtitle": "Skip leading and trailing silence via Silero VAD. Faster on meetings / long recordings with silent padding.",
   "advancedTranslate": "Translate to English",
   "advancedTranslateSubtitle": "Whisper only — forces output to English regardless of source.",
   "advancedBeamSearch": "Beam search",

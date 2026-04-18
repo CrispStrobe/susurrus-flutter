@@ -385,6 +385,8 @@ class CrispASREngine implements TranscriptionEngine {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
+    String? vadModelPath,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -434,6 +436,7 @@ class CrispASREngine implements TranscriptionEngine {
       'translate': translate,
       'beam': beamSearch,
       'prompt_chars': initialPrompt?.length ?? 0,
+      'vad': vad,
     });
 
     try {
@@ -448,12 +451,18 @@ class CrispASREngine implements TranscriptionEngine {
           translate: translate,
           beamSearch: beamSearch,
           initialPrompt: initialPrompt,
+          vad: vad,
+          vadModelPath: vadModelPath,
         );
         segments = _mapWhisperSegments(
             nativeSegments, enableWordTimestamps, onSegment);
       } else {
         // Unified session path (Parakeet, Canary, etc.)
-        final sessionSegments = await _runSessionTranscription(audioData);
+        final sessionSegments = await _runSessionTranscription(
+          audioData,
+          vad: vad,
+          vadModelPath: vadModelPath,
+        );
         segments = _mapSessionSegments(sessionSegments, onSegment);
       }
 
@@ -524,6 +533,8 @@ class CrispASREngine implements TranscriptionEngine {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    bool vad = false,
+    String? vadModelPath,
   }) async {
     // Keep FFI call off the UI thread where possible. `Isolate.run` requires
     // sending the model handle across isolates which FFI can't do, so we
@@ -537,6 +548,7 @@ class CrispASREngine implements TranscriptionEngine {
     final prompt = (initialPrompt == null || initialPrompt.trim().isEmpty)
         ? null
         : initialPrompt.trim();
+    final useVad = vad && vadModelPath != null && vadModelPath.isNotEmpty;
     return _model!.transcribePcm(
       pcm,
       options: crispasr.TranscribeOptions(
@@ -547,13 +559,38 @@ class CrispASREngine implements TranscriptionEngine {
         translate: translate,
         strategy: beamSearch ? 1 : 0, // 0 = greedy, 1 = beam search
         initialPrompt: prompt,
+        vad: useVad,
+        vadModelPath: useVad ? vadModelPath : null,
       ),
     );
   }
 
   Future<List<crispasr.SessionSegment>> _runSessionTranscription(
-      Float32List pcm) async {
+    Float32List pcm, {
+    bool vad = false,
+    String? vadModelPath,
+  }) async {
+    // Yield once so the FFI call doesn't block the current microtask batch
+    // in the UI thread (same pattern as `_runTranscription`).
     await Future<void>.delayed(Duration.zero);
+
+    // Non-whisper backends (parakeet, cohere, canary, voxtral, qwen3,
+    // granite, wav2vec2, ...) all go through CrispasrSession. When the
+    // user has VAD enabled and a Silero model path is available, route
+    // through `transcribeVad` — it performs the same Silero-VAD slicing
+    // + whisper.cpp-style stitching CrispASR's CLI uses internally. For
+    // O(T²) encoders (parakeet/cohere/canary) that's a large win because
+    // silence between utterances no longer multiplies encoder cost, and
+    // one stitched call preserves cross-segment decoder context.
+    final useVad = vad && vadModelPath != null && vadModelPath.isNotEmpty;
+    if (useVad) {
+      Log.instance.d('crispasr', 'session path: transcribeVad', fields: {
+        'backend': _session?.backend,
+        'vad_model': vadModelPath,
+        'samples': pcm.length,
+      });
+      return _session!.transcribeVad(pcm, vadModelPath);
+    }
     return _session!.transcribe(pcm);
   }
 

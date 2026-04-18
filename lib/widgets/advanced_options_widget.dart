@@ -11,22 +11,31 @@ class AdvancedOptions {
   final bool translate;
   final bool beamSearch;
   final String initialPrompt;
+  /// Skip silent regions via whisper.cpp's built-in Silero VAD pipeline.
+  /// The bundled asset at `assets/vad/silero-v6.2.0-ggml.bin` is extracted
+  /// on first use; the engine sets `params.vad = true` +
+  /// `params.vad_model_path` and whisper internally restricts decoding
+  /// to voiced frames.
+  final bool vad;
 
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
     this.initialPrompt = '',
+    this.vad = false,
   });
 
   AdvancedOptions copyWith({
     bool? translate,
     bool? beamSearch,
     String? initialPrompt,
+    bool? vad,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
         beamSearch: beamSearch ?? this.beamSearch,
         initialPrompt: initialPrompt ?? this.initialPrompt,
+        vad: vad ?? this.vad,
       );
 }
 
@@ -80,6 +89,16 @@ class _AdvancedDecodingSectionState
         ],
       ),
       children: [
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedVadTrim),
+          subtitle: Text(l.advancedVadTrimSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.vad,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(vad: v),
+        ),
         SwitchListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,

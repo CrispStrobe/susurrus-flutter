@@ -677,6 +677,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get advancedSection => 'Advanced decoding';
 
   @override
+  String get advancedVadTrim => 'Trim silence (VAD)';
+
+  @override
+  String get advancedVadTrimSubtitle =>
+      'Skip leading and trailing silence via Silero VAD. Faster on meetings / long recordings with silent padding.';
+
+  @override
   String get advancedTranslate => 'Translate to English';
 
   @override
