@@ -675,6 +675,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get batchStop => 'Stapel stoppen';
 
   @override
+  String get batchQueueDropHint =>
+      'Audio-Dateien hier ablegen, um sie in die Warteschlange zu stellen';
+
+  @override
   String get advancedSection => 'Erweiterte Decodierung';
 
   @override

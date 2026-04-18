@@ -294,6 +294,7 @@
   },
   "batchRunAll": "Transcribe all",
   "batchStop": "Stop batch",
+  "batchQueueDropHint": "Drop audio files here to queue them",
 
   "advancedSection": "Advanced decoding",
   "advancedTranslate": "Translate to English",

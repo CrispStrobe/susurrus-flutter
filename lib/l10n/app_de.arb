@@ -294,6 +294,7 @@
   },
   "batchRunAll": "Alle transkribieren",
   "batchStop": "Stapel stoppen",
+  "batchQueueDropHint": "Audio-Dateien hier ablegen, um sie in die Warteschlange zu stellen",
 
   "advancedSection": "Erweiterte Decodierung",
   "advancedTranslate": "Ins Englische übersetzen",

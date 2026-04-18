@@ -233,6 +233,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   void _onFilesDropped(DropDoneDetails details) {
     setState(() => _dropHover = false);
     if (details.files.isEmpty) return;
+    // desktop_drop delivers the same drop to every nested DropTarget.
+    // If the batch card already handled it, don't double-enqueue.
+    if (ref.read(batchQueueProvider.notifier).recentlyConsumedDrop) return;
 
     final supported = details.files
         .where((f) => AudioUtils.isSupportedAudioFile(f.path))

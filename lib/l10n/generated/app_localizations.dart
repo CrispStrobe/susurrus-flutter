@@ -1298,6 +1298,12 @@ abstract class AppLocalizations {
   /// **'Stop batch'**
   String get batchStop;
 
+  /// No description provided for @batchQueueDropHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop audio files here to queue them'**
+  String get batchQueueDropHint;
+
   /// No description provided for @advancedSection.
   ///
   /// In en, this message translates to:

@@ -671,6 +671,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchStop => 'Stop batch';
 
   @override
+  String get batchQueueDropHint => 'Drop audio files here to queue them';
+
+  @override
   String get advancedSection => 'Advanced decoding';
 
   @override

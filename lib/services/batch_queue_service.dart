@@ -135,6 +135,21 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
       state.where((j) => j.status == BatchJobStatus.queued).length;
   int get doneCount =>
       state.where((j) => j.status == BatchJobStatus.done).length;
+
+  // desktop_drop DropTargets fire even when nested. When the batch card's
+  // own DropTarget consumes a drop, it calls markDropReceived(); the outer
+  // page-level DropTarget peeks at `recentlyConsumedDrop` to avoid
+  // re-handling the same event.
+  DateTime? _lastDropAt;
+  void markDropReceived() {
+    _lastDropAt = DateTime.now();
+  }
+
+  bool get recentlyConsumedDrop {
+    final t = _lastDropAt;
+    if (t == null) return false;
+    return DateTime.now().difference(t) < const Duration(milliseconds: 400);
+  }
 }
 
 final batchQueueProvider =
