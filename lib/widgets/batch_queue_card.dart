@@ -36,22 +36,33 @@ class BatchQueueCard extends ConsumerWidget {
               children: [
                 const Icon(Icons.playlist_play, size: 18),
                 const SizedBox(width: 6),
-                Text(l.batchQueueTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                Text(
-                  l.batchQueueSummary(queued, running, done, errored),
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade700),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l.batchQueueTitle,
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        l.batchQueueSummary(queued, running, done, errored),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
                 if (done > 0)
-                  TextButton.icon(
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.cleaning_services_outlined,
-                        size: 16),
-                    label: Text(l.batchClearCompleted),
-                    onPressed: () =>
-                        ref.read(batchQueueProvider.notifier).clearCompleted(),
+                        size: 18),
+                    tooltip: l.batchClearCompleted,
+                    onPressed: () => ref
+                        .read(batchQueueProvider.notifier)
+                        .clearCompleted(),
                   ),
               ],
             ),

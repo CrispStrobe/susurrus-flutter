@@ -298,21 +298,46 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final transcriptionService = ref.watch(transcriptionServiceProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-          // Narrow (mobile/portrait) layouts flow top-to-bottom with a scroll;
-          // wide layouts put input/controls on the left and output on the
-          // right so the output isn't crushed by a tall input section.
-          final wide = constraints.maxWidth >= 900;
+          // Three tiers:
+          //   - narrow (<700)  : single stacked column, all panes scroll.
+          //     Suited to phones and very-tight desktop windows.
+          //   - wide   (≥700)  : 2-column input|output.
+          //   - extra-wide (≥1300) : 3-column input | queue+controls | output.
+          //     Batch queue gets its own middle column so the left stays
+          //     compact and the output pane is unaffected.
+          final w = constraints.maxWidth;
           final input = _buildInputSection();
           final controls =
               _buildControlsSection(appState, transcriptionService);
           final output = _buildOutputSection(appState);
 
-          if (wide) {
+          if (w >= 1300) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 420,
+                  width: 380,
+                  child: SingleChildScrollView(child: input),
+                ),
+                const VerticalDivider(width: 1),
+                SizedBox(
+                  width: 340,
+                  child: controls,
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: output),
+              ],
+            );
+          }
+          if (w >= 700) {
+            // Compute a sensible left-column width proportional to the
+            // viewport so controls don't cram when the window is ~700px.
+            final leftWidth = (w * 0.40).clamp(360.0, 520.0);
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: leftWidth,
                   child: Column(
                     children: [
                       Expanded(child: SingleChildScrollView(child: input)),
@@ -325,6 +350,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               ],
             );
           }
+          // Narrow: stack vertically. Output is most important → flex 3.
           return Column(
             children: [
               Expanded(
