@@ -8,6 +8,15 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 
 ![AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue) ![Flutter 3.38](https://img.shields.io/badge/flutter-3.38-blue) ![macOS · Linux · Windows · iOS · Android](https://img.shields.io/badge/platforms-macOS%20·%20Linux%20·%20Windows%20·%20iOS%20·%20Android-lightgrey)
 
+### Part of the Crisp ecosystem
+
+| Project | Role |
+|---|---|
+| **[CrispASR](https://github.com/CrispStrobe/CrispASR)** | C++ ASR engine powering this app — 11 backends, CLI + C-ABI, 3.8x faster than voxtral.c |
+| **CrisperWeaver** | This app — Flutter GUI for CrispASR |
+| **[CrispEmbed](https://github.com/CrispStrobe/CrispEmbed)** | Text embedding engine (ggml) — XLM-R, Qwen3-Embed, Gemma3, dense + sparse + ColBERT |
+| **[Susurrus](https://github.com/CrispStrobe/Susurrus)** | Python ASR GUI with 9 backends (faster-whisper, mlx-whisper, voxtral, ...) |
+
 ---
 
 ## What you can do
