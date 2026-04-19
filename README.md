@@ -161,9 +161,10 @@ All three accept the `.ipa` directly: download `crisper_weaver-ios-unsigned.ipa`
 The short version:
 
 - CoreML acceleration for Whisper on iOS/macOS (enable `WHISPER_USE_COREML` inside CrispASR, ship the paired `.mlmodelc` next to the `.bin`).
-- Real speaker diarization (blocked on upstream CrispASR diarization API — MFCC/k-means stopgap currently in place).
-- Batch file processing (queue multi-select / multi-drop; see PLAN.md §5.7).
-- Expose more CrispASR power-user knobs: VAD toggle, beam search / best-of-N, temperature, initial prompt, source/target languages for translation backends, audio Q&A mode, streaming UI (see PLAN.md §5.8).
+- Swap the MFCC/k-means diarization stopgap for the shared-lib `crispasr_diarize_segments_abi` introduced in CrispASR v0.4.5 (pyannote GGUF + energy/xcorr/vad-turns in one call).
+- Wire the shared `crispasr_detect_language_pcm` (v0.4.6) for auto-language on backends that lack native LID.
+- Wire `crispasr_align_words_abi` (v0.4.7) to give word-level timestamps to LLM-based backends (qwen3 / voxtral / granite) that don't emit them natively.
+- Expose more CrispASR power-user knobs in the UI: beam search / best-of-N, temperature, source/target languages for translation backends, audio Q&A mode, streaming UI (see PLAN.md §5.8). VAD and `initialPrompt` already shipped in v0.1.7.
 - Windows CI job + dll bundling script.
 - Android CI: cross-build `libwhisper.so` + sibling backends, drop into `jniLibs/`, ship a real-ASR APK.
 - iOS `pod install` + device-build CI verification.
