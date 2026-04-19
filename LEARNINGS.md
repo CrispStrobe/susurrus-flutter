@@ -304,3 +304,52 @@ Keep the raw license text in `assets/licenses/` and declare the asset in `pubspe
 ### Don't commit build artefacts
 
 We accidentally committed `crispasr/target/` (Cargo build dir) and `Cargo.lock` from CrispASR during a CI fix. `.gitignore` additions + `git rm --cached` fixed it. Lesson: when fixing CI across a multi-repo tree, run `git status` frequently.
+
+---
+
+## VAD wire-up (v0.1.7, April 2026)
+
+### Bundled GGUF asset + first-use extract is the cleanest pattern
+
+The Silero VAD GGUF (~885 KB) ships as `assets/vad/silero-v6.2.0-ggml.bin` and `lib/services/vad_service.dart` exposes a single `ensureModel()` call that copies the rootBundle asset to `<appCache>/vad/silero-v6.2.0-ggml.bin` on first use. Whisper's `params.vad_model_path` / the session API's `transcribeVad(..., vadModelPath)` both take a concrete file path — they can't read Flutter asset URIs directly. The extract-to-cache step is a one-liner but it's *the* interop glue between Flutter and any FFI that wants a filesystem path. This pattern generalises: any future shared-library feature that wants a model path (pyannote GGUF for diarize, whisper-tiny for LID, canary-CTC for alignment) uses the same "bundle as asset → extract to cache → pass path" recipe.
+
+### Engine dispatch sits at `CrispASREngine`, not the service layer
+
+`TranscriptionService.transcribeFile` was the natural place to put "extract VAD model + pass to engine". Resist adding feature flags one layer higher. The service knows about files and jobs, the engine knows about FFI. `_performTranscription(vad, vadModelPath, ...)` forwards to `engine.transcribe(vad, vadModelPath)` unchanged — the service doesn't care which engine consumes the flag, and the engine dispatches whisper vs session internally. That separation kept v0.1.7 to ~10 lines of service-layer change for a feature spanning every backend.
+
+### Whisper vs session-API are two different VAD paths
+
+`CrispASREngine.transcribe()` branches on `_model != null` (whisper, direct `crispasr.CrispASR`) vs `_session != null` (everything else, via `CrispasrSession`):
+- **Whisper path**: sets `TranscribeOptions.vad = true` + `vadModelPath = path`. whisper.cpp's internal `whisper_full_params.vad` does the slicing + internal 30 s seek. No stitching.
+- **Session path**: calls `CrispasrSession.transcribeVad(pcm, vadModelPath)` — the C-ABI `crispasr_session_transcribe_vad` does VAD + merge/split + stitch with 0.1 s gaps + single transcribe + timestamp remap in one FFI hop.
+
+Both paths take the same `vad: true` flag from the UI toggle. The fact that they dispatch differently internally is invisible to callers — that's what the DRY refactor bought us.
+
+### Pinning to a sibling CrispASR checkout via `path:` dep
+
+`pubspec.yaml` declares `crispasr: { path: ../CrispASR/flutter/crispasr }`. This means every commit here implicitly pins to whatever's in the sibling `main` branch at build time. For v0.1.7 we needed `CrispasrSession.transcribeVad` which landed in `package:crispasr` 0.4.3 (upstream CrispASR `main` @ `28e4f16`) — no pub.dev coordination, just push upstream first, then build downstream. The release-notes commit documents the exact upstream SHA so bisecting any issue can pin to a known-good pair.
+
+### Watch for ancient tags that don't contain new work
+
+Twice during this cycle we had tag divergence: `v0.4.3` was tagged on an older upstream commit that predated our VAD work. `git pull` silently put us at the old tag's HEAD, and the dylib we rebuilt was missing our changes. Fix: when switching CrispASR checkouts, always `git log --oneline main | head -5` and check the expected feature commit is there. `git tag --contains <commit>` is the right query for "which releases include my work".
+
+---
+
+## Upstream CrispASR v0.4.4–v0.4.8: what's now possible in-app
+
+Every large piece of functionality the CrispASR CLI previously owned is reachable from Dart via `package:crispasr` 0.4.8:
+
+| Capability | Dart surface | CrisperWeaver status |
+|---|---|---|
+| VAD + stitching | `CrispasrSession.transcribeVad()` | ✅ shipped v0.1.7 |
+| Speaker diarization | `diarizeSegments(...)` | ⚠️ not yet — MFCC/k-means stopgap still in `diarization_service.dart` |
+| Language ID | `detectLanguagePcm(...)` | ⚠️ not yet — UI currently assumes user sets language |
+| CTC / forced alignment | `alignWords(...)` | ⚠️ not yet — word timestamps missing for qwen3/voxtral/granite/cohere |
+| HF download | `cacheEnsureFile(...)` | ⚠️ not used — CrisperWeaver has its own Dio-based downloader |
+| Model registry lookup | `registryLookup(...)` | ⚠️ not used — CrisperWeaver has its own model catalog |
+
+The pattern is the same every time: the library call takes a PCM buffer + a model path, writes its answer into caller-allocated structs, and returns in one FFI hop. Wiring these is not engine work — it's service-layer plumbing matching the VAD wire-up from v0.1.7.
+
+### App-sandbox cache vs `~/.cache/crispasr`
+
+`cacheEnsureFile` / `cacheDir` from the lib write under `$HOME/.cache/crispasr` on POSIX. Works for desktop CrisperWeaver users who also use the CLI. Broken on iOS/Android where apps are sandboxed and `$HOME` points at the app container. For mobile, keep using the app's documents/caches dir (we already do via `path_provider`) and pass that as `cacheDirOverride` when we do start calling the lib's cache helper. Desktop users get the CLI-shared cache by default, mobile users get the sandboxed path — same symbol, different ambient configuration.

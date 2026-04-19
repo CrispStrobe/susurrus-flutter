@@ -73,10 +73,12 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 | Audio decoding (WAV / MP3 / FLAC)          | ✅ `crispasr_audio_load` FFI via miniaudio — no ffmpeg dep            |
 | Word-level timestamps (Whisper)            | ✅ via CrispASR 0.2.0                                                 |
 | Language auto-detect (Whisper)             | ✅ via CrispASR 0.2.0 `crispasr_detect_language`                      |
-| VAD (Silero) Dart binding                  | ✅ via CrispASR 0.2.0 `crispasr_vad_segments` (needs VAD GGML model)  |
+| VAD (Silero) — end to end                  | ✅ shipped in v0.1.7 via CrispASR 0.4.4 `crispasr_session_transcribe_vad`; single Advanced Options toggle, Silero GGUF bundled as asset, whisper + session paths both wired |
 | Streaming transcription (Whisper)          | ✅ via CrispASR 0.3.0 `crispasr_stream_*` — 10s window / 3s step       |
 | i18n (en + de)                             | ⚠️ Scaffold via `flutter_localizations` + `lib/l10n/*.arb`; main screens migrated, widgets + older Settings strings still hardcoded |
-| Real speaker diarization                   | ❌ Blocked on upstream CrispASR diarization API — current MFCC/k-means is a stopgap |
+| Real speaker diarization (library API)     | ⚠️ Unblocked by CrispASR 0.4.5 `crispasr_diarize_segments_abi` (energy / xcorr / vad-turns / pyannote). Current in-app MFCC/k-means stopgap still in `lib/services/diarization_service.dart` — swap to the lib call is pending wiring work |
+| Language auto-detect for non-Whisper backends | ⚠️ Unblocked by CrispASR 0.4.6 `crispasr_detect_language_pcm` (whisper-tiny + silero-native). Not wired in UI yet |
+| Word timestamps for LLM backends           | ⚠️ Unblocked by CrispASR 0.4.7 `crispasr_align_words_abi` (canary-CTC / qwen3-fa). Not wired for qwen3 / voxtral / granite yet |
 
 ---
 
@@ -119,11 +121,19 @@ Where: add a new `build-android-native` job to `.github/workflows/release.yml` (
 
 **Remaining:** watch the first green run, verify `whisper.dll` contains all needed exports (`whisper_init_from_file_with_params`, `crispasr_session_open_explicit`, `crispasr_audio_load`, …), install on a real Windows box, transcribe. If export-mismatch: add explicit `__declspec(dllexport)` to the whisper.h decls.
 
-### 5.5 Real speaker diarization
+### 5.5 Real speaker diarization — unblocked
 
-**What:** upstream CrispASR needs a diarization API (pyannote-compatible embeddings + clustering) before we can drop the current MFCC/k-means fallback in `lib/services/diarization_service.dart`. When that lands, rewire via `CrispasrSession.diarize()` (TBD symbol).
+**What:** CrispASR 0.4.5 shipped `crispasr_diarize_segments_abi` with four methods (energy, xcorr, vad-turns, native pyannote GGUF). The Dart binding in `package:crispasr` 0.4.5 exposes it as a top-level `diarizeSegments({...})` helper returning `List<DiarizeSegment>`.
 
-**Risk:** high; blocked on upstream. Track via `CrispASR/TODO.md`.
+**Remaining work:**
+1. Wire `diarizeSegments` in `lib/services/diarization_service.dart` — call it after `CrispASREngine.transcribe()` returns. Pass the original PCM + segment timings, receive per-segment speaker indices back.
+2. Default method: `pyannote` when we have a GGUF on disk (bundle the 5 MB `pyannote-v3-seg.gguf` as an asset the same way we bundle `silero-v6.2.0-ggml.bin` for VAD), falling back to `vadTurns` otherwise. On stereo input, use `energy` or `xcorr`.
+3. Delete `_mfccFeatures()` / `_kMeansCluster()` from `diarization_service.dart`; these were the stopgap that's no longer needed.
+4. Add a method picker in Advanced Options (matching the VAD pattern from v0.1.7).
+
+**Where:** `lib/services/diarization_service.dart`, `lib/widgets/advanced_options_widget.dart`, `assets/diarize/` + `pubspec.yaml`.
+
+**Risk:** medium. The library call is fast (energy / vad-turns are µs; pyannote is ~50 ms per segment on CPU) but our current output format needs to be preserved — the UI's speaker coloring keys on zero-based ints, which is already what the lib returns.
 
 ### 5.6 Backend-specific UX
 
@@ -152,8 +162,9 @@ Let the user drop/pick multiple files at once and process them in a queue. Resul
 
 Shipped in v0.1.4 (first slice): **translate-to-English**, **beam search** toggle, **initial prompt** text field. Live in the Advanced Options → Advanced decoding block; applies to both single-file and batch runs.
 
+Shipped in v0.1.7: **Skip silence (VAD)** toggle. Drives `CrispasrSession.transcribeVad` (session backends) and `TranscribeOptions.vad = true` (whisper) via the new v0.4.4 library C-ABI. Silero v6.2.0 GGUF is bundled as `assets/vad/silero-v6.2.0-ggml.bin` (~885 KB).
+
 Remaining (follow-up):
-- **VAD** — `crispasr_vad_segments` is bound. Add a toggle + Silero vs FastConformer model + threshold slider. Default-on would skip silence + split long audio into voiced chunks, cutting transcription time on sparse content.
 - **Best-of-N** — LLM backends (Voxtral/Qwen3/Granite) support it; Whisper has `best_of`. One slider.
 - **Temperature** — `crispasr_params_set_temperature`. Greedy default; 0.2–1.0 useful for noisy audio where greedy hallucinates.
 - **Source / target language** — Canary, Voxtral, Qwen3 support translation via `-sl / -tl`. UI switches from one `language` dropdown to two when the selected backend advertises translation capability.
@@ -165,6 +176,21 @@ Remaining (follow-up):
 **Where:** `lib/widgets/advanced_options_widget.dart` (new), swap the inline block in `transcription_screen.dart`. Also a new enum `EngineCapability { vad, beamSearch, bestOf, temperature, initialPrompt, translation, audioQA, grammar, streaming }` on `TranscriptionEngine` so the UI knows which controls to show.
 
 **Risk:** low-medium. Each knob is independently wired — incremental shipping works. The FFI is already in place for most of these; we're adding surface, not behaviour.
+
+### 5.11 LID + forced aligner wiring — newly unblocked
+
+CrispASR 0.4.6 (`crispasr_detect_language_pcm`) and 0.4.7
+(`crispasr_align_words_abi`) shipped the same week as 0.4.5's
+diarization API. Both are exposed as top-level Dart functions in
+`package:crispasr` 0.4.8. Two separate pieces of work:
+
+**LID (v0.4.6):** when the user selects a non-Whisper backend and leaves `language` on "auto", we currently fall through to whatever the backend does (some — cohere, granite — force English; others — voxtral — default to English too). Instead, run `detectLanguagePcm(pcm, method: LidMethod.whisper, modelPath: ggmlTinyPath)` as a pre-step to fill `language` before dispatching to the session transcribe. Needs `ggml-tiny.bin` (75 MB) bundled as an asset or auto-downloaded at first use.
+
+**Forced aligner (v0.4.7):** qwen3, voxtral, voxtral4b, granite don't emit word-level timestamps natively. Use `alignWords(alignerModel: canaryCtcPath, transcript: fullText, pcm: pcmBuffer)` as a post-step when the user has "word timestamps" enabled and the active backend doesn't produce them. Canary-CTC-aligner GGUF (~60 MB) bundled or downloaded on demand.
+
+**Where:** `lib/engines/crispasr_engine.dart` gets a new pre-step hook + a new post-step hook. `lib/services/vad_service.dart` pattern of "extract-GGUF-asset-on-first-use" is the template; mirror it in a new `LidService` and `AlignerService`.
+
+**Risk:** low. Both are optional — if the asset isn't present we skip the step gracefully. Biggest cost is disk (75 MB whisper-tiny + 60 MB canary-ctc = ~135 MB app bundle bump), so we'd likely leave these as opt-in downloads rather than bundled assets.
 
 ### 5.9 Dependency refresh
 
