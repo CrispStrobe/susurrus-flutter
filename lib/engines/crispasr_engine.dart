@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:crispasr/crispasr.dart' as crispasr;
 
 import 'transcription_engine.dart';
+import '../services/aligner_service.dart';
 import '../services/log_service.dart';
 import '../services/model_service.dart';
 
@@ -26,6 +27,7 @@ class CrispASREngine implements TranscriptionEngine {
   String? _currentModelPath;
   Map<String, dynamic> _config = {};
   ModelService? _modelService;
+  final AlignerService _alignerService = AlignerService();
 
   @override
   String get engineId => 'crispasr';
@@ -440,7 +442,7 @@ class CrispASREngine implements TranscriptionEngine {
     });
 
     try {
-      final List<TranscriptionSegment> segments;
+      List<TranscriptionSegment> segments;
 
       if (_model != null) {
         // Whisper-specific path
@@ -464,6 +466,20 @@ class CrispASREngine implements TranscriptionEngine {
           vadModelPath: vadModelPath,
         );
         segments = _mapSessionSegments(sessionSegments, onSegment);
+
+        // Post-step: if word timestamps were requested and this session
+        // backend didn't emit any (qwen3, voxtral, voxtral4b, granite,
+        // cohere), run the CTC aligner. `AlignerService` silently no-ops
+        // when no aligner GGUF is on disk, so the happy path for
+        // parakeet/canary (which already emit word times) is unchanged.
+        if (enableWordTimestamps && segments.isNotEmpty) {
+          final anyMissing =
+              segments.any((s) => s.words == null || s.words!.isEmpty);
+          if (anyMissing) {
+            segments = await _alignerService.addWordTimestamps(
+                segments, audioData);
+          }
+        }
       }
 
       onProgress?.call(0.95);

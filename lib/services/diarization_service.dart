@@ -1,474 +1,98 @@
-// lib/services/diarization_service.dart (FIXED IMPORTS)
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
+import 'package:crispasr/crispasr.dart' as crispasr;
 
-import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
+import '../engines/transcription_engine.dart';
 import 'audio_service.dart';
+import 'log_service.dart';
 
+/// Speaker diarization via CrispASR 0.4.5+ shared-lib `diarizeSegments`.
+///
+/// Four methods are available upstream (energy / xcorr / vad-turns /
+/// pyannote). We default to `vadTurns` because it's mono-friendly, needs
+/// no extra model file, and returns a stable alternating-speaker
+/// labelling on typical conversational audio. The pyannote path (GGUF-
+/// based ML diarization, up to 3 speakers) is available when callers
+/// ship the pyannote-v3-seg.gguf and pass `method:
+/// DiarizeMethod.pyannote`; that wiring is deferred behind a model-
+/// manager flow.
+///
+/// This replaces a ~474 LOC MFCC + k-means stopgap that predated the
+/// upstream C-ABI. The shared-lib call runs in one FFI hop and matches
+/// exactly what `crispasr --diarize --diarize-method vad-turns`
+/// produces on the CLI.
 class DiarizationService {
-  static const int _hopLength = 512;
-  static const int _windowSize = 2048;
-  static const double _frameRate = 16000.0;
-
+  /// Fill `seg.speaker` for every segment using the shared-lib diarizer.
+  ///
+  /// `audioData.samples` is treated as mono 16 kHz float PCM. We don't
+  /// have per-channel access in CrisperWeaver today, so the stereo-only
+  /// methods (energy / xcorr) aren't selectable here; passing them
+  /// would produce no-op labels.
+  ///
+  /// `minSpeakers` / `maxSpeakers` are accepted for API compatibility
+  /// with older callers but currently ignored — the lib methods pick
+  /// speaker counts internally (vad-turns alternates 0/1; pyannote can
+  /// emit up to 3).
   Future<List<TranscriptionSegment>> diarizeSegments(
     AudioData audioData,
     List<TranscriptionSegment> segments, {
     int? minSpeakers,
     int? maxSpeakers,
+    crispasr.DiarizeMethod method = crispasr.DiarizeMethod.vadTurns,
+    String? pyannoteModelPath,
     void Function(double progress)? onProgress,
   }) async {
     if (segments.isEmpty) return segments;
 
+    onProgress?.call(0.0);
+
+    final libSegs = segments
+        .map((s) => crispasr.DiarizeSegment(t0: s.startTime, t1: s.endTime))
+        .toList();
+
+    onProgress?.call(0.2);
+
     try {
-      onProgress?.call(0.0);
-
-      final embeddings = await _extractSegmentEmbeddings(
-        audioData.samples,
-        segments,
-        onProgress: (progress) => onProgress?.call(progress * 0.7),
+      final ok = crispasr.diarizeSegments(
+        segs: libSegs,
+        left: audioData.samples,
+        isStereo: false,
+        method: method,
+        pyannoteModelPath: pyannoteModelPath,
       );
-
-      onProgress?.call(0.7);
-
-      final speakerLabels = await _clusterSpeakers(
-        embeddings,
-        minSpeakers: minSpeakers,
-        maxSpeakers: maxSpeakers,
-      );
-
-      onProgress?.call(0.9);
-
-      final diarizedSegments = <TranscriptionSegment>[];
-      for (int i = 0; i < segments.length; i++) {
-        final segment = segments[i];
-        final speakerLabel = speakerLabels.length > i ? speakerLabels[i] : 0;
-
-        diarizedSegments.add(TranscriptionSegment(
-          text: segment.text,
-          startTime: segment.startTime,
-          endTime: segment.endTime,
-          speaker: 'Speaker ${speakerLabel + 1}',
-          confidence: segment.confidence,
-          words: segment.words, // Preserve word-level data if available
-          metadata: {
-            ...segment.metadata,
-            'diarizationLabel': speakerLabel,
-            'originalSpeaker': segment.speaker,
-          },
-        ));
+      if (!ok) {
+        Log.instance.w('diarize',
+            'crispasr.diarizeSegments returned false — leaving speakers unassigned');
+        return segments;
       }
-
-      onProgress?.call(1.0);
-      return diarizedSegments;
-    } catch (e) {
-      throw DiarizationException('Speaker diarization failed: $e');
+    } catch (e, st) {
+      Log.instance.e('diarize', 'diarizeSegments threw',
+          error: e, stack: st);
+      return segments;
     }
+
+    onProgress?.call(0.9);
+
+    final out = <TranscriptionSegment>[];
+    for (var i = 0; i < segments.length; i++) {
+      final spk = libSegs[i].speaker;
+      final label = spk >= 0 ? 'Speaker ${spk + 1}' : segments[i].speaker;
+      out.add(TranscriptionSegment(
+        text: segments[i].text,
+        startTime: segments[i].startTime,
+        endTime: segments[i].endTime,
+        speaker: label,
+        confidence: segments[i].confidence,
+        words: segments[i].words,
+        metadata: segments[i].metadata,
+      ));
+    }
+
+    onProgress?.call(1.0);
+    Log.instance.i('diarize', 'diarizeSegments done', fields: {
+      'method': method.name,
+      'segments': out.length,
+      'speakers_seen':
+          libSegs.map((s) => s.speaker).where((s) => s >= 0).toSet().length,
+    });
+    return out;
   }
-
-  /// Extract speaker embeddings for each segment using MFCC features
-  Future<List<List<double>>> _extractSegmentEmbeddings(
-    Float32List audioSamples,
-    List<TranscriptionSegment> segments, {
-    void Function(double progress)? onProgress,
-  }) async {
-    final embeddings = <List<double>>[];
-
-    for (int i = 0; i < segments.length; i++) {
-      final segment = segments[i];
-
-      // Extract audio for this segment
-      final startSample = (segment.startTime * _frameRate).round();
-      final endSample = (segment.endTime * _frameRate).round();
-
-      if (startSample >= 0 &&
-          endSample <= audioSamples.length &&
-          startSample < endSample) {
-        final segmentAudio = audioSamples.sublist(startSample, endSample);
-
-        // Extract MFCC features as a simple speaker embedding
-        final mfccFeatures = await _extractMFCC(segmentAudio);
-
-        // Compute mean and variance as a simple speaker embedding
-        final embedding = _computeStatisticalFeatures(mfccFeatures);
-        embeddings.add(embedding);
-      } else {
-        // Add default embedding for invalid segments
-        embeddings.add(List.filled(26, 0.0)); // 13 MFCC + 13 delta features
-      }
-
-      onProgress?.call((i + 1) / segments.length);
-    }
-
-    return embeddings;
-  }
-
-  /// Extract MFCC features from audio segment
-  Future<List<List<double>>> _extractMFCC(Float32List audioSamples) async {
-    // Simplified MFCC extraction
-    // In a production app, you might want to use a more sophisticated implementation
-    // or call native code for better performance
-
-    const int numMfcc = 13;
-    const int numFrames = 100; // Fixed number of frames for consistency
-
-    // Pre-emphasis filter
-    final preEmphasized = _preEmphasis(audioSamples);
-
-    // Frame the signal
-    final frames = _frameSignal(preEmphasized, _windowSize, _hopLength);
-
-    // Compute power spectrum
-    final powerSpectra =
-        frames.map((frame) => _computePowerSpectrum(frame)).toList();
-
-    // Apply mel filter bank
-    final melFeatures =
-        powerSpectra.map((spectrum) => _applyMelFilterBank(spectrum)).toList();
-
-    // Apply DCT to get MFCC
-    final mfccFeatures =
-        melFeatures.map((mel) => _dct(mel).take(numMfcc).toList()).toList();
-
-    // Ensure consistent number of frames
-    return _normalizeFrameCount(mfccFeatures, numFrames);
-  }
-
-  /// Pre-emphasis filter to balance the frequency spectrum
-  Float32List _preEmphasis(Float32List signal, [double alpha = 0.97]) {
-    final result = Float32List(signal.length);
-    result[0] = signal[0];
-
-    for (int i = 1; i < signal.length; i++) {
-      result[i] = signal[i] - alpha * signal[i - 1];
-    }
-
-    return result;
-  }
-
-  /// Frame the signal into overlapping windows
-  List<Float32List> _frameSignal(
-      Float32List signal, int frameSize, int hopLength) {
-    final frames = <Float32List>[];
-
-    for (int start = 0;
-        start + frameSize <= signal.length;
-        start += hopLength) {
-      final frame = signal.sublist(start, start + frameSize);
-
-      // Apply Hamming window
-      final windowedFrame = Float32List(frameSize);
-      for (int i = 0; i < frameSize; i++) {
-        final window = 0.54 - 0.46 * cos(2 * pi * i / (frameSize - 1));
-        windowedFrame[i] = frame[i] * window;
-      }
-
-      frames.add(windowedFrame);
-    }
-
-    return frames;
-  }
-
-  /// Compute power spectrum using simplified FFT
-  List<double> _computePowerSpectrum(Float32List frame) {
-    // Simplified power spectrum computation
-    // In production, you'd use a proper FFT implementation
-    final spectrum = <double>[];
-
-    for (int k = 0; k < frame.length ~/ 2; k++) {
-      double real = 0.0;
-      double imag = 0.0;
-
-      for (int n = 0; n < frame.length; n++) {
-        final angle = -2 * pi * k * n / frame.length;
-        real += frame[n] * cos(angle);
-        imag += frame[n] * sin(angle);
-      }
-
-      spectrum.add(real * real + imag * imag);
-    }
-
-    return spectrum;
-  }
-
-  /// Apply mel filter bank
-  List<double> _applyMelFilterBank(List<double> powerSpectrum,
-      [int numFilters = 26]) {
-    // Simplified mel filter bank
-    final melFilters = <double>[];
-
-    for (int i = 0; i < numFilters; i++) {
-      final filterResponse = _triangularFilter(powerSpectrum, i, numFilters);
-      melFilters.add(filterResponse);
-    }
-
-    return melFilters;
-  }
-
-  /// Triangular filter for mel filter bank
-  double _triangularFilter(
-      List<double> spectrum, int filterIndex, int numFilters) {
-    double sum = 0.0;
-    final filterWidth = spectrum.length / numFilters;
-    final start = (filterIndex * filterWidth).round();
-    final end = ((filterIndex + 1) * filterWidth).round();
-
-    for (int i = start; i < end && i < spectrum.length; i++) {
-      sum += spectrum[i];
-    }
-
-    return sum / (end - start);
-  }
-
-  /// Discrete Cosine Transform
-  List<double> _dct(List<double> input) {
-    final output = <double>[];
-    final N = input.length;
-
-    for (int k = 0; k < N; k++) {
-      double sum = 0.0;
-
-      for (int n = 0; n < N; n++) {
-        sum += input[n] * cos(pi * k * (2 * n + 1) / (2 * N));
-      }
-
-      output.add(sum);
-    }
-
-    return output;
-  }
-
-  /// Normalize frame count for consistent embeddings
-  List<List<double>> _normalizeFrameCount(
-      List<List<double>> frames, int targetFrames) {
-    if (frames.length == targetFrames) return frames;
-
-    if (frames.length < targetFrames) {
-      // Repeat frames if too few
-      final result = <List<double>>[];
-      for (int i = 0; i < targetFrames; i++) {
-        result.add(frames[i % frames.length]);
-      }
-      return result;
-    } else {
-      // Subsample if too many
-      final step = frames.length / targetFrames;
-      final result = <List<double>>[];
-      for (int i = 0; i < targetFrames; i++) {
-        final index = (i * step).round();
-        result.add(frames[index.clamp(0, frames.length - 1)]);
-      }
-      return result;
-    }
-  }
-
-  /// Compute statistical features from MFCC frames
-  List<double> _computeStatisticalFeatures(List<List<double>> mfccFrames) {
-    if (mfccFrames.isEmpty) return List.filled(26, 0.0);
-
-    final numCoeffs = mfccFrames.first.length;
-    final features = <double>[];
-
-    // Compute mean and standard deviation for each MFCC coefficient
-    for (int coeff = 0; coeff < numCoeffs; coeff++) {
-      final values = mfccFrames.map((frame) => frame[coeff]).toList();
-
-      // Mean
-      final mean = values.reduce((a, b) => a + b) / values.length;
-      features.add(mean);
-
-      // Standard deviation
-      final variance =
-          values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) /
-              values.length;
-      features.add(sqrt(variance));
-    }
-
-    return features;
-  }
-
-  /// Cluster speaker embeddings using K-means
-  Future<List<int>> _clusterSpeakers(
-    List<List<double>> embeddings, {
-    int? minSpeakers,
-    int? maxSpeakers,
-  }) async {
-    if (embeddings.isEmpty) return [];
-
-    // Determine optimal number of clusters
-    int numClusters = _determineOptimalClusters(
-      embeddings,
-      minSpeakers: minSpeakers,
-      maxSpeakers: maxSpeakers,
-    );
-
-    // Perform K-means clustering
-    return _kMeansCluster(embeddings, numClusters);
-  }
-
-  /// Determine optimal number of clusters using elbow method
-  int _determineOptimalClusters(
-    List<List<double>> embeddings, {
-    int? minSpeakers,
-    int? maxSpeakers,
-  }) {
-    final minK = minSpeakers ?? 1;
-    final maxK = maxSpeakers ?? min(embeddings.length, 6);
-
-    if (minK == maxK) return minK;
-
-    // Use elbow method to find optimal K
-    final inertias = <double>[];
-
-    for (int k = minK; k <= maxK; k++) {
-      final labels = _kMeansCluster(embeddings, k);
-      final inertia = _computeInertia(embeddings, labels, k);
-      inertias.add(inertia);
-    }
-
-    // Find elbow (simplified approach)
-    int optimalK = minK;
-    double maxDecrease = 0.0;
-
-    for (int i = 1; i < inertias.length; i++) {
-      final decrease = inertias[i - 1] - inertias[i];
-      if (decrease > maxDecrease) {
-        maxDecrease = decrease;
-        optimalK = minK + i;
-      }
-    }
-
-    return optimalK;
-  }
-
-  /// K-means clustering implementation
-  List<int> _kMeansCluster(List<List<double>> embeddings, int k) {
-    if (embeddings.isEmpty || k <= 0) return [];
-    if (k >= embeddings.length) {
-      return List.generate(embeddings.length, (i) => i);
-    }
-
-    final random = Random();
-    final dimensions = embeddings.first.length;
-
-    // Initialize centroids randomly
-    final centroids = <List<double>>[];
-    for (int i = 0; i < k; i++) {
-      final centroid = <double>[];
-      for (int d = 0; d < dimensions; d++) {
-        centroid
-            .add(random.nextDouble() * 2 - 1); // Random value between -1 and 1
-      }
-      centroids.add(centroid);
-    }
-
-    List<int> labels = List.filled(embeddings.length, 0);
-    const maxIterations = 100;
-
-    for (int iteration = 0; iteration < maxIterations; iteration++) {
-      final newLabels = <int>[];
-
-      // Assign each point to nearest centroid
-      for (final embedding in embeddings) {
-        double minDistance = double.infinity;
-        int nearestCentroid = 0;
-
-        for (int c = 0; c < centroids.length; c++) {
-          final distance = _euclideanDistance(embedding, centroids[c]);
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestCentroid = c;
-          }
-        }
-
-        newLabels.add(nearestCentroid);
-      }
-
-      // Check for convergence
-      if (listEquals(labels, newLabels)) break;
-      labels = newLabels;
-
-      // Update centroids
-      for (int c = 0; c < k; c++) {
-        final clusterPoints = <List<double>>[];
-        for (int i = 0; i < embeddings.length; i++) {
-          if (labels[i] == c) {
-            clusterPoints.add(embeddings[i]);
-          }
-        }
-
-        if (clusterPoints.isNotEmpty) {
-          for (int d = 0; d < dimensions; d++) {
-            centroids[c][d] =
-                clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) /
-                    clusterPoints.length;
-          }
-        }
-      }
-    }
-
-    return labels;
-  }
-
-  /// Compute clustering inertia (within-cluster sum of squares)
-  double _computeInertia(
-      List<List<double>> embeddings, List<int> labels, int k) {
-    final centroids = <List<double>>[];
-    final dimensions = embeddings.first.length;
-
-    // Compute centroids
-    for (int c = 0; c < k; c++) {
-      final clusterPoints = <List<double>>[];
-      for (int i = 0; i < embeddings.length; i++) {
-        if (labels[i] == c) {
-          clusterPoints.add(embeddings[i]);
-        }
-      }
-
-      if (clusterPoints.isNotEmpty) {
-        final centroid = <double>[];
-        for (int d = 0; d < dimensions; d++) {
-          centroid.add(clusterPoints.map((p) => p[d]).reduce((a, b) => a + b) /
-              clusterPoints.length);
-        }
-        centroids.add(centroid);
-      } else {
-        centroids.add(List.filled(dimensions, 0.0));
-      }
-    }
-
-    // Compute inertia
-    double inertia = 0.0;
-    for (int i = 0; i < embeddings.length; i++) {
-      final clusterIndex = labels[i];
-      if (clusterIndex < centroids.length) {
-        final distance =
-            _euclideanDistance(embeddings[i], centroids[clusterIndex]);
-        inertia += distance * distance;
-      }
-    }
-
-    return inertia;
-  }
-
-  /// Calculate Euclidean distance between two vectors
-  double _euclideanDistance(List<double> a, List<double> b) {
-    if (a.length != b.length) return double.infinity;
-
-    double sum = 0.0;
-    for (int i = 0; i < a.length; i++) {
-      final diff = a[i] - b[i];
-      sum += diff * diff;
-    }
-
-    return sqrt(sum);
-  }
-}
-
-class DiarizationException implements Exception {
-  final String message;
-  const DiarizationException(this.message);
-
-  @override
-  String toString() => 'DiarizationException: $message';
 }
