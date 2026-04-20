@@ -7,6 +7,7 @@ import 'package:crispasr/crispasr.dart' as crispasr;
 
 import 'transcription_engine.dart';
 import '../services/aligner_service.dart';
+import '../services/lid_service.dart';
 import '../services/log_service.dart';
 import '../services/model_service.dart';
 
@@ -28,6 +29,7 @@ class CrispASREngine implements TranscriptionEngine {
   Map<String, dynamic> _config = {};
   ModelService? _modelService;
   final AlignerService _alignerService = AlignerService();
+  LidService? _lidService;
 
   @override
   String get engineId => 'crispasr';
@@ -174,6 +176,7 @@ class CrispASREngine implements TranscriptionEngine {
       _modelService = modelService;
       if (_modelService != null) {
         await _modelService!.initialize();
+        _lidService = LidService(_modelService!);
       }
       _isInitialized = true;
       final libName = crispasr.CrispASR.defaultLibName();
@@ -462,6 +465,7 @@ class CrispASREngine implements TranscriptionEngine {
         // Unified session path (Parakeet, Canary, etc.)
         final sessionSegments = await _runSessionTranscription(
           audioData,
+          language: language,
           vad: vad,
           vadModelPath: vadModelPath,
         );
@@ -583,12 +587,33 @@ class CrispASREngine implements TranscriptionEngine {
 
   Future<List<crispasr.SessionSegment>> _runSessionTranscription(
     Float32List pcm, {
+    String? language,
     bool vad = false,
     String? vadModelPath,
   }) async {
     // Yield once so the FFI call doesn't block the current microtask batch
     // in the UI thread (same pattern as `_runTranscription`).
     await Future<void>.delayed(Duration.zero);
+
+    // Language resolution:
+    //  * user picked a concrete ISO code ("en", "de", ...) → pass through
+    //  * user picked "auto" (or left blank) and we have a multilingual
+    //    whisper model on disk → run LID, use its result
+    //  * otherwise → null, backends fall back to their historical
+    //    defaults ("en" for canary/cohere/voxtral/voxtral4b, auto for
+    //    parakeet/qwen3, no hint for granite/wav2vec2/ctc)
+    String? langHint;
+    if (language != null && language.isNotEmpty && language != 'auto') {
+      langHint = language;
+    } else if (_lidService != null) {
+      langHint = await _lidService!.detectIfModelAvailable(pcm);
+      if (langHint != null) {
+        Log.instance.i('crispasr', 'session path: LID', fields: {
+          'detected': langHint,
+          'backend': _session?.backend,
+        });
+      }
+    }
 
     // Non-whisper backends (parakeet, cohere, canary, voxtral, qwen3,
     // granite, wav2vec2, ...) all go through CrispasrSession. When the
@@ -604,10 +629,11 @@ class CrispASREngine implements TranscriptionEngine {
         'backend': _session?.backend,
         'vad_model': vadModelPath,
         'samples': pcm.length,
+        'lang': langHint ?? 'default',
       });
-      return _session!.transcribeVad(pcm, vadModelPath);
+      return _session!.transcribeVad(pcm, vadModelPath, language: langHint);
     }
-    return _session!.transcribe(pcm);
+    return _session!.transcribe(pcm, language: langHint);
   }
 
   List<TranscriptionSegment> _mapWhisperSegments(
