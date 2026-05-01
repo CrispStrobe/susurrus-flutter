@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuModels => 'Models';
 
   @override
+  String get menuSynthesize => 'Synthesize speech';
+
+  @override
   String get menuLogs => 'Logs';
 
   @override
@@ -703,4 +706,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get advancedInitialPromptHint =>
       'e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"';
+
+  @override
+  String get advancedRestorePunctuation => 'Restore punctuation (FireRedPunc)';
+
+  @override
+  String get advancedRestorePunctuationSubtitle =>
+      'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.';
+
+  @override
+  String get synthTitle => 'Synthesize';
+
+  @override
+  String get synthModelLabel => 'TTS model';
+
+  @override
+  String get synthVoiceLabel => 'Voice / voicepack';
+
+  @override
+  String get synthCodecLabel => 'Codec / tokenizer';
+
+  @override
+  String get synthTextHint => 'Type text to synthesise…';
+
+  @override
+  String get synthRunButton => 'Synthesize';
+
+  @override
+  String get synthPlayButton => 'Play';
+
+  @override
+  String get synthStopButton => 'Stop';
+
+  @override
+  String get synthShareButton => 'Save / share WAV';
+
+  @override
+  String get synthNoTtsModelsDownloaded =>
+      'No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.';
+
+  @override
+  String synthMissingDependency(String name) {
+    return 'Missing required companion file: $name';
+  }
 }

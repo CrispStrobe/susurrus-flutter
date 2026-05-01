@@ -322,7 +322,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   }
 
   void _deleteRecording() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).recorderDeleteTitle),
@@ -337,8 +337,8 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
               Navigator.of(context).pop();
               _performDeleteRecording();
             },
-            child: Text(AppLocalizations.of(context).delete),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(AppLocalizations.of(context).delete),
           ),
         ],
       ),
@@ -388,7 +388,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).error),
@@ -421,8 +421,8 @@ class AudioVisualizerPainter extends CustomPainter {
 
     final paint = Paint()
       ..color = isRecording
-          ? Colors.red.withOpacity(0.6)
-          : Colors.grey.withOpacity(0.6)
+          ? Colors.red.withValues(alpha: 0.6)
+          : Colors.grey.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     final spacing = size.width / amplitudes.length;

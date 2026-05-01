@@ -7,6 +7,7 @@
   "menuHistory": "History",
   "menuSettings": "Settings",
   "menuModels": "Models",
+  "menuSynthesize": "Synthesize speech",
   "menuLogs": "Logs",
   "menuAbout": "About",
 
@@ -304,5 +305,20 @@
   "advancedBeamSearch": "Beam search",
   "advancedBeamSearchSubtitle": "Slower, usually more accurate. Default is greedy.",
   "advancedInitialPrompt": "Initial prompt (vocabulary / context)",
-  "advancedInitialPromptHint": "e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\""
+  "advancedInitialPromptHint": "e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"",
+  "advancedRestorePunctuation": "Restore punctuation (FireRedPunc)",
+  "advancedRestorePunctuationSubtitle": "Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.",
+
+  "synthTitle": "Synthesize",
+  "synthModelLabel": "TTS model",
+  "synthVoiceLabel": "Voice / voicepack",
+  "synthCodecLabel": "Codec / tokenizer",
+  "synthTextHint": "Type text to synthesise…",
+  "synthRunButton": "Synthesize",
+  "synthPlayButton": "Play",
+  "synthStopButton": "Stop",
+  "synthShareButton": "Save / share WAV",
+  "synthNoTtsModelsDownloaded": "No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.",
+  "synthMissingDependency": "Missing required companion file: {name}",
+  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}}
 }

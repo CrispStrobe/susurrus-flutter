@@ -167,9 +167,8 @@ abstract class EngineException implements Exception {
 }
 
 class EngineInitializationException extends EngineException {
-  const EngineInitializationException(String message, String engineId,
-      [dynamic originalError])
-      : super(message, engineId, originalError);
+  const EngineInitializationException(super.message, super.engineId,
+      [super.originalError]);
 }
 
 class ModelLoadException extends EngineException {
@@ -181,14 +180,12 @@ class ModelLoadException extends EngineException {
 }
 
 class TranscriptionException extends EngineException {
-  const TranscriptionException(String message, String engineId,
-      [dynamic originalError])
-      : super(message, engineId, originalError);
+  const TranscriptionException(super.message, super.engineId,
+      [super.originalError]);
 }
 
 /// A concrete fallback for engine errors that don't fit a more specific type.
 class GenericEngineException extends EngineException {
-  const GenericEngineException(String message, String engineId,
-      [dynamic originalError])
-      : super(message, engineId, originalError);
+  const GenericEngineException(super.message, super.engineId,
+      [super.originalError]);
 }

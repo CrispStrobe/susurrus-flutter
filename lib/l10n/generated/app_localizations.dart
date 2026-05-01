@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Models'**
   String get menuModels;
 
+  /// No description provided for @menuSynthesize.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesize speech'**
+  String get menuSynthesize;
+
   /// No description provided for @menuLogs.
   ///
   /// In en, this message translates to:
@@ -1357,6 +1363,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"'**
   String get advancedInitialPromptHint;
+
+  /// No description provided for @advancedRestorePunctuation.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore punctuation (FireRedPunc)'**
+  String get advancedRestorePunctuation;
+
+  /// No description provided for @advancedRestorePunctuationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.'**
+  String get advancedRestorePunctuationSubtitle;
+
+  /// No description provided for @synthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesize'**
+  String get synthTitle;
+
+  /// No description provided for @synthModelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'TTS model'**
+  String get synthModelLabel;
+
+  /// No description provided for @synthVoiceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice / voicepack'**
+  String get synthVoiceLabel;
+
+  /// No description provided for @synthCodecLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Codec / tokenizer'**
+  String get synthCodecLabel;
+
+  /// No description provided for @synthTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type text to synthesise…'**
+  String get synthTextHint;
+
+  /// No description provided for @synthRunButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesize'**
+  String get synthRunButton;
+
+  /// No description provided for @synthPlayButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get synthPlayButton;
+
+  /// No description provided for @synthStopButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get synthStopButton;
+
+  /// No description provided for @synthShareButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save / share WAV'**
+  String get synthShareButton;
+
+  /// No description provided for @synthNoTtsModelsDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.'**
+  String get synthNoTtsModelsDownloaded;
+
+  /// No description provided for @synthMissingDependency.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing required companion file: {name}'**
+  String synthMissingDependency(String name);
 }
 
 class _AppLocalizationsDelegate

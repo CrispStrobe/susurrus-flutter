@@ -38,7 +38,7 @@ class CrispASREngine implements TranscriptionEngine {
   String get engineName => 'CrispASR (ggml)';
 
   @override
-  String get version => '0.4.0';
+  String get version => '0.5.4';
 
   @override
   bool get supportsStreaming => _model?.supportsStreaming ?? _session != null;
@@ -323,6 +323,43 @@ class CrispASREngine implements TranscriptionEngine {
       } else {
         _session =
             crispasr.CrispasrSession.open(modelPath, backend: def.backend);
+        // Some backends need a companion file before they can run:
+        //   * qwen3-tts → tokenizer GGUF via setCodecPath
+        //   * orpheus    → SNAC codec GGUF via setCodecPath
+        //   * mimo-asr   → mimo_tokenizer GGUF via setCodecPath
+        //   * vibevoice-tts / kokoro → voicepack GGUF via setVoice
+        // Walk the def.companions list in order; route by ModelKind so
+        // codec entries go through setCodecPath and voice entries go
+        // through setVoice. Missing companions fail loudly here rather
+        // than at the first transcribe/synthesize call.
+        for (final companion in def.companions) {
+          final cdef = _modelService!.lookupDefinition(companion);
+          if (cdef == null) {
+            throw ModelLoadException(
+                'Companion "$companion" not found in model catalog '
+                '(required by ${def.backend})',
+                engineId,
+                modelId);
+          }
+          final cpath =
+              await _modelService!.getWhisperCppModelPath(companion);
+          if (cpath == null || !await File(cpath).exists()) {
+            throw ModelLoadException(
+                'Companion "${cdef.displayName}" not downloaded '
+                '(required by ${def.backend} — open Models and download it first)',
+                engineId,
+                modelId);
+          }
+          if (cdef.kind == ModelKind.codec) {
+            _session!.setCodecPath(cpath);
+            Log.instance.d('crispasr', 'companion: codec loaded',
+                fields: {'backend': def.backend, 'companion': companion});
+          } else if (cdef.kind == ModelKind.voice) {
+            _session!.setVoice(cpath);
+            Log.instance.d('crispasr', 'companion: voice loaded',
+                fields: {'backend': def.backend, 'companion': companion});
+          }
+        }
       }
       _currentModelId = modelId;
       _currentModelPath = modelPath;
@@ -367,8 +404,9 @@ class CrispASREngine implements TranscriptionEngine {
   /// is from the pre-0.2.0 era (or the detection fails internally) — the
   /// caller should treat "null" as "keep whatever language was configured".
   Future<String?> detectLanguage(Float32List audio) async {
-    if (_model == null)
+    if (_model == null) {
       return null; // Only whisper class supports LID currently
+    }
     if (!_model!.supportsExtended) return null;
     final det = _model!.detectLanguage(audio);
     if (!det.ok) {
@@ -480,8 +518,8 @@ class CrispASREngine implements TranscriptionEngine {
           final anyMissing =
               segments.any((s) => s.words == null || s.words!.isEmpty);
           if (anyMissing) {
-            segments = await _alignerService.addWordTimestamps(
-                segments, audioData);
+            segments =
+                await _alignerService.addWordTimestamps(segments, audioData);
           }
         }
       }
@@ -750,9 +788,10 @@ class CrispASREngine implements TranscriptionEngine {
       onCancel: () {
         if (!session.isClosed) {
           final last = session.flush();
-          if (last != null)
+          if (last != null) {
             Log.instance
                 .d('crispasr', 'Stream flush: ${last.text.length} chars');
+          }
           session.close();
         }
         Log.instance.i('crispasr', 'Streaming session closed');

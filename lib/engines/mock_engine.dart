@@ -66,7 +66,7 @@ class MockEngine implements TranscriptionEngine {
   @override
   Future<bool> initialize(
       {ModelService? modelService, Map<String, dynamic>? config}) async {
-    await Future.delayed(
+    await Future<void>.delayed(
         const Duration(milliseconds: 500)); // Simulate init time
 
     _config = config ?? {};
@@ -84,7 +84,7 @@ class MockEngine implements TranscriptionEngine {
 
   @override
   Future<List<EngineModel>> getAvailableModels() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 200));
 
     return [
       const EngineModel(
@@ -139,16 +139,16 @@ class MockEngine implements TranscriptionEngine {
 
     // Simulate model loading with progress
     onProgress?.call(0.0);
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 200));
 
     onProgress?.call(0.3);
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future<void>.delayed(const Duration(milliseconds: 300));
 
     onProgress?.call(0.7);
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 200));
 
     onProgress?.call(1.0);
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
     _currentModelId = modelId;
     return true;
@@ -156,7 +156,7 @@ class MockEngine implements TranscriptionEngine {
 
   @override
   Future<void> unloadModel() async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
     _currentModelId = null;
   }
 
@@ -206,7 +206,7 @@ class MockEngine implements TranscriptionEngine {
         onProgress?.call(i / numSegments);
 
         // Simulate processing delay
-        await Future.delayed(
+        await Future<void>.delayed(
             Duration(milliseconds: (processingTimeMs / numSegments).round()));
 
         final segment = _generateMockSegment(
@@ -255,7 +255,7 @@ class MockEngine implements TranscriptionEngine {
 
     return audioStream.asyncMap((audioChunk) async {
       // Simulate streaming processing delay
-      await Future.delayed(Duration(milliseconds: 100 + Random().nextInt(200)));
+      await Future<void>.delayed(Duration(milliseconds: 100 + Random().nextInt(200)));
 
       return _generateMockSegment(
         Random().nextInt(100),
@@ -269,13 +269,13 @@ class MockEngine implements TranscriptionEngine {
   @override
   Future<void> cancel() async {
     _isProcessing = false;
-    await Future.delayed(const Duration(milliseconds: 50));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
   }
 
   @override
   Future<void> updateConfig(Map<String, dynamic> config) async {
     _config.addAll(config);
-    await Future.delayed(const Duration(milliseconds: 10));
+    await Future<void>.delayed(const Duration(milliseconds: 10));
   }
 
   // Helper methods for generating realistic mock data
@@ -295,7 +295,7 @@ class MockEngine implements TranscriptionEngine {
     bool enableSpeakerDiarization,
     bool enableWordTimestamps,
   ) {
-    final segmentDuration = 5.0; // 5 seconds per segment
+    const segmentDuration = 5.0; // 5 seconds per segment
     final startTime = index * segmentDuration;
     final endTime = startTime + segmentDuration;
 

@@ -1,13 +1,11 @@
 // lib/services/model_service.dart (COMPLETE IMPLEMENTATION)
 import 'dart:io';
-import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:crypto/crypto.dart';
-import 'package:archive/archive.dart';
+import 'package:crispasr/crispasr.dart' as crispasr;
 
 import 'log_service.dart';
 import 'settings_service.dart';
@@ -372,6 +370,240 @@ class ModelService {
       quantization: 'f16',
       backend: 'canary',
     ),
+    // OmniASR (LLM variant) — multilingual via lang= hint.
+    'omniasr-llm-300m-v2-q4_k': ModelDefinition(
+      name: 'omniasr-llm-300m-v2-q4_k',
+      displayName: 'OmniASR LLM 300M v2 (q4_k)',
+      fileName: 'omniasr-llm-300m-v2-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/omniasr-llm-300m-v2-GGUF/resolve/main/omniasr-llm-300m-v2-q4_k.gguf',
+      sizeBytes: 580 * 1024 * 1024,
+      checksum: '',
+      description: 'OmniASR LLM 300M (multilingual) — ~580 MB',
+      quantization: 'q4_k',
+      backend: 'omniasr-llm',
+    ),
+    // FireRed ASR2 — AED Mandarin/English ASR.
+    'firered-asr2-aed-q4_k': ModelDefinition(
+      name: 'firered-asr2-aed-q4_k',
+      displayName: 'FireRed ASR2 AED (q4_k)',
+      fileName: 'firered-asr2-aed-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/firered-asr2-aed-GGUF/resolve/main/firered-asr2-aed-q4_k.gguf',
+      sizeBytes: 918 * 1024 * 1024,
+      checksum: '',
+      description: 'FireRed ASR2 AED (zh/en) — ~918 MB',
+      quantization: 'q4_k',
+      backend: 'firered-asr',
+    ),
+    // Kyutai STT 1B.
+    'kyutai-stt-1b-q4_k': ModelDefinition(
+      name: 'kyutai-stt-1b-q4_k',
+      displayName: 'Kyutai STT 1B (q4_k)',
+      fileName: 'kyutai-stt-1b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/kyutai-stt-1b-GGUF/resolve/main/kyutai-stt-1b-q4_k.gguf',
+      sizeBytes: 636 * 1024 * 1024,
+      checksum: '',
+      description: 'Kyutai streaming-style STT 1B — ~636 MB',
+      quantization: 'q4_k',
+      backend: 'kyutai-stt',
+    ),
+    // GLM-ASR Nano.
+    'glm-asr-nano-q4_k': ModelDefinition(
+      name: 'glm-asr-nano-q4_k',
+      displayName: 'GLM-ASR Nano (q4_k)',
+      fileName: 'glm-asr-nano-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/glm-asr-nano-GGUF/resolve/main/glm-asr-nano-q4_k.gguf',
+      sizeBytes: 1200 * 1024 * 1024,
+      checksum: '',
+      description: 'GLM-family multilingual ASR — ~1.2 GB',
+      quantization: 'q4_k',
+      backend: 'glm-asr',
+    ),
+    // VibeVoice ASR (the ASR variant; the TTS sibling is vibevoice-tts).
+    'vibevoice-asr-q4_k': ModelDefinition(
+      name: 'vibevoice-asr-q4_k',
+      displayName: 'VibeVoice ASR (q4_k)',
+      fileName: 'vibevoice-asr-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/vibevoice-asr-GGUF/resolve/main/vibevoice-asr-q4_k.gguf',
+      sizeBytes: 4500 * 1024 * 1024,
+      checksum: '',
+      description: 'VibeVoice large multilingual ASR — ~4.5 GB',
+      quantization: 'q4_k',
+      backend: 'vibevoice',
+    ),
+    // MiMo ASR — XiaomiMiMo MiMo-V2.5 ASR (input_local_transformer + Qwen2 LLM).
+    // Needs the mimo-tokenizer-*.gguf companion alongside; load via
+    // setCodecPath after open.
+    'mimo-asr-q4_k': ModelDefinition(
+      name: 'mimo-asr-q4_k',
+      displayName: 'MiMo ASR (q4_k)',
+      fileName: 'mimo-asr-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/mimo-asr-GGUF/resolve/main/mimo-asr-q4_k.gguf',
+      sizeBytes: 4500 * 1024 * 1024,
+      checksum: '',
+      description: 'XiaomiMiMo MiMo-Audio ASR — ~4.5 GB '
+          '(needs mimo-tokenizer-*.gguf companion)',
+      quantization: 'q4_k',
+      backend: 'mimo-asr',
+      companions: ['mimo-tokenizer-q4_k'],
+    ),
+    'mimo-tokenizer-q4_k': ModelDefinition(
+      name: 'mimo-tokenizer-q4_k',
+      displayName: 'MiMo audio tokenizer (q4_k)',
+      fileName: 'mimo-tokenizer-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/mimo-asr-GGUF/resolve/main/mimo-tokenizer-q4_k.gguf',
+      sizeBytes: 250 * 1024 * 1024,
+      checksum: '',
+      description:
+          'MiMo audio tokenizer — companion to mimo-asr (PCM → 8-channel codes)',
+      quantization: 'q4_k',
+      backend: 'mimo-asr',
+      kind: ModelKind.codec,
+    ),
+    // FireRedPunc — punctuation-restoration POST-PROCESSOR. Not a stand-
+    // alone ASR backend; loaded via crispasr.PuncModel and applied to
+    // segment text after the chosen ASR backend produces output. Useful
+    // for CTC backends (wav2vec2 / fastconformer-ctc / firered-asr) that
+    // emit unpunctuated lowercase text.
+    'fireredpunc-q8_0': ModelDefinition(
+      name: 'fireredpunc-q8_0',
+      displayName: 'FireRedPunc (q8_0) — punctuation post-processor',
+      fileName: 'fireredpunc-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/fireredpunc-GGUF/resolve/main/fireredpunc-q8_0.gguf',
+      sizeBytes: 100 * 1024 * 1024,
+      checksum: '',
+      description:
+          'BERT-based punctuation restoration. Enable "Restore punctuation" '
+          'in Advanced decoding once downloaded.',
+      quantization: 'q8_0',
+      backend: 'firered-punc',
+      kind: ModelKind.punc,
+    ),
+    // ---------------------- TTS main models ----------------------
+    'kokoro-82m-q8_0': ModelDefinition(
+      name: 'kokoro-82m-q8_0',
+      displayName: 'Kokoro 82M (q8_0)',
+      fileName: 'kokoro-82m-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/kokoro-82m-GGUF/resolve/main/kokoro-82m-q8_0.gguf',
+      sizeBytes: 100 * 1024 * 1024,
+      checksum: '',
+      description: 'Kokoro multilingual TTS — needs a kokoro-voice-*.gguf',
+      quantization: 'q8_0',
+      backend: 'kokoro',
+      kind: ModelKind.tts,
+      companions: ['kokoro-voice-af_heart'],
+    ),
+    // VibeVoice realtime 0.5B — TTS with bundled tokenizer (the f16 / q4_k
+    // variants of the same name DON'T include the Tekken tokenizer and
+    // fail at first synthesize with "model lacks tokenizer"). The
+    // -tts-f32-tokenizer file is the single-file shippable.
+    'vibevoice-realtime-0.5b-tts-f32-tokenizer': ModelDefinition(
+      name: 'vibevoice-realtime-0.5b-tts-f32-tokenizer',
+      displayName: 'VibeVoice TTS realtime 0.5B (f32 + tokenizer)',
+      fileName: 'vibevoice-realtime-0.5b-tts-f32-tokenizer.gguf',
+      url:
+          'https://huggingface.co/cstr/vibevoice-realtime-0.5b-GGUF/resolve/main/vibevoice-realtime-0.5b-tts-f32-tokenizer.gguf',
+      sizeBytes: 4073 * 1024 * 1024,
+      checksum: '',
+      description:
+          'VibeVoice realtime TTS with bundled Tekken tokenizer — '
+          'needs a vibevoice-voice-*.gguf voicepack',
+      quantization: 'f32',
+      backend: 'vibevoice-tts',
+      kind: ModelKind.tts,
+      companions: ['vibevoice-voice-emma'],
+    ),
+    'qwen3-tts-12hz-0.6b-base-q8_0': ModelDefinition(
+      name: 'qwen3-tts-12hz-0.6b-base-q8_0',
+      displayName: 'Qwen3-TTS 0.6B base 12 Hz (q8_0)',
+      fileName: 'qwen3-tts-12hz-0.6b-base-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/qwen3-tts-0.6b-base-GGUF/resolve/main/qwen3-tts-12hz-0.6b-base-q8_0.gguf',
+      sizeBytes: 700 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Qwen3-TTS base — needs the qwen3-tts-tokenizer-12hz codec GGUF',
+      quantization: 'q8_0',
+      backend: 'qwen3-tts',
+      kind: ModelKind.tts,
+      companions: ['qwen3-tts-tokenizer-12hz'],
+    ),
+    'orpheus-3b-base-q8_0': ModelDefinition(
+      name: 'orpheus-3b-base-q8_0',
+      displayName: 'Orpheus 3B base (q8_0)',
+      fileName: 'orpheus-3b-base-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/orpheus-3b-base-GGUF/resolve/main/orpheus-3b-base-q8_0.gguf',
+      sizeBytes: 3500 * 1024 * 1024,
+      checksum: '',
+      description: 'Orpheus 3B TTS — needs the snac-24khz codec GGUF',
+      quantization: 'q8_0',
+      backend: 'orpheus',
+      kind: ModelKind.tts,
+      companions: ['snac-24khz'],
+    ),
+    // ---------------------- TTS voicepacks -----------------------
+    'kokoro-voice-af_heart': ModelDefinition(
+      name: 'kokoro-voice-af_heart',
+      displayName: 'Kokoro voice — af_heart',
+      fileName: 'kokoro-voice-af_heart.gguf',
+      url:
+          'https://huggingface.co/cstr/kokoro-voices-GGUF/resolve/main/kokoro-voice-af_heart.gguf',
+      sizeBytes: 1 * 1024 * 1024,
+      checksum: '',
+      description: 'Kokoro voicepack — English (af_heart)',
+      quantization: 'f16',
+      backend: 'kokoro',
+      kind: ModelKind.voice,
+    ),
+    'vibevoice-voice-emma': ModelDefinition(
+      name: 'vibevoice-voice-emma',
+      displayName: 'VibeVoice voice — Emma',
+      fileName: 'vibevoice-voice-emma.gguf',
+      url:
+          'https://huggingface.co/cstr/vibevoice-realtime-0.5b-GGUF/resolve/main/vibevoice-voice-emma.gguf',
+      sizeBytes: 5 * 1024 * 1024,
+      checksum: '',
+      description: 'VibeVoice voicepack — English (Emma)',
+      quantization: 'f16',
+      backend: 'vibevoice-tts',
+      kind: ModelKind.voice,
+    ),
+    // ---------------------- TTS codec / tokenizer ----------------
+    'qwen3-tts-tokenizer-12hz': ModelDefinition(
+      name: 'qwen3-tts-tokenizer-12hz',
+      displayName: 'Qwen3-TTS tokenizer 12 Hz',
+      fileName: 'qwen3-tts-tokenizer-12hz.gguf',
+      url:
+          'https://huggingface.co/cstr/qwen3-tts-tokenizer-12hz-GGUF/resolve/main/qwen3-tts-tokenizer-12hz.gguf',
+      sizeBytes: 80 * 1024 * 1024,
+      checksum: '',
+      description: 'Qwen3-TTS codec/tokenizer (load via setCodecPath)',
+      quantization: 'f16',
+      backend: 'qwen3-tts',
+      kind: ModelKind.codec,
+    ),
+    'snac-24khz': ModelDefinition(
+      name: 'snac-24khz',
+      displayName: 'SNAC 24 kHz codec',
+      fileName: 'snac-24khz.gguf',
+      url:
+          'https://huggingface.co/cstr/snac-24khz-GGUF/resolve/main/snac-24khz.gguf',
+      sizeBytes: 50 * 1024 * 1024,
+      checksum: '',
+      description: 'SNAC 24 kHz codec for Orpheus (load via setCodecPath)',
+      quantization: 'f16',
+      backend: 'orpheus',
+      kind: ModelKind.codec,
+    ),
   };
 
   /// HuggingFace repos we probe dynamically to discover every available
@@ -451,6 +683,76 @@ class ModelService {
       displayPrefix: 'Wav2Vec2 base (en)',
       description: 'Self-supervised (facebook/wav2vec2)',
     ),
+    // OmniASR — multilingual LLM-based ASR. The CTC variant is omitted on
+    // purpose: it has no language conditioning and degrades to gibberish on
+    // simple inputs (jfk.wav). The LLM variant accepts a `lang=` hint.
+    'omniasr-llm': BackendRepo(
+      backend: 'omniasr-llm',
+      repoId: 'cstr/omniasr-llm-300m-v2-GGUF',
+      baseName: 'omniasr-llm-300m-v2',
+      displayPrefix: 'OmniASR LLM 300M v2',
+      description: 'Multilingual LLM-based ASR (300M)',
+    ),
+    'firered-asr': BackendRepo(
+      backend: 'firered-asr',
+      repoId: 'cstr/firered-asr2-aed-GGUF',
+      baseName: 'firered-asr2-aed',
+      displayPrefix: 'FireRed ASR2 AED',
+      description: 'AED-style Mandarin/English ASR',
+    ),
+    'kyutai-stt': BackendRepo(
+      backend: 'kyutai-stt',
+      repoId: 'cstr/kyutai-stt-1b-GGUF',
+      baseName: 'kyutai-stt-1b',
+      displayPrefix: 'Kyutai STT 1B',
+      description: 'Kyutai streaming-style STT (1B)',
+    ),
+    'glm-asr': BackendRepo(
+      backend: 'glm-asr',
+      repoId: 'cstr/glm-asr-nano-GGUF',
+      baseName: 'glm-asr-nano',
+      displayPrefix: 'GLM-ASR Nano',
+      description: 'GLM-family multilingual ASR',
+    ),
+    'vibevoice': BackendRepo(
+      backend: 'vibevoice',
+      repoId: 'cstr/vibevoice-asr-GGUF',
+      baseName: 'vibevoice-asr',
+      displayPrefix: 'VibeVoice ASR',
+      description: 'Multilingual large ASR (~4.5 GB)',
+    ),
+    'mimo-asr': BackendRepo(
+      backend: 'mimo-asr',
+      repoId: 'cstr/mimo-asr-GGUF',
+      baseName: 'mimo-asr',
+      displayPrefix: 'MiMo ASR',
+      description: 'XiaomiMiMo MiMo-Audio ASR',
+    ),
+    // Kokoro — multilingual TTS (needs voicepack via setVoice).
+    'kokoro': BackendRepo(
+      backend: 'kokoro',
+      repoId: 'cstr/kokoro-82m-GGUF',
+      baseName: 'kokoro-82m',
+      displayPrefix: 'Kokoro 82M TTS',
+      description: 'Kokoro multilingual TTS (~100 MB)',
+    ),
+    // Orpheus — Llama-3.2-3B + SNAC codec TTS (needs codec via setCodecPath).
+    'orpheus': BackendRepo(
+      backend: 'orpheus',
+      repoId: 'cstr/orpheus-3b-base-GGUF',
+      baseName: 'orpheus-3b-base',
+      displayPrefix: 'Orpheus 3B TTS',
+      description: 'Orpheus Llama-3.2-3B TTS (~3.5 GB)',
+    ),
+    // FireRedPunc — POST-PROCESSOR (not an ASR backend). Catalogued so
+    // users can fetch it via Model Management; consumed by `PuncService`.
+    'firered-punc': BackendRepo(
+      backend: 'firered-punc',
+      repoId: 'cstr/fireredpunc-GGUF',
+      baseName: 'fireredpunc',
+      displayPrefix: 'FireRedPunc (post-processor)',
+      description: 'Punctuation restoration for CTC ASR output',
+    ),
   };
 
   // Live-probed quants, keyed by model name (same as the hardcoded maps).
@@ -521,6 +823,7 @@ class ModelService {
         modelType: ModelType.whisperCpp,
         quantization: modelDef.quantization,
         backend: modelDef.backend,
+        kind: modelDef.kind,
       ));
     }
 
@@ -548,6 +851,7 @@ class ModelService {
         modelType: ModelType.whisperCpp,
         quantization: modelDef.quantization,
         backend: modelDef.backend,
+        kind: modelDef.kind,
       ));
     }
 
@@ -597,6 +901,129 @@ class ModelService {
     return added;
   }
 
+  /// Discover models from CrispASR's built-in C-side registry — no
+  /// network, no hardcoding. For every backend the loaded `libcrispasr`
+  /// reports as linked (`CrispasrSession.availableBackends()`), this
+  /// queries `crispasr_registry_lookup` and merges the canonical entry
+  /// into [_discoveredModels].
+  ///
+  /// Why bother when [refreshAvailableQuants] already probes HF? Two
+  /// reasons:
+  /// 1. **Offline-safe.** The registry data ships inside libcrispasr;
+  ///    works on a plane / locked-down corp network where the HF probe
+  ///    times out.
+  /// 2. **New-backend discoverability.** When a CrispASR upgrade adds
+  ///    a backend the bundled libcrispasr knows about it but
+  ///    [backendRepos] doesn't yet — this probe surfaces it without a
+  ///    CrisperWeaver code change. Think `/v1/models` on an OpenAI-
+  ///    compatible server, but local.
+  ///
+  /// Returns the number of newly-discovered ModelDefinitions added in
+  /// this call (already-known names are refreshed in place but not
+  /// counted).
+  int refreshFromCrispasrRegistry() {
+    int added = 0;
+    final List<String> backends;
+    try {
+      backends = crispasr.CrispasrSession.availableBackends();
+    } catch (e, st) {
+      Log.instance.w('model', 'availableBackends() threw', error: e, stack: st);
+      return 0;
+    }
+    if (backends.isEmpty) {
+      Log.instance.d('model',
+          'CrispASR registry probe: no backends reported by libcrispasr');
+      return 0;
+    }
+    for (final backend in backends) {
+      // Whisper has its own catalog (whisperCppModels) and the registry
+      // entry is the .bin path under ggerganov/whisper.cpp — already
+      // covered. Skip to avoid double-listing.
+      if (backend == 'whisper') continue;
+      crispasr.RegistryEntry? entry;
+      try {
+        entry = crispasr.registryLookup(backend);
+      } catch (e, st) {
+        Log.instance.d('model', 'registryLookup threw',
+            fields: {'backend': backend}, error: e, stack: st);
+        continue;
+      }
+      if (entry == null || entry.filename.isEmpty || entry.url.isEmpty) {
+        continue;
+      }
+      // Strip the .gguf extension for the keying convention used by the
+      // rest of the catalog (e.g. "parakeet-tdt-0.6b-v3-q4_k").
+      final fname = entry.filename;
+      final dot = fname.lastIndexOf('.');
+      final stem = dot > 0 ? fname.substring(0, dot) : fname;
+      final name = stem;
+      if (_discoveredModels.containsKey(name) ||
+          crispasrBackendModels.containsKey(name) ||
+          whisperCppModels.containsKey(name)) {
+        continue;
+      }
+      // Best-effort size parse: registry hands us a string like "~580 MB"
+      // or "~4.5 GB". Keep it as the human-readable description and feed
+      // a rough byte estimate to the UI so progress bars work.
+      final sizeBytes = _parseApproxSize(entry.approxSize);
+      _discoveredModels[name] = ModelDefinition(
+        name: name,
+        displayName: '$stem (CrispASR registry)',
+        fileName: fname,
+        url: entry.url,
+        sizeBytes: sizeBytes,
+        checksum: '',
+        description:
+            'Auto-discovered from CrispASR registry — ${entry.approxSize}',
+        quantization: _inferQuant(stem),
+        backend: backend,
+        kind: _kindForBackend(backend),
+      );
+      added++;
+    }
+    Log.instance.i('model', 'CrispASR registry probe done', fields: {
+      'backends': backends.length,
+      'added': added,
+    });
+    return added;
+  }
+
+  /// Parse a registry approx-size string like `"~580 MB"` / `"~4.5 GB"`
+  /// into a byte count. Returns 0 on parse failure so the UI falls back
+  /// to "unknown size" instead of misleading numbers.
+  int _parseApproxSize(String s) {
+    final m = RegExp(r'~?\s*([\d.]+)\s*(KB|MB|GB|TB)', caseSensitive: false)
+        .firstMatch(s);
+    if (m == null) return 0;
+    final n = double.tryParse(m.group(1)!) ?? 0;
+    final unit = m.group(2)!.toUpperCase();
+    final mult = switch (unit) {
+      'KB' => 1024,
+      'MB' => 1024 * 1024,
+      'GB' => 1024 * 1024 * 1024,
+      'TB' => 1024 * 1024 * 1024 * 1024,
+      _ => 1,
+    };
+    return (n * mult).round();
+  }
+
+  /// Pull the quant suffix off a stem like `"parakeet-tdt-0.6b-v3-q4_k"`.
+  String _inferQuant(String stem) {
+    final m = RegExp(r'-(q[0-9][a-z_0-9]*|f16|f32|bf16)$').firstMatch(stem);
+    return m == null ? 'f16' : m.group(1)!;
+  }
+
+  /// Best-effort mapping from CrispASR backend id → catalog [ModelKind].
+  /// Falls back to ASR for unknown backends so they still show up in the
+  /// default Model Management view.
+  ModelKind _kindForBackend(String backend) {
+    const tts = {'vibevoice-tts', 'qwen3-tts', 'kokoro', 'orpheus'};
+    const punc = {'firered-punc'};
+    if (tts.contains(backend)) return ModelKind.tts;
+    if (punc.contains(backend)) return ModelKind.punc;
+    return ModelKind.asr;
+  }
+
   Future<List<ModelDefinition>> _probeRepo(BackendRepo repo) async {
     final headers = <String, dynamic>{};
     final token = hfToken;
@@ -605,7 +1032,8 @@ class ModelService {
     }
     // `?blobs=true` surfaces per-file sizes in a stable shape.
     final url = 'https://huggingface.co/api/models/${repo.repoId}?blobs=true';
-    final resp = await _dio.get(url, options: Options(headers: headers));
+    final resp =
+        await _dio.get<dynamic>(url, options: Options(headers: headers));
     if (resp.data is! Map) return const [];
     final siblings = ((resp.data as Map)['siblings'] as List?) ?? const [];
 
@@ -745,7 +1173,7 @@ class ModelService {
         if (!isValid) {
           await File(tempPath).delete();
           Log.instance.w('model', 'Checksum mismatch for $modelName');
-          throw ModelException(
+          throw const ModelException(
               'Download verification failed. File may be corrupted. '
               'Enable "Skip checksum verification" in Settings → Debugging to bypass.');
         }
@@ -777,14 +1205,14 @@ class ModelService {
         }
 
         if (e.type == DioExceptionType.cancel) {
-          throw ModelException('Download cancelled');
+          throw const ModelException('Download cancelled');
         } else if (e.type == DioExceptionType.connectionTimeout) {
-          throw ModelException(
+          throw const ModelException(
               'Download timeout. Please check your internet connection.');
         } else if (e.response?.statusCode == 404) {
-          throw ModelException('Model not found on server');
+          throw const ModelException('Model not found on server');
         } else if (e.response?.statusCode == 401) {
-          throw ModelException(
+          throw const ModelException(
               'Authentication required (401). This model repository is private or gated.');
         } else {
           throw ModelException('Download failed: ${e.message}');
@@ -900,7 +1328,7 @@ class ModelService {
   }
 
   DateTime? _speedStart;
-  int _speedStartBytes = 0;
+  final int _speedStartBytes = 0;
 
   String _calculateDownloadSpeed(int bytesDownloaded, DateTime currentTime) {
     _speedStart ??= currentTime;
@@ -1040,28 +1468,13 @@ class ModelService {
     }
   }
 
-  Future<void> _cleanupDirectory(String dirPath) async {
-    try {
-      final dir = Directory(dirPath);
-      if (await dir.exists()) {
-        await dir.delete(recursive: true);
-      }
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-  }
-
   Future<int> _getAvailableSpace() async {
-    // On mobile platforms, this is an approximation
-    // You might want to use a plugin like device_info_plus for more accurate info
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final stat = await appDir.stat();
-      // This is a rough estimate - in production use platform-specific APIs
-      return 5 * 1024 * 1024 * 1024; // Assume 5GB available
-    } catch (e) {
-      return 5 * 1024 * 1024 * 1024; // Default to 5GB
-    }
+    // On mobile platforms, this is an approximation. Production code
+    // should pull real free-space from a platform-specific API (e.g.
+    // statvfs on POSIX, GetDiskFreeSpaceExW on Windows). The 5 GB
+    // constant is a "probably enough" placeholder used to gate
+    // download cancellation; we don't rely on it for correctness.
+    return 5 * 1024 * 1024 * 1024;
   }
 
   Future<int> _getDirectorySize(String directoryPath) async {
@@ -1086,13 +1499,34 @@ class ModelService {
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
 
 // Enhanced data classes and exceptions
+
+/// What this catalog row represents. The Model Management UI groups by
+/// kind; the engine layer dispatches based on kind + backend.
+enum ModelKind {
+  /// Speech recognition main model (whisper / parakeet / canary / …).
+  asr,
+
+  /// Text-to-speech main model (kokoro / vibevoice-tts / qwen3-tts / …).
+  tts,
+
+  /// Voice pack — paired with a TTS model via `CrispasrSession.setVoice`.
+  voice,
+
+  /// Codec / tokenizer GGUF — paired with a TTS model via
+  /// `CrispasrSession.setCodecPath` (qwen3-tts only).
+  codec,
+
+  /// Post-processor — currently FireRedPunc punctuation restoration.
+  punc,
+}
 
 class ModelDefinition {
   final String name;
@@ -1108,6 +1542,16 @@ class ModelDefinition {
   /// Whisper models we ship.
   final String backend;
 
+  /// Which UI bucket this row belongs to. Defaults to [ModelKind.asr] so
+  /// existing call sites stay correct.
+  final ModelKind kind;
+
+  /// Names of companion models this entry needs alongside it (codec
+  /// tokenizer for qwen3-tts, voicepacks for kokoro / vibevoice-tts).
+  /// Pure metadata used by the Synthesize screen to suggest extra
+  /// downloads — engine code looks them up by filename, not name.
+  final List<String> companions;
+
   const ModelDefinition({
     required this.name,
     required this.displayName,
@@ -1118,6 +1562,8 @@ class ModelDefinition {
     required this.description,
     this.quantization = 'f16',
     this.backend = 'whisper',
+    this.kind = ModelKind.asr,
+    this.companions = const [],
   });
 }
 
@@ -1154,6 +1600,10 @@ class ModelInfo {
   final String quantization;
   final String backend;
 
+  /// Bucket discriminator — filtered by Model Management chips so users
+  /// can see TTS voicepacks separately from main ASR models.
+  final ModelKind kind;
+
   /// Human-readable runtime status — "Ready" when the bundled libwhisper
   /// can execute this model today, or an explanation of what's missing.
   /// Filled in by the UI based on engine capability probing.
@@ -1170,6 +1620,7 @@ class ModelInfo {
     required this.modelType,
     this.quantization = 'f16',
     this.backend = 'whisper',
+    this.kind = ModelKind.asr,
     this.runtimeStatus,
   });
 }
@@ -1193,8 +1644,9 @@ class StorageInfo {
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
@@ -1226,14 +1678,14 @@ class RetryInterceptor extends Interceptor {
       return handler.next(err);
     }
 
-    await Future.delayed(extra.retryInterval);
+    await Future<void>.delayed(extra.retryInterval);
 
     final requestOptions = err.requestOptions;
     requestOptions.extra[RetryOptions.extraKey] =
         extra.copyWith(retries: extra.retries - 1);
 
     try {
-      final response = await dio.fetch(requestOptions);
+      final response = await dio.fetch<dynamic>(requestOptions);
       return handler.resolve(response);
     } catch (e) {
       return handler.next(err);

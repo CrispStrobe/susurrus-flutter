@@ -18,6 +18,8 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   bool _isLoading = true;
   String? _downloadingModel;
   double _downloadProgress = 0.0;
+  // null = "All". Otherwise filter to entries whose `kind` matches.
+  ModelKind? _kindFilter;
 
   @override
   void initState() {
@@ -40,6 +42,11 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
 
     try {
       final modelService = ref.read(modelServiceProvider);
+      // Pull whatever the C-side libcrispasr registry knows about into
+      // the discovered-models map first. This is offline (just FFI calls
+      // into bundled data), so it's cheap to do every time. The HF probe
+      // below adds extra quant variants on top.
+      modelService.refreshFromCrispasrRegistry();
       _whisperModels = await modelService.getWhisperCppModels();
     } catch (e) {
       _showErrorDialog('Failed to load models: $e');
@@ -106,20 +113,71 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       return _buildEmptyState();
     }
 
+    final filtered = _kindFilter == null
+        ? models
+        : models.where((m) => m.kind == _kindFilter).toList();
+
     return Column(
       children: [
         _buildSummaryCard(models),
+        _buildKindFilterRow(models),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: models.length,
-            itemBuilder: (context, index) {
-              final model = models[index];
-              return _buildModelCard(model);
-            },
-          ),
+          child: filtered.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'No models in this category yet — try the cloud-refresh '
+                      'button or download one from another category first.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final model = filtered[index];
+                    return _buildModelCard(model);
+                  },
+                ),
         ),
       ],
+    );
+  }
+
+  /// Filter chips: "All / ASR / TTS / Voices / Codecs / Post-processors".
+  /// Counts in parens make it obvious which buckets are populated.
+  Widget _buildKindFilterRow(List<ModelInfo> models) {
+    int countOf(ModelKind? k) =>
+        k == null ? models.length : models.where((m) => m.kind == k).length;
+
+    Widget chip(String label, ModelKind? kind) {
+      final n = countOf(kind);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: FilterChip(
+          label: Text('$label ($n)'),
+          selected: _kindFilter == kind,
+          onSelected: (_) => setState(() => _kindFilter = kind),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          chip('All', null),
+          chip('ASR', ModelKind.asr),
+          chip('TTS', ModelKind.tts),
+          chip('Voices', ModelKind.voice),
+          chip('Codecs', ModelKind.codec),
+          chip('Post-processors', ModelKind.punc),
+        ],
+      ),
     );
   }
 
@@ -405,7 +463,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).error),

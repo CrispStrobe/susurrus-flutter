@@ -315,7 +315,7 @@ class AudioUtils {
   static Future<AudioValidationResult> validateAudioFile(File file) async {
     try {
       if (!await file.exists()) {
-        return AudioValidationResult(
+        return const AudioValidationResult(
           isValid: false,
           error: 'File does not exist',
         );
@@ -323,7 +323,7 @@ class AudioUtils {
 
       final fileSize = await file.length();
       if (fileSize == 0) {
-        return AudioValidationResult(
+        return const AudioValidationResult(
           isValid: false,
           error: 'File is empty',
         );
@@ -331,14 +331,14 @@ class AudioUtils {
 
       if (fileSize > 100 * 1024 * 1024) {
         // 100MB limit
-        return AudioValidationResult(
+        return const AudioValidationResult(
           isValid: false,
           error: 'File is too large (max 100MB)',
         );
       }
 
       if (!isSupportedAudioFile(file.path)) {
-        return AudioValidationResult(
+        return const AudioValidationResult(
           isValid: false,
           error: 'Unsupported audio format',
         );

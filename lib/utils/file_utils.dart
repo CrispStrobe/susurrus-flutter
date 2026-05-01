@@ -149,16 +149,11 @@ class FileUtils {
   static Future<File> copyFile(
       String sourcePath, String destinationPath) async {
     final sourceFile = File(sourcePath);
-    final destinationFile = File(destinationPath);
-
     if (!await sourceFile.exists()) {
       throw FileSystemException('Source file not found', sourcePath);
     }
-
-    // Ensure destination directory exists
     final destinationDir = Directory(path.dirname(destinationPath));
     await destinationDir.create(recursive: true);
-
     return await sourceFile.copy(destinationPath);
   }
 
@@ -268,10 +263,10 @@ class FileUtils {
       throw FileSystemException('File not found', filePath);
     }
 
-    await Share.shareXFiles(
-      [XFile(filePath)],
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(filePath)],
       subject: subject ?? path.basename(filePath),
-    );
+    ));
   }
 
   /// Clear cache directory

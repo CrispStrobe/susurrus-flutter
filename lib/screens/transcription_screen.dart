@@ -6,12 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/audio_utils.dart';
 
 import '../main.dart';
-import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/batch_queue_service.dart';
@@ -221,6 +219,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             tooltip: l.menuModels,
             onPressed: () => context.push('/models'),
           ),
+          IconButton(
+            icon: const Icon(Icons.record_voice_over),
+            tooltip: l.menuSynthesize,
+            onPressed: () => context.push('/synthesize'),
+          ),
         ],
       ),
       body: DropTarget(
@@ -284,7 +287,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     return Positioned.fill(
       child: IgnorePointer(
         child: Container(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           child: Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -517,7 +520,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                       DropdownMenuItem(value: 'ja', child: Text(l.languageJa)),
                       DropdownMenuItem(value: 'ko', child: Text(l.languageKo)),
                     ],
-                    value: _language,
+                    initialValue: _language,
                     onChanged: (value) {
                       if (value != null) setState(() => _language = value);
                     },
@@ -970,6 +973,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           beamSearch: adv.beamSearch,
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
+          restorePunctuation: adv.restorePunctuation,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -982,6 +986,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           beamSearch: adv.beamSearch,
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
+          restorePunctuation: adv.restorePunctuation,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1063,6 +1068,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           beamSearch: adv.beamSearch,
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
+          restorePunctuation: adv.restorePunctuation,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);
@@ -1116,7 +1122,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   void _handleShareAction(String action, AppState appState) {
     switch (action) {
       case 'share':
-        Share.share(appState.currentTranscription!);
+        SharePlus.instance
+            .share(ShareParams(text: appState.currentTranscription!));
         break;
       case 'copy':
         Clipboard.setData(ClipboardData(text: appState.currentTranscription!));
@@ -1162,7 +1169,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Error'),

@@ -64,8 +64,7 @@ class DiarizationService {
         return segments;
       }
     } catch (e, st) {
-      Log.instance.e('diarize', 'diarizeSegments threw',
-          error: e, stack: st);
+      Log.instance.e('diarize', 'diarizeSegments threw', error: e, stack: st);
       return segments;
     }
 

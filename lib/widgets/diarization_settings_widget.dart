@@ -4,7 +4,7 @@ import '../l10n/generated/app_localizations.dart';
 
 class DiarizationSettingsWidget extends StatefulWidget {
   final bool enabled;
-  final Function(bool enabled) onChanged;
+  final void Function(bool enabled) onChanged;
 
   const DiarizationSettingsWidget({
     super.key,
@@ -89,7 +89,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                   Text(AppLocalizations.of(context).diarizationModel),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
-                    value: _diarizationModel,
+                    initialValue: _diarizationModel,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
@@ -134,7 +134,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                   Text(AppLocalizations.of(context).minSpeakers),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<int?>(
-                    value: _minSpeakers,
+                    initialValue: _minSpeakers,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
@@ -179,7 +179,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                   Text(AppLocalizations.of(context).maxSpeakers),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<int?>(
-                    value: _maxSpeakers,
+                    initialValue: _maxSpeakers,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
@@ -289,7 +289,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
   }
 
   void _showModelHelp() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Diarization Model Selection'),

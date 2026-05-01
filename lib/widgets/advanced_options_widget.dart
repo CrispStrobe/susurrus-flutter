@@ -11,6 +11,7 @@ class AdvancedOptions {
   final bool translate;
   final bool beamSearch;
   final String initialPrompt;
+
   /// Skip silent regions via whisper.cpp's built-in Silero VAD pipeline.
   /// The bundled asset at `assets/vad/silero-v6.2.0-ggml.bin` is extracted
   /// on first use; the engine sets `params.vad = true` +
@@ -18,11 +19,18 @@ class AdvancedOptions {
   /// to voiced frames.
   final bool vad;
 
+  /// Run FireRedPunc on the engine output to add capitalisation +
+  /// punctuation. No-op when no `fireredpunc-*.gguf` is on disk; useful
+  /// for CTC backends (wav2vec2 / fastconformer-ctc / firered-asr) whose
+  /// raw output is unpunctuated lowercase.
+  final bool restorePunctuation;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
     this.initialPrompt = '',
     this.vad = false,
+    this.restorePunctuation = false,
   });
 
   AdvancedOptions copyWith({
@@ -30,12 +38,14 @@ class AdvancedOptions {
     bool? beamSearch,
     String? initialPrompt,
     bool? vad,
+    bool? restorePunctuation,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
         beamSearch: beamSearch ?? this.beamSearch,
         initialPrompt: initialPrompt ?? this.initialPrompt,
         vad: vad ?? this.vad,
+        restorePunctuation: restorePunctuation ?? this.restorePunctuation,
       );
 }
 
@@ -118,6 +128,16 @@ class _AdvancedDecodingSectionState
           value: opts.beamSearch,
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(beamSearch: v),
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedRestorePunctuation),
+          subtitle: Text(l.advancedRestorePunctuationSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.restorePunctuation,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(restorePunctuation: v),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),

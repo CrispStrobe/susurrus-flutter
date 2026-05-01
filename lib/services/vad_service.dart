@@ -38,8 +38,8 @@ class VadService {
       _extractedPath = dest.path;
       return _extractedPath;
     } catch (e, st) {
-      Log.instance.w('vad', 'failed to extract silero model',
-          error: e, stack: st);
+      Log.instance
+          .w('vad', 'failed to extract silero model', error: e, stack: st);
       return null;
     }
   }

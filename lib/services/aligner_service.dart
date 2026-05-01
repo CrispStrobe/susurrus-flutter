@@ -56,15 +56,15 @@ class AlignerService {
             base.contains('ctc-aligner') ||
             base.contains('forced-aligner')) {
           _cachedPath = e.path;
-          Log.instance.d('aligner', 'found aligner model',
-              fields: {'path': e.path});
+          Log.instance
+              .d('aligner', 'found aligner model', fields: {'path': e.path});
           return _cachedPath;
         }
       }
       return null;
     } catch (e, st) {
-      Log.instance.w('aligner', 'failed to search models dir',
-          error: e, stack: st);
+      Log.instance
+          .w('aligner', 'failed to search models dir', error: e, stack: st);
       return null;
     }
   }
@@ -100,8 +100,7 @@ class AlignerService {
         pcm: pcm,
       );
     } catch (e, st) {
-      Log.instance.w('aligner', 'alignWords threw',
-          error: e, stack: st);
+      Log.instance.w('aligner', 'alignWords threw', error: e, stack: st);
       return segments;
     }
     if (words.isEmpty) {
@@ -151,4 +150,5 @@ class AlignerService {
   }
 }
 
-final alignerServiceProvider = Provider<AlignerService>((_) => AlignerService());
+final alignerServiceProvider =
+    Provider<AlignerService>((_) => AlignerService());

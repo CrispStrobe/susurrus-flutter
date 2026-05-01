@@ -9,6 +9,7 @@ import 'audio_service.dart';
 import 'log_service.dart';
 import 'model_service.dart';
 import 'diarization_service.dart';
+import 'punc_service.dart';
 import 'vad_service.dart';
 
 /// Main transcription service that coordinates engines, audio processing, and diarization
@@ -18,6 +19,7 @@ class TranscriptionService {
   final DiarizationService _diarizationService = DiarizationService();
   final EngineManager _engineManager = EngineManager();
   final VadService _vadService = VadService();
+  final PuncService _puncService = PuncService();
 
   bool _isTranscribing = false;
   StreamSubscription<TranscriptionSegment>? _streamSubscription;
@@ -48,8 +50,8 @@ class TranscriptionService {
           modelService: _modelService);
 
       if (!success) {
-        // Fallback to mock engine if preferred engine fails
-        print('Failed to initialize $engineType engine, falling back to mock');
+        Log.instance.w('service',
+            'Failed to initialize $engineType engine, falling back to mock');
         return await _engineManager.initializeWithMock(
             modelService: _modelService);
       }
@@ -58,16 +60,16 @@ class TranscriptionService {
       if (modelName != null && currentEngine != null) {
         try {
           await currentEngine!.loadModel(modelName);
-        } catch (e) {
-          print('Failed to load model $modelName: $e');
-          // Continue with engine initialization even if model loading fails
+        } catch (e, st) {
+          Log.instance.w('service', 'Failed to load model $modelName',
+              error: e, stack: st);
         }
       }
 
       return success;
-    } catch (e) {
-      print('Failed to initialize transcription service: $e');
-      // Ensure we have at least a mock engine working
+    } catch (e, st) {
+      Log.instance
+          .e('service', 'init failed', error: e, stack: st);
       return await _engineManager.initializeWithMock();
     }
   }
@@ -82,18 +84,19 @@ class TranscriptionService {
     bool beamSearch = false,
     String? initialPrompt,
     bool vad = false,
+    bool restorePunctuation = false,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'Already transcribing. Stop current transcription first.');
     }
 
     if (currentEngine == null) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'No transcription engine available. Please initialize first.');
     }
 
@@ -106,8 +109,10 @@ class TranscriptionService {
     if (vad) {
       vadModelPath = await _vadService.ensureModel();
       if (vadModelPath == null) {
-        Log.instance.w('service', 'VAD requested but model unavailable — '
-            'transcribing without VAD');
+        Log.instance.w(
+            'service',
+            'VAD requested but model unavailable — '
+                'transcribing without VAD');
       }
     }
 
@@ -137,7 +142,7 @@ class TranscriptionService {
       List<TranscriptionSegment> segments = engineSegments;
       Log.instance.d('service', 'Engine returned ${segments.length} segments');
 
-      // Step 3: Speaker diarization if enabled (30% of progress)
+      // Step 3: Speaker diarization if enabled (20% of progress)
       if (enableDiarization && segments.isNotEmpty) {
         onProgress?.call(0.75);
 
@@ -146,8 +151,16 @@ class TranscriptionService {
           segments,
           minSpeakers: minSpeakers,
           maxSpeakers: maxSpeakers,
-          onProgress: (progress) => onProgress?.call(0.75 + progress * 0.25),
+          onProgress: (progress) => onProgress?.call(0.75 + progress * 0.2),
         );
+      }
+
+      // Step 4: Punctuation restoration (5% of progress) — runs after
+      // diarization so the speaker-aware splits stay intact. Silently
+      // no-ops when no fireredpunc-*.gguf is on disk.
+      if (restorePunctuation && segments.isNotEmpty) {
+        onProgress?.call(0.95);
+        segments = await _puncService.restore(segments);
       }
 
       onProgress?.call(1.0);
@@ -169,13 +182,14 @@ class TranscriptionService {
     bool beamSearch = false,
     String? initialPrompt,
     bool vad = false,
+    bool restorePunctuation = false,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'Already transcribing. Stop current transcription first.');
     }
 
@@ -197,6 +211,7 @@ class TranscriptionService {
         beamSearch: beamSearch,
         initialPrompt: initialPrompt,
         vad: vad,
+        restorePunctuation: restorePunctuation,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
@@ -215,7 +230,8 @@ class TranscriptionService {
   }) {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException('No transcription engine available');
+      throw const TranscriptionServiceException(
+          'No transcription engine available');
     }
 
     if (!engine.supportsStreaming) {
@@ -239,8 +255,9 @@ class TranscriptionService {
     if (engine != null) {
       try {
         await engine.cancel();
-      } catch (e) {
-        print('Error stopping transcription: $e');
+      } catch (e, st) {
+        Log.instance.w('service', 'Error stopping transcription',
+            error: e, stack: st);
       }
     }
   }
@@ -249,15 +266,16 @@ class TranscriptionService {
   Future<bool> switchEngine(EngineType engineType,
       {Map<String, dynamic>? config}) async {
     if (_isTranscribing) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'Cannot change engine while transcribing');
     }
 
     try {
       return await _engineManager.switchEngine(engineType,
           modelService: _modelService, config: config);
-    } catch (e) {
-      print('Error switching engine to $engineType: $e');
+    } catch (e, st) {
+      Log.instance.w('service', 'Error switching engine to $engineType',
+          error: e, stack: st);
       return false;
     }
   }
@@ -266,7 +284,7 @@ class TranscriptionService {
   Future<List<EngineModel>> getAvailableModels() async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException('No engine initialized');
+      throw const TranscriptionServiceException('No engine initialized');
     }
 
     try {
@@ -281,11 +299,11 @@ class TranscriptionService {
       {void Function(double progress)? onProgress}) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException('No engine initialized');
+      throw const TranscriptionServiceException('No engine initialized');
     }
 
     if (_isTranscribing) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'Cannot load model while transcribing');
     }
 
@@ -302,14 +320,15 @@ class TranscriptionService {
     if (engine == null) return;
 
     if (_isTranscribing) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'Cannot unload model while transcribing');
     }
 
     try {
       await engine.unloadModel();
-    } catch (e) {
-      print('Error unloading model: $e');
+    } catch (e, st) {
+      Log.instance.w('service', 'Error unloading model',
+          error: e, stack: st);
     }
   }
 
@@ -317,7 +336,7 @@ class TranscriptionService {
   Future<void> updateEngineConfig(Map<String, dynamic> config) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException('No engine initialized');
+      throw const TranscriptionServiceException('No engine initialized');
     }
 
     try {
@@ -379,7 +398,7 @@ class TranscriptionService {
   }) async {
     final engine = currentEngine;
     if (engine == null) {
-      throw TranscriptionServiceException(
+      throw const TranscriptionServiceException(
           'No engine available for transcription');
     }
 
@@ -408,6 +427,7 @@ class TranscriptionService {
   void dispose() {
     stopTranscription();
     _engineManager.dispose();
+    _puncService.dispose();
   }
 }
 

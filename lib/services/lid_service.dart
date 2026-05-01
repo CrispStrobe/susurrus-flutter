@@ -68,8 +68,8 @@ class LidService {
       _cachedPath = candidates.first.localPath;
       return _cachedPath;
     } catch (e, st) {
-      Log.instance.w('lid', 'failed to enumerate whisper models',
-          error: e, stack: st);
+      Log.instance
+          .w('lid', 'failed to enumerate whisper models', error: e, stack: st);
       return null;
     }
   }
@@ -116,8 +116,7 @@ class LidService {
       });
       return r.langCode;
     } catch (e, st) {
-      Log.instance.w('lid', 'detectLanguagePcm threw',
-          error: e, stack: st);
+      Log.instance.w('lid', 'detectLanguagePcm threw', error: e, stack: st);
       return null;
     }
   }

@@ -52,7 +52,7 @@ class LogEntry {
     final errPart = error != null ? ' :: $error' : '';
     final kvPart = (fields == null || fields!.isEmpty)
         ? ''
-        : ' ' + fields!.entries.map((e) => '${e.key}=${_q(e.value)}').join(' ');
+        : ' ${fields!.entries.map((e) => '${e.key}=${_q(e.value)}').join(' ')}';
     final stackPart = (includeStack && stack != null) ? '\n$stack' : '';
     return '$ts ${level.tag} [$tag] $message$kvPart$errPart$stackPart';
   }
@@ -60,8 +60,9 @@ class LogEntry {
   static String _q(Object? v) {
     if (v == null) return 'null';
     final s = v.toString();
-    if (s.contains(' ') || s.contains('"'))
+    if (s.contains(' ') || s.contains('"')) {
       return '"${s.replaceAll('"', r'\"')}"';
+    }
     return s;
   }
 
@@ -320,7 +321,7 @@ class Log {
   /// Dump a rich multi-line boot banner capturing platform / paths /
   /// sizes. Called once from main.dart after file sink init.
   Future<void> logBootBanner() async {
-    Map<String, String> info = {
+    final Map<String, String> info = {
       'platform': Platform.operatingSystem,
       'os_version': Platform.operatingSystemVersion,
       'locale': Platform.localeName,

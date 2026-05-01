@@ -96,7 +96,7 @@ class AudioService {
   /// Download audio from URL
   Future<File> downloadAudioFromUrl(
     String url, {
-    Function(double progress)? onProgress,
+    void Function(double progress)? onProgress,
   }) async {
     try {
       final response = await http.get(Uri.parse(url));
@@ -171,14 +171,14 @@ class AudioService {
     final byteData = ByteData.sublistView(bytes);
 
     if (bytes.length < 12) {
-      throw AudioProcessingException('Invalid WAV file: too short');
+      throw const AudioProcessingException('Invalid WAV file: too short');
     }
 
     final riff = String.fromCharCodes(bytes.sublist(0, 4));
     final wave = String.fromCharCodes(bytes.sublist(8, 12));
 
     if (riff != 'RIFF' || wave != 'WAVE') {
-      throw AudioProcessingException('Not a valid WAV file');
+      throw const AudioProcessingException('Not a valid WAV file');
     }
 
     int channels = 0;
@@ -194,8 +194,9 @@ class AudioService {
       offset += 8;
 
       if (chunkId == 'fmt ') {
-        if (chunkSize < 16)
-          throw AudioProcessingException('Invalid fmt chunk size');
+        if (chunkSize < 16) {
+          throw const AudioProcessingException('Invalid fmt chunk size');
+        }
         channels = byteData.getUint16(offset + 2, Endian.little);
         sampleRate = byteData.getUint32(offset + 4, Endian.little);
         bitsPerSample = byteData.getUint16(offset + 14, Endian.little);
@@ -209,10 +210,12 @@ class AudioService {
       if (chunkSize % 2 != 0) offset++;
     }
 
-    if (dataOffset == -1)
-      throw AudioProcessingException('No data chunk found in WAV file');
-    if (channels == 0)
-      throw AudioProcessingException('No fmt chunk found in WAV file');
+    if (dataOffset == -1) {
+      throw const AudioProcessingException('No data chunk found in WAV file');
+    }
+    if (channels == 0) {
+      throw const AudioProcessingException('No fmt chunk found in WAV file');
+    }
 
     final actualDataSize = (bytes.length - dataOffset);
     final sizeToRead = dataSize < actualDataSize ? dataSize : actualDataSize;
@@ -224,7 +227,7 @@ class AudioService {
       for (int i = 0; i < samplesCount; i++) {
         final pos = dataOffset + i * 2;
         if (pos + 1 >= bytes.length) break;
-        var raw = byteData.getInt16(pos, Endian.little);
+        final raw = byteData.getInt16(pos, Endian.little);
         samples[i] = raw / 32768.0;
       }
     } else if (bitsPerSample == 32) {

@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'dart:ui' show AppExitResponse;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +16,7 @@ import 'screens/model_management_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/logs_screen.dart';
 import 'screens/about_screen.dart';
+import 'screens/synthesize_screen.dart';
 import 'services/audio_service.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
@@ -142,7 +141,7 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       t.dispose(); // Returns void, do not await
 
       // Give it a moment to actually stop any native threads if needed
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       await Log.instance.enableFileSink(false); // flush + close sink
     } catch (e, st) {
       Log.instance.w('main', 'dispose on exit failed', error: e, stack: st);
@@ -188,6 +187,11 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/about',
         name: 'about',
         builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/synthesize',
+        name: 'synthesize',
+        builder: (context, state) => const SynthesizeScreen(),
       ),
     ],
   );

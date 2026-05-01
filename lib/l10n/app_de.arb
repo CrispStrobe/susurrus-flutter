@@ -7,6 +7,7 @@
   "menuHistory": "Verlauf",
   "menuSettings": "Einstellungen",
   "menuModels": "Modelle",
+  "menuSynthesize": "Sprache erzeugen",
   "menuLogs": "Protokoll",
   "menuAbout": "Über",
 
@@ -304,5 +305,20 @@
   "advancedBeamSearch": "Beam-Search",
   "advancedBeamSearchSubtitle": "Langsamer, meist genauer. Standard ist greedy.",
   "advancedInitialPrompt": "Initial-Prompt (Vokabular / Kontext)",
-  "advancedInitialPromptHint": "z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“"
+  "advancedInitialPromptHint": "z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“",
+  "advancedRestorePunctuation": "Interpunktion wiederherstellen (FireRedPunc)",
+  "advancedRestorePunctuationSubtitle": "Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.",
+
+  "synthTitle": "Synthese",
+  "synthModelLabel": "TTS-Modell",
+  "synthVoiceLabel": "Stimme / Voicepack",
+  "synthCodecLabel": "Codec / Tokenizer",
+  "synthTextHint": "Text zum Synthetisieren eingeben…",
+  "synthRunButton": "Synthetisieren",
+  "synthPlayButton": "Abspielen",
+  "synthStopButton": "Stopp",
+  "synthShareButton": "WAV speichern / teilen",
+  "synthNoTtsModelsDownloaded": "Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.",
+  "synthMissingDependency": "Fehlende Begleitdatei: {name}",
+  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}}
 }

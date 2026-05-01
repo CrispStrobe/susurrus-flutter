@@ -534,7 +534,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
   void _editSegment(TranscriptionSegment segment) {
     // TODO: Implement segment editing
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).outputEditSegment),
@@ -551,7 +551,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
   void _exportTranscription() {
     // TODO: Implement transcription export
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).outputExport),
@@ -567,7 +567,7 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
   }
 
   void _showSegmentOptions(TranscriptionSegment segment) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,

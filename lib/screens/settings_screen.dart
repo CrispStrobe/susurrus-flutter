@@ -81,31 +81,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'de': 'Deutsch',
     };
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title:
             Text(AppLocalizations.of(context).settingsSelectInterfaceLanguage),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: locales.entries.map((entry) {
-            return RadioListTile<String>(
-              title: Text(entry.value),
-              value: entry.key,
-              groupValue: settings.appLocale ?? '',
-              onChanged: (value) async {
-                if (value != null) {
-                  setState(() => settings.appLocale = value);
-
-                  // Update app-wide locale via provider
-                  final languageCode = value.isEmpty ? null : value;
-                  ref.read(localeProvider.notifier).setLocale(languageCode);
-
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
+        content: RadioGroup<String>(
+          groupValue: settings.appLocale ?? '',
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => settings.appLocale = value);
+            final languageCode = value.isEmpty ? null : value;
+            ref.read(localeProvider.notifier).setLocale(languageCode);
+            Navigator.of(context).pop();
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: locales.entries
+                .map((entry) => RadioListTile<String>(
+                      title: Text(entry.value),
+                      value: entry.key,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -136,46 +134,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _showEngineSelector(SettingsService settings) {
     final availableEngines = EngineFactory.getAvailableEngines();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select Engine'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: availableEngines.map((engine) {
-            return RadioListTile<EngineType>(
-              title: Text(engine.displayName),
-              subtitle: Text(engine.description),
-              value: engine,
-              groupValue: settings.preferredEngine,
-              onChanged: (value) async {
-                if (value == null) return;
-                setState(() => settings.preferredEngine = value);
-                Navigator.of(context).pop();
+        content: RadioGroup<EngineType>(
+          groupValue: settings.preferredEngine,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => settings.preferredEngine = value);
+            Navigator.of(context).pop();
 
-                // Try to swap engines immediately
-                final service = ref.read(transcriptionServiceProvider);
-                try {
-                  final ok = await service.switchEngine(value);
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok
-                          ? 'Switched to ${value.displayName}'
-                          : 'Engine switch failed'),
-                    ),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(
-                            '${AppLocalizations.of(context).settingsEngineSwitchFailed}: $e')),
-                  );
-                }
-              },
-            );
-          }).toList(),
+            // Try to swap engines immediately
+            final service = ref.read(transcriptionServiceProvider);
+            try {
+              final ok = await service.switchEngine(value);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(ok
+                      ? 'Switched to ${value.displayName}'
+                      : 'Engine switch failed'),
+                ),
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                        '${AppLocalizations.of(context).settingsEngineSwitchFailed}: $e')),
+              );
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: availableEngines
+                .map((engine) => RadioListTile<EngineType>(
+                      title: Text(engine.displayName),
+                      subtitle: Text(engine.description),
+                      value: engine,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -242,25 +242,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'wav2vec2',
     ];
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context).settingsSelectBackend),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: backends
-                .map((b) => RadioListTile<String>(
-                      title: Text(b),
-                      value: b,
-                      groupValue: settings.defaultBackend,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => settings.defaultBackend = value);
-                        Navigator.of(ctx).pop();
-                      },
-                    ))
-                .toList(),
+          child: RadioGroup<String>(
+            groupValue: settings.defaultBackend,
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => settings.defaultBackend = value);
+              Navigator.of(ctx).pop();
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: backends
+                  .map((b) => RadioListTile<String>(
+                        title: Text(b),
+                        value: b,
+                      ))
+                  .toList(),
+            ),
           ),
         ),
       ),
@@ -281,7 +283,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (!mounted) return;
     final l = AppLocalizations.of(context);
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.settingsSelectModel(backendFilter)),
@@ -290,22 +292,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: filtered.isEmpty
               ? Text(l.settingsNoModelsForBackend(backendFilter))
               : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: filtered
-                        .map((m) => RadioListTile<String>(
-                              title: Text(m.displayName),
-                              subtitle: Text(
-                                  '${m.quantization.isEmpty ? "f16" : m.quantization} • ${m.size}'),
-                              value: m.name,
-                              groupValue: settings.defaultModel,
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(() => settings.defaultModel = value);
-                                Navigator.of(ctx).pop();
-                              },
-                            ))
-                        .toList(),
+                  child: RadioGroup<String>(
+                    groupValue: settings.defaultModel,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => settings.defaultModel = value);
+                      Navigator.of(ctx).pop();
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: filtered
+                          .map((m) => RadioListTile<String>(
+                                title: Text(m.displayName),
+                                subtitle: Text(
+                                    '${m.quantization.isEmpty ? "f16" : m.quantization} • ${m.size}'),
+                                value: m.name,
+                              ))
+                          .toList(),
+                    ),
                   ),
                 ),
         ),
@@ -328,25 +332,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'ko': l.languageKo,
     };
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).settingsSelectLanguage),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: languages.entries
-              .map((entry) => RadioListTile<String>(
-                    title: Text(entry.value),
-                    value: entry.key,
-                    groupValue: settings.defaultLanguage,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => settings.defaultLanguage = value);
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  ))
-              .toList(),
+        content: RadioGroup<String>(
+          groupValue: settings.defaultLanguage,
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => settings.defaultLanguage = value);
+            Navigator.of(context).pop();
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: languages.entries
+                .map((entry) => RadioListTile<String>(
+                      title: Text(entry.value),
+                      value: entry.key,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -490,25 +495,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showLogLevelSelector(SettingsService settings) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context).settingsLogLevel),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: LogLevel.values
-              .map((l) => RadioListTile<LogLevel>(
-                    title: Text('${l.tag} — ${l.name}'),
-                    value: l,
-                    groupValue: settings.logLevel,
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => settings.logLevel = v);
-                      Log.instance.setMinLevel(v);
-                      Navigator.of(ctx).pop();
-                    },
-                  ))
-              .toList(),
+        content: RadioGroup<LogLevel>(
+          groupValue: settings.logLevel,
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => settings.logLevel = v);
+            Log.instance.setMinLevel(v);
+            Navigator.of(ctx).pop();
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: LogLevel.values
+                .map((l) => RadioListTile<LogLevel>(
+                      title: Text('${l.tag} — ${l.name}'),
+                      value: l,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -516,7 +523,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showHfTokenDialog(SettingsService settings) {
     final controller = TextEditingController(text: settings.hfToken);
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hugging Face API Token'),
@@ -566,9 +573,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         FutureBuilder<Map<String, String>>(
           future: _getSystemInfo(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData)
+            if (!snapshot.hasData) {
               return ListTile(
                   title: Text(AppLocalizations.of(context).settingsLoading));
+            }
             return Column(
               children: snapshot.data!.entries
                   .map((entry) => ListTile(

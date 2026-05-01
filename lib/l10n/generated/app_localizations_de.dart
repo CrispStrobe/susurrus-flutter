@@ -24,6 +24,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get menuModels => 'Modelle';
 
   @override
+  String get menuSynthesize => 'Sprache erzeugen';
+
+  @override
   String get menuLogs => 'Protokoll';
 
   @override
@@ -708,4 +711,48 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get advancedInitialPromptHint =>
       'z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“';
+
+  @override
+  String get advancedRestorePunctuation =>
+      'Interpunktion wiederherstellen (FireRedPunc)';
+
+  @override
+  String get advancedRestorePunctuationSubtitle =>
+      'Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.';
+
+  @override
+  String get synthTitle => 'Synthese';
+
+  @override
+  String get synthModelLabel => 'TTS-Modell';
+
+  @override
+  String get synthVoiceLabel => 'Stimme / Voicepack';
+
+  @override
+  String get synthCodecLabel => 'Codec / Tokenizer';
+
+  @override
+  String get synthTextHint => 'Text zum Synthetisieren eingeben…';
+
+  @override
+  String get synthRunButton => 'Synthetisieren';
+
+  @override
+  String get synthPlayButton => 'Abspielen';
+
+  @override
+  String get synthStopButton => 'Stopp';
+
+  @override
+  String get synthShareButton => 'WAV speichern / teilen';
+
+  @override
+  String get synthNoTtsModelsDownloaded =>
+      'Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.';
+
+  @override
+  String synthMissingDependency(String name) {
+    return 'Fehlende Begleitdatei: $name';
+  }
 }

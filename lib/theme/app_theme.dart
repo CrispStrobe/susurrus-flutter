@@ -43,7 +43,7 @@ class AppTheme {
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -148,15 +148,15 @@ class AppTheme {
 
       // Switch theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryBlue;
           }
           return Colors.grey.shade400;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return primaryBlue.withOpacity(0.3);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return primaryBlue.withValues(alpha: 0.3);
           }
           return Colors.grey.shade300;
         }),
@@ -180,7 +180,7 @@ class AppTheme {
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade100,
-        selectedColor: primaryBlue.withOpacity(0.1),
+        selectedColor: primaryBlue.withValues(alpha: 0.1),
         labelStyle: const TextStyle(color: Colors.black87),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -296,7 +296,7 @@ class AppTheme {
       // Card theme
       cardTheme: CardThemeData(
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
         color: darkSurfaceVariant,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -418,15 +418,15 @@ class AppTheme {
 
       // Switch theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryBlue;
           }
           return Colors.grey.shade600;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return primaryBlue.withOpacity(0.3);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return primaryBlue.withValues(alpha: 0.3);
           }
           return Colors.grey.shade700;
         }),
@@ -450,7 +450,7 @@ class AppTheme {
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey.shade800,
-        selectedColor: primaryBlue.withOpacity(0.2),
+        selectedColor: primaryBlue.withValues(alpha: 0.2),
         labelStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
