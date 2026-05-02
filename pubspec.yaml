@@ -28,6 +28,11 @@ dependencies:
   # Audio handling
   audio_session: ^0.2.3
   just_audio: ^0.10.5
+  # just_audio has no native Windows/Linux implementation; libmpv-backed
+  # plugin fills that gap. macOS/iOS/Android keep the official backend.
+  just_audio_media_kit: ^2.1.0
+  media_kit_libs_windows_audio: any
+  media_kit_libs_linux: any
   record: ^6.2.0
   path_provider: ^2.1.1
   permission_handler: ^12.0.1

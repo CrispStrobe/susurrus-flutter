@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +31,14 @@ import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // just_audio ships native code for iOS/Android/macOS/web only. On
+  // Windows and Linux it has no platform implementation, which crashes
+  // every player call with MissingPluginException(disposeAllPlayers).
+  // Route those two platforms through libmpv via just_audio_media_kit.
+  if (Platform.isWindows || Platform.isLinux) {
+    JustAudioMediaKit.ensureInitialized();
+  }
 
   // Persist the rolling session log from the very first line so bug reports
   // always have the startup trail on disk.
