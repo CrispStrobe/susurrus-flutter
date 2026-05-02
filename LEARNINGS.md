@@ -152,6 +152,29 @@ dependency_overrides:
   record_linux: ^1.3.0
 ```
 
+### `just_audio` has no native Windows / Linux implementation
+
+Symptom (issue #1, Windows): `MissingPluginException(No implementation found for method disposeAllPlayers on channel com.ryanheise.just_audio.methods)` fires on the very first `AudioPlayer` constructor — so the app crashes before any UI renders. `just_audio`'s pubspec only declares `android` / `ios` / `macos` / `web` plugin platforms. The Flutter tool happily builds for Windows and Linux without warning, then the platform channel resolves to nothing at runtime.
+
+Fix: route those two platforms through `just_audio_media_kit` (libmpv-backed). Initialise it before any player is constructed, but only on the affected platforms — calling it on macOS/iOS/Android is a no-op but cleaner to guard:
+
+```yaml
+dependencies:
+  just_audio: ^0.10.5
+  just_audio_media_kit: ^2.1.0
+  media_kit_libs_windows_audio: any
+  media_kit_libs_linux: any
+```
+
+```dart
+// main.dart, before runApp()
+if (Platform.isWindows || Platform.isLinux) {
+  JustAudioMediaKit.ensureInitialized();
+}
+```
+
+The Flutter generated plugin registrants pick up `media_kit_libs_windows_audio` automatically on the next `flutter build windows`. No manual edits to `windows/flutter/generated_plugin_registrant.cc`.
+
 ## CI patterns
 
 ### Sibling-repo checkout
@@ -256,6 +279,26 @@ We shipped a hardcoded catalog of `ModelDefinition` entries pointing at `hugging
 `package:dio`'s `LogInterceptor(requestHeader:true, responseHeader:true, responseBody:true)` emits ~50 trace lines per HTTP request (every header, every response body byte). We gated it on `kDebugMode` — which is true under `flutter run`, which is where users actually read in-app logs. Our own `download start` / `download done` + DioException summary in the catch already capture the signal. The interceptor was pure noise.
 
 **Lesson:** log only at application-event granularity (download started, download failed with HTTP 404), not at network-protocol granularity. If you need network-protocol logs, gate them behind a separate "HTTP verbose" toggle, not a debug-mode flag.
+
+### `stderr.writeln` on Windows GUI builds throws *async*, past your `try`/`catch`
+
+Issue #1's log showed an `[uncaught] FileSystemException: writeFrom failed (errno=6)` for every log line on Windows, originating from `Log._emit → stderr.writeln`. The `_emit` site already had a sync `try { stderr.writeln(...) } catch (_) {}` around it. The error still escaped.
+
+**Reason:** `IOSink.writeln` enqueues bytes synchronously and returns; the actual write happens later in the event loop via `_StdConsumer.addStream → _StdSink.writeln`. When stderr's underlying handle is invalid — exactly the case for a Windows GUI build detached from the console — the FileSystemException is raised in that later micro-task and bypasses the sync try/catch entirely. It lands on `platformDispatcher.onError` instead, surfacing as `[uncaught]` on every log line.
+
+**Fix:** classify the stream once at startup with `stdioType(stderr)` and skip the write entirely when it returns `StdioType.other` (the value Dart uses for detached streams):
+
+```dart
+final bool _stderrUsable = stdioType(stderr) != StdioType.other;
+// ...
+if (kDebugMode) {
+  debugPrint(formatted);
+} else if (_stderrUsable) {
+  try { stderr.writeln(formatted); } catch (_) {}
+}
+```
+
+`stdioType` covers terminal, pipe, file, and other (the only category that actually fails). Wrapping `runZonedGuarded` around `main()` is the alternative, but it pushes complexity onto every other site in the app for one specific failure mode.
 
 ## Theming and dark mode
 

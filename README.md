@@ -93,35 +93,43 @@ git clone https://github.com/CrispStrobe/CrisperWeaver.git
 
 `pubspec.yaml` refers to the Dart FFI package via `path: ../CrispASR/flutter/crispasr`.
 
-### Build libwhisper / libcrispasr (macOS / Linux)
+### Desktop one-shot (recommended)
+
+Each desktop platform has an end-to-end script that configures + builds CrispASR's `libwhisper` / `whisper.dll`, runs `flutter build`, and bundles every needed dynamic library next to the runner. They expect the sibling `CrispASR` checkout described above.
+
+```bash
+# macOS
+./scripts/build_macos.sh release
+
+# Linux
+./scripts/build_linux.sh release
+
+# Windows (cmd.exe — picks up pwsh if installed, falls back to powershell.exe)
+build_windows.bat release
+# or directly:
+pwsh -File scripts\build_windows.ps1 release
+```
+
+Pass `debug` instead of `release` for a debug build; add `--rebuild-cmake` (or `-RebuildCmake` on Windows) to force a fresh CrispASR cmake configure. Each script's output ends with a path to the runnable bundle / `.app` / `.exe`.
+
+The bundlers can also be invoked standalone (`scripts/bundle_macos_dylibs.sh`, `scripts/bundle_linux_libs.sh`, `scripts/bundle_windows_dlls.ps1`) if you've already built CrispASR and `flutter build <platform>` separately and just want to drop the libs in place.
+
+At runtime, `CrispASREngine` resolves the library by probing platform-specific names — `crispasr.dll` / `libcrispasr.dylib` / `libcrispasr.so` first, then the `whisper`-named alias — under the bundle, the user's CrispASR checkout, system lib dirs, and any user-supplied override path.
+
+### Manual / iterative dev
 
 ```bash
 cd CrispASR
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
-cmake --build build --parallel --target whisper
-```
+cmake --build build --parallel --target crispasr
 
-Produces `build/src/libwhisper.*.dylib` (macOS) or `.so` (Linux) plus a `libcrispasr` alias.
-
-### Run
-
-```bash
 cd ../CrisperWeaver
 flutter pub get
 flutter run -d macos        # or: linux, windows, android, ios
 ```
 
-### Package a macOS `.app` with all dylibs bundled
-
-```bash
-flutter build macos --release
-CRISPASR_DIR="$(pwd)/../CrispASR" \
-  APP=build/macos/Build/Products/Release/crisper_weaver.app \
-  ./scripts/bundle_macos_dylibs.sh
-```
-
-The script copies every sibling ASR dylib into `Contents/Frameworks/`, creates the `libcrispasr.dylib` alias, and ad-hoc codesigns the bundle. At runtime, `CrispASREngine` auto-detects the library from the bundle first, then `$HOME/code/CrispASR/build/src/`, then `/usr/local/lib/`, then an optional user-supplied path.
+`flutter run` picks up the freshly-built CrispASR shared library directly from `../CrispASR/build/src/` for fast inner-loop work.
 
 ---
 
@@ -174,7 +182,7 @@ The short version:
 - Wire the shared `crispasr_detect_language_pcm` (v0.4.6) for auto-language on backends that lack native LID.
 - Wire `crispasr_align_words_abi` (v0.4.7) to give word-level timestamps to LLM-based backends (qwen3 / voxtral / granite) that don't emit them natively.
 - Expose more CrispASR power-user knobs in the UI: beam search / best-of-N, temperature, source/target languages for translation backends, audio Q&A mode, streaming UI (see PLAN.md §5.8). VAD and `initialPrompt` already shipped in v0.1.7.
-- Windows CI job + dll bundling script.
+- Windows CI job (build script + DLL bundler shipped — `scripts/build_windows.ps1`; CI workflow still TODO).
 - Android CI: cross-build `libwhisper.so` + sibling backends, drop into `jniLibs/`, ship a real-ASR APK.
 - iOS `pod install` + device-build CI verification.
 - Finish i18n migration for widgets + older Settings strings.
