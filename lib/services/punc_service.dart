@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:crispasr/crispasr.dart' as crispasr;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../engines/transcription_engine.dart';
+import '../main.dart' show modelServiceProvider;
 import 'log_service.dart';
+import 'model_service.dart';
 
 /// Punctuation restoration via CrispASR's `PuncModel` (FireRedPunc).
 ///
@@ -30,6 +31,12 @@ class PuncService {
     'fireredpunc-f16.gguf',
   ];
 
+  /// Optional ModelService injection. When present we honour the
+  /// custom-models-dir setting; when null we fall back to a temp-dir
+  /// path so the not-found check fires cleanly in test fixtures.
+  final ModelService? modelService;
+  PuncService({this.modelService});
+
   crispasr.PuncModel? _model;
   String? _loadedPath;
   bool _searched = false;
@@ -42,8 +49,11 @@ class PuncService {
     if (_searched) return _cachedPath;
     _searched = true;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final modelsDir = Directory(p.join(appDir.path, 'models', 'whisper_cpp'));
+      await modelService?.initialize();
+      final dirPath = modelService?.whisperCppDir() ??
+          p.join(Directory.systemTemp.path, 'crisper_weaver_models',
+              'whisper_cpp');
+      final modelsDir = Directory(dirPath);
       if (!await modelsDir.exists()) return null;
       final entries = await modelsDir.list().toList();
       for (final e in entries) {
@@ -147,7 +157,7 @@ class PuncService {
 }
 
 final puncServiceProvider = Provider<PuncService>((ref) {
-  final svc = PuncService();
+  final svc = PuncService(modelService: ref.watch(modelServiceProvider));
   ref.onDispose(svc.dispose);
   return svc;
 });

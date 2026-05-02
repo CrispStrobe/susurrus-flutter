@@ -19,7 +19,7 @@ class TranscriptionService {
   final DiarizationService _diarizationService = DiarizationService();
   final EngineManager _engineManager = EngineManager();
   final VadService _vadService = VadService();
-  final PuncService _puncService = PuncService();
+  late final PuncService _puncService;
 
   bool _isTranscribing = false;
   StreamSubscription<TranscriptionSegment>? _streamSubscription;
@@ -30,7 +30,9 @@ class TranscriptionService {
   /// detection without plumbing a new return type through every layer.
   TranscriptionResult? lastResult;
 
-  TranscriptionService(this._audioService, this._modelService);
+  TranscriptionService(this._audioService, this._modelService) {
+    _puncService = PuncService(modelService: _modelService);
+  }
 
   bool get isTranscribing => _isTranscribing;
   TranscriptionEngine? get currentEngine => _engineManager.currentEngine;

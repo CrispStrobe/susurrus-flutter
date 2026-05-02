@@ -214,6 +214,35 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht gesetzt (erforderlich für gated-Modelle)';
 
   @override
+  String get settingsModelsDir => 'Modellverzeichnis';
+
+  @override
+  String get settingsModelsDirDefault => 'Standard (App-Sandbox)';
+
+  @override
+  String get settingsModelsDirPickTitle => 'Modellverzeichnis wählen';
+
+  @override
+  String get settingsModelsDirCurrentDefault =>
+      'Aktuell wird der Standard-Sandbox-Pfad verwendet. Wähle ein eigenes Verzeichnis, um GGUFs mit anderen Tools zu teilen (z. B. von einer externen Festplatte).';
+
+  @override
+  String settingsModelsDirCurrent(String path) {
+    return 'Aktuell: $path';
+  }
+
+  @override
+  String get settingsModelsDirPick => 'Wählen …';
+
+  @override
+  String get settingsModelsDirReset => 'Standard verwenden';
+
+  @override
+  String settingsModelsDirSet(String path) {
+    return 'Modellverzeichnis gesetzt auf $path';
+  }
+
+  @override
   String get languageEn => 'Englisch';
 
   @override

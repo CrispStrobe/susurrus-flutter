@@ -28,7 +28,7 @@ class CrispASREngine implements TranscriptionEngine {
   String? _currentModelPath;
   Map<String, dynamic> _config = {};
   ModelService? _modelService;
-  final AlignerService _alignerService = AlignerService();
+  AlignerService? _alignerService;
   LidService? _lidService;
 
   @override
@@ -177,7 +177,9 @@ class CrispASREngine implements TranscriptionEngine {
       if (_modelService != null) {
         await _modelService!.initialize();
         _lidService = LidService(_modelService!);
+        _alignerService = AlignerService(modelService: _modelService);
       }
+      _alignerService ??= AlignerService();
       _isInitialized = true;
       final libName = crispasr.CrispASR.defaultLibName();
       final backends = crispasr.CrispasrSession.availableBackends();
@@ -519,7 +521,7 @@ class CrispASREngine implements TranscriptionEngine {
               segments.any((s) => s.words == null || s.words!.isEmpty);
           if (anyMissing) {
             segments =
-                await _alignerService.addWordTimestamps(segments, audioData);
+                await _alignerService!.addWordTimestamps(segments, audioData);
           }
         }
       }

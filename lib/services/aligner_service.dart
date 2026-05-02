@@ -4,10 +4,11 @@ import 'dart:typed_data';
 import 'package:crispasr/crispasr.dart' as crispasr;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../engines/transcription_engine.dart';
+import '../main.dart' show modelServiceProvider;
 import 'log_service.dart';
+import 'model_service.dart';
 
 /// CTC / forced-aligner word timestamp backfill via CrispASR 0.4.7+
 /// `crispasr_align_words_abi`.
@@ -34,18 +35,29 @@ class AlignerService {
     'qwen3-forced-aligner-0.6b-q4_k.gguf',
   ];
 
+  /// Optional ModelService injection. When present we honour the
+  /// custom-models-dir setting; when null we fall back to the legacy
+  /// `<app-docs>/models/whisper_cpp` sandbox path so the service still
+  /// works in tests / standalone use.
+  final ModelService? modelService;
+  AlignerService({this.modelService});
+
   String? _cachedPath;
   bool _searched = false;
 
   /// Return the path to a downloaded aligner GGUF, or null if none found.
-  /// Result is cached after first lookup — the model directory doesn't
-  /// change within a CrisperWeaver session.
+  /// Re-checks on every call when no ModelService is wired (no caching
+  /// without one because the directory could change underneath us).
   Future<String?> _findAligner() async {
     if (_searched) return _cachedPath;
     _searched = true;
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final modelsDir = Directory(p.join(appDir.path, 'models', 'whisper_cpp'));
+      // Prefer the ModelService-resolved path so the user's
+      // customModelsDir override is honoured automatically.
+      await modelService?.initialize();
+      final dirPath = modelService?.whisperCppDir() ??
+          await _legacyDefaultModelsDir();
+      final modelsDir = Directory(dirPath);
       if (!await modelsDir.exists()) return null;
 
       final entries = await modelsDir.list().toList();
@@ -148,7 +160,16 @@ class AlignerService {
     }
     return out;
   }
+
+  /// Legacy fallback path when no ModelService is wired (test
+  /// fixtures, standalone use). Returns a temp-dir path so the
+  /// directory-not-found check above fires gracefully — production
+  /// callers always inject ModelService and never hit this branch.
+  Future<String> _legacyDefaultModelsDir() async {
+    return p.join(Directory.systemTemp.path, 'crisper_weaver_models',
+        'whisper_cpp');
+  }
 }
 
-final alignerServiceProvider =
-    Provider<AlignerService>((_) => AlignerService());
+final alignerServiceProvider = Provider<AlignerService>(
+    (ref) => AlignerService(modelService: ref.watch(modelServiceProvider)));

@@ -494,6 +494,54 @@ abstract class AppLocalizations {
   /// **'Not set (required for gated models)'**
   String get settingsHfTokenNotSet;
 
+  /// No description provided for @settingsModelsDir.
+  ///
+  /// In en, this message translates to:
+  /// **'Models directory'**
+  String get settingsModelsDir;
+
+  /// No description provided for @settingsModelsDirDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (in app sandbox)'**
+  String get settingsModelsDirDefault;
+
+  /// No description provided for @settingsModelsDirPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick models directory'**
+  String get settingsModelsDirPickTitle;
+
+  /// No description provided for @settingsModelsDirCurrentDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently using the default app-sandbox path. Pick a custom directory to share GGUFs with other tools (e.g. an external drive).'**
+  String get settingsModelsDirCurrentDefault;
+
+  /// No description provided for @settingsModelsDirCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {path}'**
+  String settingsModelsDirCurrent(String path);
+
+  /// No description provided for @settingsModelsDirPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick…'**
+  String get settingsModelsDirPick;
+
+  /// No description provided for @settingsModelsDirReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default'**
+  String get settingsModelsDirReset;
+
+  /// No description provided for @settingsModelsDirSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Models directory set to {path}'**
+  String settingsModelsDirSet(String path);
+
   /// No description provided for @languageEn.
   ///
   /// In en, this message translates to:

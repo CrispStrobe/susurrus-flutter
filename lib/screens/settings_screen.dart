@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -486,6 +487,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () => _showHfTokenDialog(settings),
         ),
         ListTile(
+          title: Text(AppLocalizations.of(context).settingsModelsDir),
+          subtitle: Text(settings.customModelsDir.isEmpty
+              ? AppLocalizations.of(context).settingsModelsDirDefault
+              : settings.customModelsDir),
+          trailing: const Icon(Icons.folder_open),
+          onTap: () => _showModelsDirDialog(settings),
+        ),
+        ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/logs'),
@@ -518,6 +527,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Folder-picker for the optional custom models directory. Lets the
+  /// user point CrisperWeaver at a shared library on an external disk
+  /// (e.g. `/Volumes/backups/ai/crispasr-models`) so existing GGUFs
+  /// are reused without re-downloading into the sandbox. The empty
+  /// string ("Use default") restores the historical
+  /// `<app-docs>/models/whisper_cpp` location.
+  Future<void> _showModelsDirDialog(SettingsService settings) async {
+    final l = AppLocalizations.of(context);
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.settingsModelsDirPickTitle),
+        content: Text(settings.customModelsDir.isEmpty
+            ? l.settingsModelsDirCurrentDefault
+            : l.settingsModelsDirCurrent(settings.customModelsDir)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('cancel'),
+            child: Text(l.cancel),
+          ),
+          if (settings.customModelsDir.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('reset'),
+              child: Text(l.settingsModelsDirReset),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop('pick'),
+            child: Text(l.settingsModelsDirPick),
+          ),
+        ],
+      ),
+    );
+    if (action == 'reset') {
+      setState(() => settings.customModelsDir = '');
+      Log.instance.i('settings', 'customModelsDir cleared (back to sandbox)');
+      return;
+    }
+    if (action != 'pick') return;
+    final picked = await FilePicker.getDirectoryPath(
+      dialogTitle: l.settingsModelsDirPickTitle,
+      initialDirectory:
+          settings.customModelsDir.isEmpty ? null : settings.customModelsDir,
+    );
+    if (picked == null || picked.isEmpty) return;
+    setState(() => settings.customModelsDir = picked);
+    Log.instance.i('settings', 'customModelsDir set', fields: {'path': picked});
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.settingsModelsDirSet(picked))),
     );
   }
 

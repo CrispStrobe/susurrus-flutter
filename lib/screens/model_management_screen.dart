@@ -366,37 +366,67 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   }
 
   Future<void> _downloadModel(ModelInfo model) async {
-    setState(() {
-      _downloadingModel = model.name;
-      _downloadProgress = 0.0;
-    });
-
-    try {
-      final modelService = ref.read(modelServiceProvider);
-      final success = await modelService.downloadWhisperCppModel(
-        model.name,
-        onProgress: (progress) {
-          setState(() => _downloadProgress = progress);
-        },
-      );
-
-      if (success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('${model.displayName} downloaded successfully')),
-        );
-        await _loadModels();
-      } else {
-        _showErrorDialog('Failed to download ${model.displayName}');
+    final modelService = ref.read(modelServiceProvider);
+    // Build the download queue: the main model first, then any
+    // companions it declares (TTS voicepacks, codec/tokenizer GGUFs,
+    // etc.) that aren't already on disk. This makes Model Management
+    // a one-click affair for the multi-file backends — kokoro, orpheus,
+    // qwen3-tts, vibevoice, mimo-asr — instead of forcing the user to
+    // discover the engine's "Companion ... not downloaded" error at
+    // load time and hunt for the matching row.
+    final queue = <ModelInfo>[model];
+    final mainDef = modelService.lookupDefinition(model.name);
+    if (mainDef != null) {
+      for (final cName in mainDef.companions) {
+        ModelInfo? cInfo;
+        for (final m in _whisperModels) {
+          if (m.name == cName) {
+            cInfo = m;
+            break;
+          }
+        }
+        if (cInfo != null && !cInfo.isDownloaded) {
+          queue.add(cInfo);
+        }
       }
+    }
+
+    final fetched = <String>[];
+    try {
+      for (final item in queue) {
+        if (!mounted) return;
+        setState(() {
+          _downloadingModel = item.name;
+          _downloadProgress = 0.0;
+        });
+        final ok = await modelService.downloadWhisperCppModel(
+          item.name,
+          onProgress: (progress) {
+            if (!mounted) return;
+            setState(() => _downloadProgress = progress);
+          },
+        );
+        if (!ok) {
+          _showErrorDialog('Failed to download ${item.displayName}');
+          return;
+        }
+        fetched.add(item.displayName);
+      }
+      if (!mounted) return;
+      final summary = fetched.length == 1
+          ? '${fetched.first} downloaded'
+          : '${fetched.length} files downloaded: ${fetched.join(", ")}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(summary)));
+      await _loadModels();
     } catch (e) {
       _showErrorDialog('Download failed: $e');
     } finally {
-      setState(() {
-        _downloadingModel = null;
-        _downloadProgress = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _downloadingModel = null;
+          _downloadProgress = 0.0;
+        });
+      }
     }
   }
 

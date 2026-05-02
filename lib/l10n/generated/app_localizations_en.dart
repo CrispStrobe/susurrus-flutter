@@ -213,6 +213,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsHfTokenNotSet => 'Not set (required for gated models)';
 
   @override
+  String get settingsModelsDir => 'Models directory';
+
+  @override
+  String get settingsModelsDirDefault => 'Default (in app sandbox)';
+
+  @override
+  String get settingsModelsDirPickTitle => 'Pick models directory';
+
+  @override
+  String get settingsModelsDirCurrentDefault =>
+      'Currently using the default app-sandbox path. Pick a custom directory to share GGUFs with other tools (e.g. an external drive).';
+
+  @override
+  String settingsModelsDirCurrent(String path) {
+    return 'Current: $path';
+  }
+
+  @override
+  String get settingsModelsDirPick => 'Pick…';
+
+  @override
+  String get settingsModelsDirReset => 'Use default';
+
+  @override
+  String settingsModelsDirSet(String path) {
+    return 'Models directory set to $path';
+  }
+
+  @override
   String get languageEn => 'English';
 
   @override

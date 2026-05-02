@@ -124,6 +124,22 @@ class SettingsService {
     _prefs.setString('hf_token', token);
   }
 
+  /// Override directory for model GGUFs / .bin files. Empty / null
+  /// means "use the platform-default `<app-docs>/models/whisper_cpp`".
+  /// Useful for users who keep a shared library on an external disk
+  /// (e.g. `/Volumes/backups/ai/crispasr-models`) and don't want
+  /// CrisperWeaver to re-download every quant into its sandbox.
+  ///
+  /// ModelService.getModelsDirOverride reads this on every call so the
+  /// effect is live — change the setting and the next download lands
+  /// at the new path without an app restart.
+  String get customModelsDir => _prefs.getString('custom_models_dir') ?? '';
+  set customModelsDir(String dir) {
+    Log.instance.d('settings',
+        'Saving customModelsDir: ${dir.isEmpty ? "DEFAULT" : dir}');
+    _prefs.setString('custom_models_dir', dir);
+  }
+
   /// Helper to clear all settings (for reset)
   Future<void> clearAll() async {
     await _prefs.clear();

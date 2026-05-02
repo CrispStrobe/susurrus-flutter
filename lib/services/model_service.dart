@@ -796,9 +796,40 @@ class ModelService {
     _modelsDir = path.join(appDir.path, 'models');
     await Directory(_modelsDir).create(recursive: true);
 
-    // Create subdirectories
-    await Directory(path.join(_modelsDir, 'whisper_cpp'))
+    // Default sandbox layout. The custom-models-dir override
+    // (settingsService.customModelsDir) is consulted by `_whisperCppDir`
+    // on every read, so changing the setting takes effect immediately
+    // without re-running initialize().
+    await Directory(whisperCppDir())
         .create(recursive: true);
+  }
+
+  /// Resolved directory where ASR / TTS / companion GGUFs live. When
+  /// the user has set `settingsService.customModelsDir` (e.g.
+  /// `/Volumes/backups/ai/crispasr-models`) we point straight at that
+  /// path so an existing on-disk library is reused without
+  /// re-downloading. Otherwise falls back to the historical sandbox
+  /// path `<app-docs>/models/whisper_cpp`.
+  ///
+  /// Synchronous because every caller is downstream of `initialize()`,
+  /// which already established `_modelsDir`. The override path is
+  /// validated lazily — if the user picks a directory that doesn't
+  /// exist yet, this attempts to create it; on failure we fall back
+  /// to the sandbox path so model loads never silently break.
+  String whisperCppDir() {
+    final override = _settingsService.customModelsDir;
+    if (override.isNotEmpty) {
+      try {
+        final dir = Directory(override);
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+        return override;
+      } catch (e) {
+        Log.instance.w('model',
+            'customModelsDir unusable, falling back to sandbox',
+            error: e, fields: {'attempted': override});
+      }
+    }
+    return path.join(_modelsDir, 'whisper_cpp');
   }
 
   /// Get available Whisper.cpp models with download status
@@ -809,7 +840,7 @@ class ModelService {
 
     for (final entry in whisperCppModels.entries) {
       final modelDef = entry.value;
-      final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
+      final localPath = path.join(whisperCppDir(), modelDef.fileName);
       final isDownloaded = await _isModelDownloaded(localPath, modelDef);
 
       modelInfos.add(ModelInfo(
@@ -837,7 +868,7 @@ class ModelService {
     };
     for (final entry in merged.entries) {
       final modelDef = entry.value;
-      final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
+      final localPath = path.join(whisperCppDir(), modelDef.fileName);
       final isDownloaded = await _isModelDownloaded(localPath, modelDef);
 
       modelInfos.add(ModelInfo(
@@ -1094,7 +1125,7 @@ class ModelService {
       throw ModelException('Unknown Whisper.cpp model: $modelName');
     }
 
-    final modelDir = path.join(_modelsDir, 'whisper_cpp');
+    final modelDir = whisperCppDir();
     final localPath = path.join(modelDir, modelDef.fileName);
     final tempPath = '$localPath.tmp';
 
@@ -1370,7 +1401,7 @@ class ModelService {
     final modelDef = lookupDefinition(modelName);
     if (modelDef == null) return null;
 
-    final localPath = path.join(_modelsDir, 'whisper_cpp', modelDef.fileName);
+    final localPath = path.join(whisperCppDir(), modelDef.fileName);
 
     if (await _isModelDownloaded(localPath, modelDef)) {
       return localPath;
@@ -1400,7 +1431,7 @@ class ModelService {
     await initialize();
 
     int whisperCppSize = 0;
-    final whisperDir = Directory(path.join(_modelsDir, 'whisper_cpp'));
+    final whisperDir = Directory(whisperCppDir());
     if (await whisperDir.exists()) {
       whisperCppSize = await _getDirectorySize(whisperDir.path);
     }
@@ -1427,7 +1458,7 @@ class ModelService {
       await modelsDir.create(recursive: true);
 
       // Recreate subdirectories
-      await Directory(path.join(_modelsDir, 'whisper_cpp')).create();
+      await Directory(whisperCppDir()).create();
     }
   }
 
