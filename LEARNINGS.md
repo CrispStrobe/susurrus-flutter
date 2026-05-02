@@ -396,3 +396,47 @@ The pattern is the same every time: the library call takes a PCM buffer + a mode
 ### App-sandbox cache vs `~/.cache/crispasr`
 
 `cacheEnsureFile` / `cacheDir` from the lib write under `$HOME/.cache/crispasr` on POSIX. Works for desktop CrisperWeaver users who also use the CLI. Broken on iOS/Android where apps are sandboxed and `$HOME` points at the app container. For mobile, keep using the app's documents/caches dir (we already do via `path_provider`) and pass that as `cacheDirOverride` when we do start calling the lib's cache helper. Desktop users get the CLI-shared cache by default, mobile users get the sandboxed path — same symbol, different ambient configuration.
+
+## Test-suite speed
+
+### `tags:` on `group()` is not a flutter_test parameter
+
+The dart test runner accepts `tags: [...]` on individual `test()` calls but not on `group()`. The naive group-level annotation:
+
+```dart
+group("slow stuff", () { ... }, tags: ["slow"]);  // analyzer error
+```
+
+fails with `The named parameter 'tags' isn't defined`. Apply tags per-test instead:
+
+```dart
+test("kokoro synth", tags: ["slow"], () { ... });
+```
+
+### `dart_test.yaml` `exclude_tags: slow` collides with CLI `--tags slow`
+
+`flutter test --tags slow` after setting `exclude_tags: slow` in `dart_test.yaml` produces:
+
+```
+No tests match the requested tag selectors:
+  include: "slow"
+  exclude: "slow"
+```
+
+The intersection is empty. The CLI flag adds to include, doesn't clear the YAML exclude. Workaround: skip the YAML `exclude_tags` and rely on per-test `skip:` clauses (env-var-gated) to keep the default pass fast. Cost: tests with the slow tag still register and report as `Skip:` lines in default output, but they don't actually run.
+
+### ggml-metal pipeline cache is per-process, not per-machine
+
+ggml-metal compiles MSL pipelines lazily — every fresh process pays a 30-60 s "kernel JIT" cost per backend before the first decode step. The `pipelines` cache in `ggml_metal_device_t` is in-memory only; there's no env var to persist it, no `MTLBinaryArchive` integration in upstream. Two consequences:
+
+1. **Running each test in its own `flutter test` invocation is the worst case.** Six backends × ~30 s JIT = ~3 min of pure overhead before any model decode happens. Bundling all opt-in roundtrips into a single `flutter test` invocation cut a 50 min serial sweep to ~25 min — even though each `CrispasrSession.open()` creates its own ggml_metal_device, Apple's system-level Metal driver caches compiled MSL within a process, so the second backend onward reuses pipelines for shared op shapes.
+2. **CI runs are uncacheable today.** A persistent `MTLBinaryArchive` patch in `ggml/src/ggml-metal/ggml-metal-device.m` would write/read pipeline state objects to a per-device disk cache (`~/Library/Caches/ggml-metal/<device>.archive`), letting CI restore the cache between runs. ~half-day source patch; would cut sweep cost from ~25 min to ~5 min.
+
+### `Hello world.` is too long for "is this dispatch arm wired" tests
+
+A TTS model generates roughly one second of audio per 2-3 input words. "Hello world." → ~1.5 s of decode loop. "Hi." → ~0.5 s. For a "did the dispatch arm route correctly" test, neither produces interesting audio — but the shorter input saves 1 s × per-token-decode-cost across every TTS test in the suite. We use "Hi." across all four TTS roundtrips.
+
+### 2 s ASR clip vs full sentence
+
+`test/jfk-2s.wav` is the first 2 s of `test/jfk.wav` (`ffmpeg -t 2`). The full clip is 11 s of "And so my fellow americans, ask not what your country can do for you. Ask what you can do for your country." The 2 s trim only covers "And so my fellow americans" — `expect(transcript, contains("ask"))` fails because "ask" is in the back half. We assert `contains("americans")` instead, which is in both. ~5× faster ASR decode for the same dispatch verification.
+

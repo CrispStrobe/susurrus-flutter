@@ -1,8 +1,8 @@
 # CrisperWeaver
 
-**On-device speech recognition. No cloud. Ten model families, one app.**
+**On-device speech recognition + text-to-speech. No cloud. 24+ model families, one app.**
 
-CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcription. Drop in a file, paste a URL, or record with the mic — audio never leaves the device. Ten open-weight ASR families are supported through a single unified engine ([CrispASR][crispasr]): Whisper, Parakeet, Canary, Voxtral, Qwen3-ASR, Cohere, Granite, FastConformer-CTC, Canary-CTC, and Wav2Vec2.
+CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcription and speech synthesis. Drop in a file, paste a URL, or record with the mic — audio never leaves the device. 21+ open-weight ASR families and 4 TTS families are supported through a single unified engine ([CrispASR][crispasr]): Whisper, Parakeet, Canary, Voxtral, Qwen3-ASR, Cohere, Granite, FastConformer-CTC, Canary-CTC, Wav2Vec2, OmniASR, FireRed, Kyutai-STT, GLM-ASR, Moonshine, VibeVoice ASR, MiMo ASR — plus Kokoro / VibeVoice / Qwen3-TTS / Orpheus for synthesis and FireRedPunc for punctuation restoration.
 
 [crispasr]: https://github.com/CrispStrobe/CrispASR
 
@@ -12,7 +12,7 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 
 | Project | Role |
 |---|---|
-| **[CrispASR](https://github.com/CrispStrobe/CrispASR)** | C++ ASR engine powering this app — 11 backends, CLI + C-ABI, 3.8x faster than voxtral.c |
+| **[CrispASR](https://github.com/CrispStrobe/CrispASR)** | C++ ASR + TTS engine powering this app — 24+ backends, CLI + C-ABI, 3.8x faster than voxtral.c |
 | **CrisperWeaver** | This app — Flutter GUI for CrispASR |
 | **[CrispEmbed](https://github.com/CrispStrobe/CrispEmbed)** | Text embedding engine (ggml) — XLM-R, Qwen3-Embed, Gemma3, dense + sparse + ColBERT |
 | **[Susurrus](https://github.com/CrispStrobe/Susurrus)** | Python ASR GUI with 9 backends (faster-whisper, mlx-whisper, voxtral, ...) |
@@ -36,11 +36,15 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 - **Export** to `.txt`, `.srt`, `.vtt`, or `.json` through the system share sheet.
 - **Review history** — every run is persisted as JSON and browseable / re-exportable.
 - **Diagnose with logs** — in-app viewer with filter / search / copy / export, optional file sink.
+- **Synthesize speech (TTS)** — pick a downloaded TTS model + voice + codec on the *Synthesize* screen, type text, hit *Synthesize*; output plays in-app and saves as WAV.
+- **Restore punctuation** — FireRedPunc post-processor toggle in Advanced Options; turns `wav2vec2 / fastconformer-ctc / firered-asr` lowercase output into properly punctuated text.
 - **Use CrisperWeaver in English or German** — full i18n scaffold via `flutter_localizations`.
 
 ## Supported models
 
-One dispatcher (`CrispasrSession`) handles all 10 backends; bundled `libcrispasr` reports at startup which are linked in the current build.
+One dispatcher (`CrispasrSession`) handles every backend; bundled `libcrispasr` reports at startup which are linked in the current build, and the *Models* screen filter chips group them by kind (`ASR / TTS / Voices / Codecs / Post-processors`). The Model Management screen also probes CrispASR's built-in C-side registry on every open, so any backend the bundled libcrispasr knows about appears even if it isn't hardcoded in the app catalog.
+
+### ASR
 
 | Family                | Sizes                               | Languages                   | Notes                                |
 | --------------------- | ----------------------------------- | --------------------------- | ------------------------------------ |
@@ -49,11 +53,33 @@ One dispatcher (`CrispasrSession`) handles all 10 backends; bundled `libcrispasr
 | **Canary** (NVIDIA)   | 1b-v2                               | 25 EU (explicit src/tgt)    | Speech translation X ↔ en             |
 | **Qwen3-ASR**         | 0.6b                                | 30 + 22 Chinese dialects    | Multilingual                          |
 | **Cohere**            | 03-2026                             | 13                          | High-accuracy Conformer decoder       |
-| **Granite Speech**    | 3.2-8b, 3.3-2b/8b, 4.0-1b           | en fr de es pt ja           | Instruction-tuned                     |
+| **Granite Speech**    | 3.2-8b, 3.3-2b/8b, 4.0-1b, 4.1-2b   | en fr de es pt ja           | Instruction-tuned                     |
 | **FastConformer-CTC** | small → xxlarge                     | en                          | Low-latency CTC                       |
 | **Canary-CTC**        | 1b                                  | 25 EU                       | CTC variant of canary                 |
 | **Voxtral Mini**      | 3B (2507), 4B realtime (2602)       | 8 / 13                      | Speech translation; realtime 4B       |
 | **Wav2Vec2**          | large-xlsr-53-english + variants    | per-model (en, de, multi)   | Self-supervised CTC                   |
+| **OmniASR LLM**       | 300M v2                             | multilingual                | LLM-based ASR with `lang=` hint       |
+| **FireRed ASR2**      | aed-2b                              | zh / en                     | AED-style                             |
+| **Kyutai STT**        | 1b                                  | en                          | Streaming-style                       |
+| **GLM-ASR Nano**      | nano                                | multilingual                | GLM-family                            |
+| **Moonshine**         | tiny / base + streaming             | en                          | Tiny CPU-friendly                     |
+| **VibeVoice ASR**     | large                               | multilingual                | Large multilingual ASR (~4.5 GB)      |
+| **MiMo ASR**          | 2.5B + tokenizer companion          | en zh                       | XiaomiMiMo, two-file (model + codec)  |
+
+### TTS
+
+| Family            | Sizes                          | Notes                                       |
+| ----------------- | ------------------------------ | ------------------------------------------- |
+| **Kokoro**        | 82M + voicepacks               | Multilingual, espeak-ng phonemiser bundled  |
+| **VibeVoice**     | realtime 0.5B (f32 + tokenizer) | + voicepack via `setVoice`                  |
+| **Qwen3-TTS**     | 0.6B base + customvoice + codec | Customvoice has 9 baked speakers via `setSpeakerName` |
+| **Orpheus**       | 3B + SNAC codec                 | 8 baked English speakers; SNAC via `setCodecPath` |
+
+### Post-processor
+
+| Family            | Notes                                       |
+| ----------------- | ------------------------------------------- |
+| **FireRedPunc**   | BERT-based punctuation + capitalisation; pairs with CTC ASR backends |
 
 Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cstr/whisper-ggml-quants`][cstr] and other `cstr/*-GGUF` repos. Skip-checksum toggle in Settings for custom or mirrored GGUFs.
 
@@ -63,7 +89,7 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 
 | Platform | State                                                                 |
 | -------- | --------------------------------------------------------------------- |
-| macOS    | ✅ Released — `.app.zip`, Metal-enabled, all 10 backend dylibs bundled |
+| macOS    | ✅ Released — `.app.zip`, Metal-enabled, all 24+ backend dylibs (incl. kokoro / orpheus / mimo-asr) bundled, espeak-ng auto-bundled for kokoro phonemisation |
 | Linux    | ✅ Released — `.tar.gz` bundle                                         |
 | Windows  | ✅ Released — `.zip` with `whisper.dll` + sibling backend DLLs         |
 | Android  | ✅ Released — real-ASR APK (`arm64-v8a`) with `libwhisper.so` cross-built in CI |
@@ -139,8 +165,9 @@ flutter run -d macos        # or: linux, windows, android, ios
 2. **Transcribe a file**: back to the main screen, drop a file or click the picker. Language auto-detects by default.
 3. **Record from the mic**: use the recorder card. Stop → transcribe.
 4. **Stream from mic** (Whisper): toggle *Stream* in the recorder. Partial text arrives as you speak.
-5. **Export the result**: share-sheet button → pick TXT / SRT / VTT / JSON.
-6. **Browse past runs**: *History* in the drawer — everything is persisted as JSON under `<app-docs>/history/`.
+5. **Synthesize speech** (TTS): tap the *Synthesize* icon in the app-bar (next to *Models*). Pick a downloaded TTS model + voice + codec, type text, hit *Synthesize* — output plays in-app and can be saved as WAV via the share sheet.
+6. **Export the result**: share-sheet button → pick TXT / SRT / VTT / JSON.
+7. **Browse past runs**: *History* in the drawer — everything is persisted as JSON under `<app-docs>/history/`.
 
 Useful Settings:
 - **Preferred engine** — CrispASR is the default.
@@ -150,12 +177,61 @@ Useful Settings:
 
 ---
 
+## Testing
+
+The default test pass is fast and offline:
+
+```bash
+flutter analyze    # 0 issues — see analysis_options.yaml for the strict rule set
+flutter test       # 6 tests, ~5 s — widget unit tests + dispatch correctness
+```
+
+`test/backend_dispatch_test.dart` always runs the cheap dispatch
+checks (every backend appears in `CrispasrSession.availableBackends()`,
+opens with bogus paths fail cleanly). The expensive end-to-end synth /
+transcribe roundtrips are tagged `slow` and skip themselves silently
+unless their `CRISPASR_TEST_<BACKEND>_MODEL` env var points at a
+downloaded GGUF. Opt in with:
+
+```bash
+M=/path/to/crispasr-models
+CRISPASR_TEST_KOKORO_MODEL=$M/kokoro-82m-q8_0.gguf \
+CRISPASR_TEST_KOKORO_VOICE=$M/kokoro-voice-af_heart.gguf \
+CRISPASR_TEST_QWEN3_TTS_MODEL=$M/qwen3-tts-12hz-0.6b-customvoice-q8_0.gguf \
+CRISPASR_TEST_QWEN3_TTS_CODEC=$M/qwen3-tts-tokenizer-12hz.gguf \
+CRISPASR_TEST_VIBEVOICE_MODEL=$M/vibevoice-realtime-0.5b-tts-f32-tokenizer.gguf \
+CRISPASR_TEST_VIBEVOICE_VOICE=$M/vibevoice-voice-en-Emma_woman.gguf \
+CRISPASR_TEST_ORPHEUS_MODEL=$M/orpheus-3b-base-q8_0.gguf \
+CRISPASR_TEST_ORPHEUS_CODEC=$M/snac-24khz.gguf \
+CRISPASR_TEST_MIMO_ASR_MODEL=$M/mimo/mimo-asr-q4_k.gguf \
+CRISPASR_TEST_MIMO_ASR_TOKENIZER=$M/mimo/mimo-tokenizer-q4_k.gguf \
+CRISPASR_TEST_WHISPER_MODEL=$M/ggml-tiny.bin \
+flutter test --tags slow test/backend_dispatch_test.dart
+```
+
+A single sweep takes ~25 min on M1 Metal end-to-end (full sweep —
+6 backends including a 3 B Llama and a 4 GB f32 vibevoice). Each
+backend skips if its env var isn't set, so partial sweeps are cheap.
+Coverage:
+
+```bash
+flutter test --coverage      # writes coverage/lcov.info
+genhtml coverage/lcov.info -o coverage/html  # if lcov is installed
+```
+
+See `dart_test.yaml` for the tag config and `PLAN.md §5.18` for the
+test-suite speed roadmap (the architectural win is a persistent
+ggml-metal pipeline cache via `MTLBinaryArchive`, which would cut
+the cold-start kernel-JIT cost from minutes to seconds).
+
+---
+
 ## CI & releases
 
-- **`ci.yml`** — on push / PR: `flutter analyze` + `flutter test` on Ubuntu and macOS, plus debug `.app` and Linux bundle uploaded as workflow artifacts. Checks out sibling `CrispStrobe/CrispASR` automatically.
+- **`ci.yml`** — on push / PR: `flutter analyze` + `flutter test` on Ubuntu and macOS, plus debug `.app` and Linux bundle uploaded as workflow artifacts. Checks out sibling `CrispStrobe/CrispASR` automatically. Slow tests (`--tags slow`) are skipped by default; CI can opt in by setting the `CRISPASR_TEST_*` env vars and adding `--tags slow` to the test command. Analyzer is configured to **error** on `use_build_context_synchronously`, `avoid_print`, `unused_*`, `inference_failure_*`, and `deprecated_member_use` — a regression fails the build instead of silently piling up.
 - **`release.yml`** — on a `vX.Y.Z` tag (or manual dispatch): builds and uploads
-    - `crisper_weaver-macos.zip` — Metal-enabled `.app`, ad-hoc signed, all 10 backend dylibs bundled.
-    - `crisper_weaver-linux-x64.tar.gz` — GTK-3 desktop bundle with all 10 backend `.so`'s.
+    - `crisper_weaver-macos.zip` — Metal-enabled `.app`, ad-hoc signed, all 24+ backend dylibs (kokoro / orpheus / mimo-asr included as of CrispASR `ba7d6ed`) bundled.
+    - `crisper_weaver-linux-x64.tar.gz` — GTK-3 desktop bundle with all backend `.so`'s.
     - `crisper_weaver-android-arm64.apk` — real ASR. CrispASR cross-built via `build-android.sh --abi arm64-v8a`; `libwhisper.so` and sibling backend `.so`'s dropped into `jniLibs/arm64-v8a/`.
     - `crisper_weaver-ios-unsigned.ipa` — sideload-compatible (see below).
 

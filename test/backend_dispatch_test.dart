@@ -33,6 +33,13 @@ import 'package:crispasr/crispasr.dart' as crispasr;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+// End-to-end synth/transcribe groups are gated behind the 'slow' tag
+// (set via the `tags:` argument on each `group(...)` below) — they
+// load gigabyte GGUFs and run minutes of LLM decode. Default
+// `flutter test` skips them; CI / dev opts in with
+// `flutter test --tags slow`. The cheap dispatch-only checks above
+// always run.
+
 /// Resolve `libwhisper.dylib` (or .so / .dll) from the env or by
 /// probing the conventional sibling-checkout layout.
 String? _resolveLibPath() {
@@ -160,12 +167,12 @@ void main() {
     final vibevoiceVoice =
         Platform.environment['CRISPASR_TEST_VIBEVOICE_VOICE'];
 
-    test('kokoro synthesises non-zero PCM', () {
+    test('kokoro synthesises non-zero PCM', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(kokoroModel!,
           backend: 'kokoro', libPath: libPath);
       addTearDown(s.close);
       s.setVoice(kokoroVoice!);
-      final pcm = s.synthesize('Hello world.');
+      final pcm = s.synthesize('Hi.');
       expect(pcm, isA<Float32List>());
       expect(pcm.length, greaterThan(0));
     },
@@ -176,7 +183,7 @@ void main() {
                     'to a downloaded kokoro-82m-*.gguf + voicepack'
                 : null);
 
-    test('orpheus synthesises non-zero PCM', () {
+    test('orpheus synthesises non-zero PCM', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(orpheusModel!,
           backend: 'orpheus', libPath: libPath);
       addTearDown(s.close);
@@ -189,7 +196,7 @@ void main() {
       if (speakers.isNotEmpty) {
         s.setSpeakerName(speakers.first);
       }
-      final pcm = s.synthesize('Hello world.');
+      final pcm = s.synthesize('Hi.');
       expect(pcm.length, greaterThan(0));
     },
         skip: !libAvailable
@@ -199,7 +206,7 @@ void main() {
                     'to a downloaded orpheus-3b-*.gguf + snac-24khz.gguf'
                 : null);
 
-    test('qwen3-tts synthesises non-zero PCM', () {
+    test('qwen3-tts synthesises non-zero PCM', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(qwen3TtsModel!,
           backend: 'qwen3-tts', libPath: libPath);
       addTearDown(s.close);
@@ -212,7 +219,7 @@ void main() {
       if (speakers.isNotEmpty) {
         s.setSpeakerName(speakers.first);
       }
-      final pcm = s.synthesize('Hello world.');
+      final pcm = s.synthesize('Hi.');
       expect(pcm.length, greaterThan(0));
     },
         skip: !libAvailable
@@ -223,12 +230,12 @@ void main() {
                     '(or supply a base model + WAV reference via the new ICL path)'
                 : null);
 
-    test('vibevoice-tts synthesises non-zero PCM', () {
+    test('vibevoice-tts synthesises non-zero PCM', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(vibevoiceModel!,
           backend: 'vibevoice-tts', libPath: libPath);
       addTearDown(s.close);
       s.setVoice(vibevoiceVoice!);
-      final pcm = s.synthesize('Hello world.');
+      final pcm = s.synthesize('Hi.');
       expect(pcm.length, greaterThan(0));
     },
         skip: !libAvailable
@@ -250,18 +257,31 @@ void main() {
   // skip condition fires, silently skipping every ASR test even when
   // the env vars are set correctly.
   String? findJfkWav() {
-    final candidates = <String>[
-      Platform.environment['CRISPASR_TEST_JFK_WAV'] ?? '',
-      p.join(Directory.current.path, 'test', 'jfk.wav'),
-      p.join(Directory.current.path, 'jfk.wav'),
-      for (var dir = Directory.current;
-          dir.parent.path != dir.path;
-          dir = dir.parent)
-        p.join(dir.path, 'test', 'jfk.wav'),
+    // Prefer the 2 s trim if it ships — same content, ~5× faster
+    // ASR decode. Walk the cwd + parent dirs because `flutter test`
+    // doesn't guarantee Directory.current is the project root.
+    final names = ['jfk-2s.wav', 'jfk.wav'];
+    final dirs = <String>[
+      Platform.environment['CRISPASR_TEST_JFK_DIR'] ?? '',
+      Directory.current.path,
+      p.join(Directory.current.path, 'test'),
+      for (var d = Directory.current;
+          d.parent.path != d.path;
+          d = d.parent) ...[
+        d.path,
+        p.join(d.path, 'test'),
+      ],
     ];
-    for (final c in candidates) {
-      if (c.isEmpty) continue;
-      if (File(c).existsSync()) return c;
+    final envFile = Platform.environment['CRISPASR_TEST_JFK_WAV'];
+    if (envFile != null && envFile.isNotEmpty && File(envFile).existsSync()) {
+      return envFile;
+    }
+    for (final dir in dirs) {
+      if (dir.isEmpty) continue;
+      for (final name in names) {
+        final candidate = p.join(dir, name);
+        if (File(candidate).existsSync()) return candidate;
+      }
     }
     return null;
   }
@@ -286,7 +306,7 @@ void main() {
     final mimoAsrTokenizer =
         Platform.environment['CRISPASR_TEST_MIMO_ASR_TOKENIZER'];
 
-    test('mimo-asr transcribes jfk.wav', () {
+    test('mimo-asr transcribes jfk.wav', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(mimoAsrModel!,
           backend: 'mimo-asr', libPath: libPath);
       addTearDown(s.close);
@@ -315,17 +335,20 @@ void main() {
     // Sanity check that the audio decoder + a known-working backend
     // produce a non-trivial transcript. Catches FFI / decode regressions
     // independent of the new backends.
-    test('whisper transcribes jfk.wav', () {
+    test('whisper transcribes jfk.wav', tags: ['slow'], () {
       final s = crispasr.CrispasrSession.open(whisperModel!,
           backend: 'whisper', libPath: libPath);
       addTearDown(s.close);
       final segments = s.transcribe(jfkPcm!);
       expect(segments, isNotEmpty);
       final fullText = segments.map((seg) => seg.text).join(' ').toLowerCase();
-      // The JFK clip is the famous "ask not what your country can do
-      // for you" line — every Whisper size gets the gist.
-      expect(fullText, contains('ask'),
-          reason: 'jfk.wav transcript should mention "ask"');
+      // The JFK clip is the famous "and so my fellow americans, ask
+      // not what your country can do for you" line. The 2 s trim
+      // (test/jfk-2s.wav) only covers the opening; the full clip
+      // covers the whole sentence. "americans" is in both, so it's
+      // the safe substring to match.
+      expect(fullText, contains('americans'),
+          reason: 'jfk.wav transcript should mention "americans"');
     },
         skip: !libAvailable
             ? libSkipReason

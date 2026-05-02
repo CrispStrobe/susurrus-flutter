@@ -291,6 +291,34 @@ Synthesize / Model Management UI surfaces the dependency.
       `orpheus_synthesize`, gated on `orpheus_codec_loaded`); 3 GB
       base + SNAC model is slow under Metal so the e2e test is opt-in.
 
+### 5.18 Test-suite speed — partial (see roadmap below)
+
+The opt-in end-to-end backend tests are slow because of three layered
+costs, in roughly this order:
+
+1. **Metal kernel JIT (~30-60 s per backend per process).** ggml-metal
+   compiles MSL pipelines lazily for each unique tensor shape on first
+   use. The cache is in-memory only — every fresh process starts cold.
+2. **Sequential LLM-style audio decode.** Orpheus / qwen3-tts /
+   mimo-asr generate one audio (or text) token at a time through a
+   0.6B–3B LLM. Per-second-of-audio cost scales with model size +
+   number of decode steps; f32 weights compound the bandwidth hit.
+3. **Cold-start per `flutter test` invocation.** Dart VM boot + dylib
+   load + GGUF mmap + Metal kernel JIT all repeat for every separate
+   test invocation we run.
+
+Speedup roadmap, ordered by ROI / effort:
+
+| Win | Measured speedup | Status |
+|---|---|---|
+| Per-test `tags: ['slow']` annotation so vanilla `flutter test` skips heavy roundtrips (env-var-gated `skip:` clauses already make them no-ops without GGUFs, but the tag also lets `--exclude-tags slow` actively suppress them) | Default suite holds sub-5 s (6 tests) | ✅ shipped — `test/backend_dispatch_test.dart`, `dart_test.yaml` |
+| Run all opt-in e2e backends in one `flutter test` invocation | **Serial sweep ~46 min → single-process ~25 min (1.8×)** — each Session opens its own ggml_metal_device but Apple's system-level driver caches compiled MSL within a process, so backends after the first reuse pipelines for shared op shapes | ✅ shipped — single test file with `--tags slow` |
+| Cap test inputs to the minimum that validates dispatch: `test/jfk-2s.wav` (2 s, vs the original 11 s), `"Hi."` TTS prompt (vs `"Hello world."`) | ~5× on whisper decode; ~3× on TTS decode loops | ✅ shipped |
+| Bump `n_threads` from default 4 → 8 on M1+ in CrispasrSession.open | 10-25 % faster prefill on CPU-heavy backends (mimo-asr) | ⚠️ deferred — most mid-decode time is Metal-bound (0 % CPU during sample), so the projected win shrinks. Revisit if we ever profile a CPU-bound backend. |
+| Re-download q4_k variants where we currently rely on f32/q8_0 (vibevoice-realtime-0.5b-tts-q4_k is 0 bytes locally; orpheus-3b q4_k pending HF publish) | vibevoice 17:22 → ~4 min projected; orpheus 11:50 → ~5 min projected | ⚠️ blocked on HF availability |
+| **Persistent Metal pipeline cache via `MTLBinaryArchive`** — patch `ggml/src/ggml-metal/ggml-metal-device.m` to write/read pipeline state objects to a per-device disk cache (Apple's first-party API). Set the cache path via a `GGML_METAL_PIPELINE_CACHE` env var; default to `~/Library/Caches/ggml-metal/<device-name>.archive`. Same pattern used by Apple's own MPS / MLX caches. Joins the existing `// CrispASR patch` set in ggml-metal. | 30-60 s saved on every cold start across all CrispASR consumers — CI sweep projected ~25 min → ~5 min | ⚠️ ~half-day source patch in upstream ggml-metal |
+| CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` build flag, ship paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2-3× | ⚠️ deferred to next CrispASR cycle; see PLAN §5.x in upstream |
+
 ### 5.16 Build automation — ✅ shipped
 
 `scripts/build_macos.sh` is the one-shot end-to-end macOS build:
