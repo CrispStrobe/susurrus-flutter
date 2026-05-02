@@ -5,64 +5,88 @@
 # start-up.
 #
 # Env:
-#   CRISPASR_DIR  — path to the CrispASR checkout (default ../CrispASR)
-#   RUNNER_DIR    — path to build/windows/x64/runner/Release
-#                   (default build\windows\x64\runner\Release)
+#   CRISPASR_DIR          path to the CrispASR checkout
+#                         (default: ..\CrispASR)
+#   CRISPASR_BUILD_SUBDIR cmake binary dir under CRISPASR_DIR
+#                         (default: build — but build_windows.ps1
+#                         passes "build-flutter-bundle" to match the
+#                         macOS flow)
+#   RUNNER_DIR            path to the runner output directory
+#                         (default: build\windows\x64\runner\Release)
 #
-# Usage: pwsh ./scripts/bundle_windows_dlls.ps1
+# Usage: pwsh -File scripts\bundle_windows_dlls.ps1
+#
+# Normally invoked by scripts\build_windows.ps1 — call it directly only
+# if you've already produced whisper.dll and the flutter runner.
 
 $ErrorActionPreference = "Stop"
 
-$crispasrDir = if ($env:CRISPASR_DIR) { $env:CRISPASR_DIR } else { "..\CrispASR" }
-$runnerDir   = if ($env:RUNNER_DIR)   { $env:RUNNER_DIR }   else { "build\windows\x64\runner\Release" }
+$crispasrDir         = if ($env:CRISPASR_DIR)          { $env:CRISPASR_DIR }          else { "..\CrispASR" }
+$crispasrBuildSubdir = if ($env:CRISPASR_BUILD_SUBDIR) { $env:CRISPASR_BUILD_SUBDIR } else { "build" }
+$runnerDir           = if ($env:RUNNER_DIR)            { $env:RUNNER_DIR }            else { "build\windows\x64\runner\Release" }
+$cBase               = Join-Path $crispasrDir $crispasrBuildSubdir
 
 if (-not (Test-Path $runnerDir)) {
     throw "Runner dir not found: $runnerDir. Run flutter build windows --release first."
 }
-
-# Core library — whisper.dll (and maybe ggml.dll alongside it for
-# newer CrispASR builds that split them out).
-$candidates = @(
-    "$crispasrDir\build\bin\Release\whisper.dll",
-    "$crispasrDir\build\src\Release\whisper.dll",
-    "$crispasrDir\build\Release\whisper.dll"
-)
-$whisperDll = $null
-foreach ($c in $candidates) {
-    if (Test-Path $c) { $whisperDll = $c; break }
+if (-not (Test-Path $cBase)) {
+    throw "CrispASR build tree not found: $cBase. Build CrispASR first or override CRISPASR_BUILD_SUBDIR."
 }
+
+# Helper: probe each known per-config output layout MSVC may produce.
+function Find-Dll($baseDir, $name) {
+    $candidates = @(
+        "$baseDir\bin\Release\$name.dll",
+        "$baseDir\src\Release\$name.dll",
+        "$baseDir\Release\$name.dll",
+        "$baseDir\bin\$name.dll",
+        "$baseDir\src\$name.dll",
+        "$baseDir\$name.dll"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { return $c }
+    }
+    return $null
+}
+
+# Core library — whisper.dll. Required.
+$whisperDll = Find-Dll $cBase "whisper"
 if (-not $whisperDll) {
-    throw "whisper.dll not found. Looked in: $($candidates -join ', '). Run `cmake --build build --config Release --target whisper` in CrispASR first."
+    throw "whisper.dll not found under $cBase. Run scripts\build_windows.ps1 (or `cmake --build $crispasrBuildSubdir --config Release --target crispasr`) first."
 }
 
 Write-Host "Bundling from: $whisperDll"
 Copy-Item $whisperDll "$runnerDir\whisper.dll" -Force
-# crispasr.dll alias — Dart FFI loader probes this first.
+# crispasr.dll alias — Dart FFI loader probes this name first.
 Copy-Item $whisperDll "$runnerDir\crispasr.dll" -Force
 
-# Sibling backend DLLs — DT_NEEDED via the import table; if whisper.dll
-# was linked with parakeet / canary / etc. as PUBLIC dependencies, those
-# DLLs must sit alongside it or LoadLibrary will fail.
+# Sibling backend DLLs — DT_NEEDED via the import table. If whisper.dll
+# was linked with these as PUBLIC dependencies, the DLLs must sit
+# alongside it or LoadLibrary fails. List mirrors the BACKEND_TARGETS
+# in scripts/build_macos.sh so TTS + post-processors are covered too.
 $siblings = @(
-    "parakeet", "canary", "qwen3_asr", "cohere", "granite_speech",
-    "canary_ctc", "voxtral", "voxtral4b"
+    "parakeet", "canary", "canary_ctc", "qwen3_asr", "cohere",
+    "granite_speech", "granite_nle", "voxtral", "voxtral4b",
+    "wav2vec2-ggml", "glm-asr", "kyutai-stt", "firered-asr",
+    "firered-vad", "marblenet-vad", "firered-lid", "omniasr",
+    "vibevoice", "ecapa-lid", "moonshine", "moonshine_streaming",
+    "gemma4_e2b", "mimo_tokenizer", "mimo_asr", "qwen3_tts", "orpheus",
+    "kokoro", "pyannote-seg", "silero-lid", "fireredpunc"
 )
 foreach ($name in $siblings) {
-    $dll = "$crispasrDir\build\bin\Release\$name.dll"
-    if (-not (Test-Path $dll)) { $dll = "$crispasrDir\build\src\Release\$name.dll" }
-    if (-not (Test-Path $dll)) { $dll = "$crispasrDir\build\Release\$name.dll" }
-    if (Test-Path $dll) {
+    $dll = Find-Dll $cBase $name
+    if ($dll) {
         Copy-Item $dll "$runnerDir\$name.dll" -Force
         Write-Host "  bundled $name.dll"
     } else {
-        Write-Host "  warn: $name.dll missing (backend not runtime-ready)" -ForegroundColor Yellow
+        Write-Host "  skip:  $name.dll (built as STATIC archive — already in whisper.dll)" -ForegroundColor DarkGray
     }
 }
 
-# ggml runtime (new-style CrispASR builds ship it as a separate DLL).
+# ggml runtime (new-style CrispASR builds ship it as separate DLLs).
 foreach ($g in @("ggml", "ggml-cpu", "ggml-base", "ggml-blas")) {
-    $dll = "$crispasrDir\build\bin\Release\$g.dll"
-    if (Test-Path $dll) {
+    $dll = Find-Dll $cBase $g
+    if ($dll) {
         Copy-Item $dll "$runnerDir\$g.dll" -Force
         Write-Host "  bundled $g.dll"
     }
