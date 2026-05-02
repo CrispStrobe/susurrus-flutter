@@ -1,6 +1,7 @@
 // lib/services/model_service.dart (COMPLETE IMPLEMENTATION)
 import 'dart:io';
 import 'dart:isolate';
+import 'package:archive/archive.dart' show ZipDecoder;
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -606,6 +607,96 @@ class ModelService {
     ),
   };
 
+  /// Multilingual TTS voicepack catalog. Generated from the HF repos
+  /// `cstr/vibevoice-realtime-0.5b-GGUF` (26 voices: en/de/fr/it/jp/kr/
+  /// nl/pl/pt/sp/in) and `cstr/kokoro-voices-GGUF` (7 voices: en/de/es/
+  /// fr) as of 2026-05. Tagged `kind: voice` so the Voices filter chip
+  /// in Model Management surfaces them grouped from the main TTS
+  /// models. Each entry's `description` carries the language code so
+  /// the UI can group / filter by language without hand-parsing the
+  /// filename.
+  ///
+  /// Computed lazily (not `const`) because the entries are constructed
+  /// from a list comprehension. Merged into `lookupDefinition` and
+  /// `getWhisperCppModels` alongside the static catalogs above.
+  static final Map<String, ModelDefinition> _ttsVoicepacks = () {
+    const vibevoiceVoices = <List<String>>[
+      // [filename-leaf, language code, display name]
+      ['de-Spk0_man', 'de', 'German (Spk0, m)'],
+      ['de-Spk1_woman', 'de', 'German (Spk1, w)'],
+      ['en-Carter_man', 'en', 'English — Carter (m)'],
+      ['en-Davis_man', 'en', 'English — Davis (m)'],
+      ['en-Emma_woman', 'en', 'English — Emma (w)'],
+      ['en-Frank_man', 'en', 'English — Frank (m)'],
+      ['en-Grace_woman', 'en', 'English — Grace (w)'],
+      ['en-Mike_man', 'en', 'English — Mike (m)'],
+      ['fr-Spk0_man', 'fr', 'French (Spk0, m)'],
+      ['fr-Spk1_woman', 'fr', 'French (Spk1, w)'],
+      ['in-Samuel_man', 'in', 'Indian English — Samuel (m)'],
+      ['it-Spk0_woman', 'it', 'Italian (Spk0, w)'],
+      ['it-Spk1_man', 'it', 'Italian (Spk1, m)'],
+      ['jp-Spk0_man', 'jp', 'Japanese (Spk0, m)'],
+      ['jp-Spk1_woman', 'jp', 'Japanese (Spk1, w)'],
+      ['kr-Spk0_woman', 'kr', 'Korean (Spk0, w)'],
+      ['kr-Spk1_man', 'kr', 'Korean (Spk1, m)'],
+      ['nl-Spk0_man', 'nl', 'Dutch (Spk0, m)'],
+      ['nl-Spk1_woman', 'nl', 'Dutch (Spk1, w)'],
+      ['pl-Spk0_man', 'pl', 'Polish (Spk0, m)'],
+      ['pl-Spk1_woman', 'pl', 'Polish (Spk1, w)'],
+      ['pt-Spk0_woman', 'pt', 'Portuguese (Spk0, w)'],
+      ['pt-Spk1_man', 'pt', 'Portuguese (Spk1, m)'],
+      ['sp-Spk0_woman', 'es', 'Spanish (Spk0, w)'],
+      ['sp-Spk1_man', 'es', 'Spanish (Spk1, m)'],
+    ];
+    const kokoroVoices = <List<String>>[
+      // [filename-leaf, language code, display name]
+      ['df_eva', 'de', 'German — Eva (w)'],
+      ['df_victoria', 'de', 'German — Victoria (w)'],
+      ['dm_bernd', 'de', 'German — Bernd (m)'],
+      ['dm_martin', 'de', 'German — Martin (m)'],
+      ['ef_dora', 'es', 'Spanish — Dora (w)'],
+      ['ff_siwis', 'fr', 'French — Siwis (w)'],
+    ];
+    final out = <String, ModelDefinition>{};
+    for (final v in vibevoiceVoices) {
+      final leaf = v[0];
+      final lang = v[1];
+      final display = v[2];
+      out['vibevoice-voice-$leaf'] = ModelDefinition(
+        name: 'vibevoice-voice-$leaf',
+        displayName: 'VibeVoice voice — $display',
+        fileName: 'vibevoice-voice-$leaf.gguf',
+        url:
+            'https://huggingface.co/cstr/vibevoice-realtime-0.5b-GGUF/resolve/main/vibevoice-voice-$leaf.gguf',
+        sizeBytes: 5 * 1024 * 1024,
+        checksum: '',
+        description: 'VibeVoice voicepack — $display [lang=$lang]',
+        quantization: 'f16',
+        backend: 'vibevoice-tts',
+        kind: ModelKind.voice,
+      );
+    }
+    for (final v in kokoroVoices) {
+      final leaf = v[0];
+      final lang = v[1];
+      final display = v[2];
+      out['kokoro-voice-$leaf'] = ModelDefinition(
+        name: 'kokoro-voice-$leaf',
+        displayName: 'Kokoro voice — $display',
+        fileName: 'kokoro-voice-$leaf.gguf',
+        url:
+            'https://huggingface.co/cstr/kokoro-voices-GGUF/resolve/main/kokoro-voice-$leaf.gguf',
+        sizeBytes: 1 * 1024 * 1024,
+        checksum: '',
+        description: 'Kokoro voicepack — $display [lang=$lang]',
+        quantization: 'f16',
+        backend: 'kokoro',
+        kind: ModelKind.voice,
+      );
+    }
+    return out;
+  }();
+
   /// HuggingFace repos we probe dynamically to discover every available
   /// quantisation (q4_0, q4_k, q5_0, q5_k, q8_0, f16, …). The static
   /// catalogs above are the offline default; on first open of the model
@@ -860,10 +951,15 @@ class ModelService {
 
     // Non-Whisper CrispASR backends. They share the same on-disk directory
     // since each file is just a GGUF blob, but their `backend` field tells
-    // the engine which runtime path to dispatch to. We merge discovered
-    // quants on top of the hardcoded defaults, keyed by model name.
+    // the engine which runtime path to dispatch to. We merge in:
+    //   * the hardcoded core catalog (every backend's default GGUF),
+    //   * the multilingual TTS voicepack catalog (33 vibevoice + kokoro
+    //     voices keyed by `<family>-voice-<id>`),
+    //   * any quant variants discovered live from HF via _probeRepo
+    //     (sizes from those overwrite the hardcoded estimates).
     final merged = <String, ModelDefinition>{
       ...crispasrBackendModels,
+      ..._ttsVoicepacks,
       ..._discoveredModels,
     };
     for (final entry in merged.entries) {
@@ -895,7 +991,8 @@ class ModelService {
   ModelDefinition? lookupDefinition(String name) {
     return _discoveredModels[name] ??
         whisperCppModels[name] ??
-        crispasrBackendModels[name];
+        crispasrBackendModels[name] ??
+        _ttsVoicepacks[name];
   }
 
   /// Whether a probe has succeeded at least once in this session.
@@ -1216,6 +1313,18 @@ class ModelService {
       // Move temp file to final location
       await File(tempPath).rename(localPath);
 
+      // CoreML companion fetch: Whisper backends auto-load a sibling
+      // ggml-MODEL-encoder.mlmodelc directory when CrispASR was built
+      // with -DCRISPASR_COREML=ON. The companion lives on HF as a zip
+      // alongside the .bin; download + unzip if available. Best-effort
+      // — failures are logged but don't fail the main download (user
+      // still gets the working .bin, just without ANE acceleration).
+      if (modelDef.backend == 'whisper' &&
+          modelDef.fileName.endsWith('.bin') &&
+          Platform.isMacOS) {
+        await _maybeFetchCoreMLCompanion(modelDef, modelDir);
+      }
+
       onProgress?.call(1.0);
       onStatusChange?.call('Download complete');
       return true;
@@ -1496,6 +1605,65 @@ class ModelService {
       }
     } catch (e) {
       // Ignore cleanup errors
+    }
+  }
+
+  /// Best-effort download of the CoreML encoder companion for a Whisper
+  /// model. URL convention is upstream's
+  ///   `ggerganov/whisper.cpp/resolve/main/<basename>-encoder.mlmodelc.zip`
+  /// where basename is the .bin filename without the extension. Skips
+  /// silently when the zip 404s (most quantised whisper models don't
+  /// have one) or when the destination .mlmodelc directory already
+  /// exists. Unzips into the same dir as the .bin so libwhisper picks
+  /// it up on first transcribe.
+  Future<void> _maybeFetchCoreMLCompanion(
+      ModelDefinition modelDef, String modelDir) async {
+    final stem = modelDef.fileName.endsWith('.bin')
+        ? modelDef.fileName.substring(0, modelDef.fileName.length - 4)
+        : modelDef.fileName;
+    final mlmodelcDir = Directory(path.join(modelDir, '$stem-encoder.mlmodelc'));
+    if (await mlmodelcDir.exists()) {
+      Log.instance.d('coreml',
+          'CoreML companion already present for ${modelDef.name}');
+      return;
+    }
+    final zipUrl =
+        'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$stem-encoder.mlmodelc.zip';
+    final zipPath = path.join(modelDir, '$stem-encoder.mlmodelc.zip');
+    try {
+      Log.instance.i('coreml', 'fetching CoreML companion',
+          fields: {'url': zipUrl});
+      final resp = await _dio.download(zipUrl, zipPath);
+      if (resp.statusCode != 200) {
+        Log.instance
+            .d('coreml', 'CoreML companion not on HF (status ${resp.statusCode})');
+        await File(zipPath).delete().catchError((_) => File(zipPath));
+        return;
+      }
+      // Unzip alongside the .bin via the existing `archive` dep.
+      final bytes = await File(zipPath).readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      for (final f in archive) {
+        final outPath = path.join(modelDir, f.name);
+        if (f.isFile) {
+          await File(outPath).create(recursive: true);
+          await File(outPath).writeAsBytes(f.content as List<int>);
+        } else {
+          await Directory(outPath).create(recursive: true);
+        }
+      }
+      await File(zipPath).delete();
+      Log.instance.i('coreml', 'CoreML companion installed',
+          fields: {'dir': mlmodelcDir.path});
+    } catch (e, st) {
+      // 404 / network blip / decompression failure all funnel here.
+      // CoreML is an optional accelerator; whisper falls back to ggml
+      // automatically when the .mlmodelc isn't present.
+      Log.instance.d('coreml', 'CoreML companion fetch skipped',
+          error: e, stack: st);
+      try {
+        await File(zipPath).delete();
+      } catch (_) {/* ignore */}
     }
   }
 

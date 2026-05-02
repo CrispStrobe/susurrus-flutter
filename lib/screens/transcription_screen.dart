@@ -977,6 +977,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
+          targetLanguage:
+              adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -990,6 +992,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
+          targetLanguage:
+              adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1072,6 +1076,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
+          targetLanguage:
+              adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);

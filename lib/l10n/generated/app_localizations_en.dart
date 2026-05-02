@@ -320,6 +320,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Recording queued for transcription.';
 
   @override
+  String get recorderStream => 'Stream';
+
+  @override
+  String get recorderStreamTooltip =>
+      'Live mic transcribe (Whisper sliding window). Partial text appears as you speak.';
+
+  @override
   String get outputShowTimestamps => 'Show timestamps';
 
   @override
@@ -742,6 +749,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get advancedRestorePunctuationSubtitle =>
       'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.';
+
+  @override
+  String get advancedTargetLanguage => 'Translate to (target language)';
+
+  @override
+  String get advancedTargetLanguageHelper =>
+      'Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.';
 
   @override
   String get synthTitle => 'Synthesize';

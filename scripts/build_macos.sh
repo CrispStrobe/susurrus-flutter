@@ -62,10 +62,20 @@ if [[ $REBUILD_CMAKE == 1 || ! -f "$BUILDDIR/CMakeCache.txt" ]]; then
     -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
     -DBUILD_SHARED_LIBS=ON \
     -DGGML_METAL=ON \
+    -DCRISPASR_COREML=ON \
+    -DCRISPASR_COREML_ALLOW_FALLBACK=ON \
     -DCRISPASR_BUILD_TESTS=OFF \
     -DCRISPASR_BUILD_EXAMPLES=OFF \
     -DCRISPASR_BUILD_SERVER=OFF
 fi
+# CRISPASR_COREML=ON wires Apple's CoreML encoder into libwhisper. When
+# whisper opens a ggml-MODEL.bin file, it probes for a sibling
+# ggml-MODEL-encoder.mlmodelc directory and uses it (Apple Neural
+# Engine, 2-3× faster on whisper-large) instead of the ggml encoder.
+# CRISPASR_COREML_ALLOW_FALLBACK=ON means missing .mlmodelc files don't
+# error — the model just runs the slower path. Companion .mlmodelc
+# bundles are auto-fetched by ModelService.downloadWhisperCppModel
+# when the matching ggml-*.bin is downloaded.
 
 # ---------------------------------------------------------------------------
 # Step 2: build every backend STATIC archive plus the shared crispasr

@@ -48,6 +48,55 @@ class AudioService {
     }
   }
 
+  /// Start a live PCM stream for stream-transcribe (Whisper sliding
+  /// window). Each emitted Float32List is 16 kHz mono in [-1, 1],
+  /// converted from the underlying int16 little-endian frames the
+  /// `record` package delivers. Caller is responsible for `cancel()`
+  /// on the returned subscription handle and calling [stopStreaming]
+  /// to release the platform recorder.
+  ///
+  /// Why not pipe through a file? Because the file path requires a
+  /// stop+read+decode round trip per chunk; the streaming PCM API
+  /// hands us samples as soon as the OS buffers them so the live
+  /// transcript heartbeat can be sub-second.
+  Future<Stream<Float32List>?> startStreamingRecording() async {
+    try {
+      if (!await _recorder.hasPermission()) return null;
+      const config = RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: 16000,
+        numChannels: 1,
+      );
+      final byteStream = await _recorder.startStream(config);
+      _isRecording = true;
+      // Map int16 little-endian → Float32 in-stream so downstream
+      // doesn't deal with the byte-level conversion.
+      return byteStream.map((bytes) {
+        final n = bytes.length ~/ 2;
+        final out = Float32List(n);
+        final bd = ByteData.view(bytes.buffer, bytes.offsetInBytes, bytes.length);
+        for (var i = 0; i < n; i++) {
+          out[i] = bd.getInt16(i * 2, Endian.little) / 32768.0;
+        }
+        return out;
+      });
+    } catch (e) {
+      Log.instance.e('audio', 'Error starting stream', error: e);
+      return null;
+    }
+  }
+
+  /// Stop the live PCM stream started by [startStreamingRecording].
+  /// Idempotent — safe to call when not streaming.
+  Future<void> stopStreaming() async {
+    try {
+      await _recorder.stop();
+      _isRecording = false;
+    } catch (e) {
+      Log.instance.w('audio', 'Error stopping stream', error: e);
+    }
+  }
+
   /// Stop recording and return the file path
   Future<String?> stopRecording() async {
     try {

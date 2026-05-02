@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
+import '../services/log_service.dart';
 import '../services/settings_service.dart';
 
 class AudioRecorderWidget extends ConsumerStatefulWidget {
@@ -24,6 +28,14 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   Duration _recordingDuration = Duration.zero;
   Timer? _timer;
   String? _recordingPath;
+  // Stream-mode (Whisper-only sliding window). When true, mic frames
+  // pipe straight into CrispASREngine.transcribeStream and partial
+  // text appears in the output card while you talk. When false the
+  // recorder writes a WAV and you transcribe it after stop, the
+  // historical default.
+  bool _streamMode = false;
+  StreamController<Float32List>? _micController;
+  StreamSubscription<TranscriptionSegment>? _streamSub;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -47,6 +59,8 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   @override
   void dispose() {
     _timer?.cancel();
+    _streamSub?.cancel();
+    _micController?.close();
     _pulseController.dispose();
     super.dispose();
   }
@@ -66,6 +80,31 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
                 Text(
                   'Audio Recorder',
                   style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                // Stream-mode toggle. When ON, hitting Record opens a
+                // live PCM stream into the engine's transcribeStream
+                // (Whisper-only sliding window) instead of writing a
+                // WAV. Disabled mid-recording so we don't tear down
+                // the active session.
+                Tooltip(
+                  message:
+                      AppLocalizations.of(context).recorderStreamTooltip,
+                  child: Row(
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).recorderStream,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(width: 4),
+                      Switch(
+                        value: _streamMode,
+                        onChanged: _isRecording
+                            ? null
+                            : (v) => setState(() => _streamMode = v),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -228,6 +267,10 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   }
 
   Future<void> _startRecording() async {
+    if (_streamMode) {
+      await _startStreamRecording();
+      return;
+    }
     final audioService = ref.read(audioServiceProvider);
     final settingsService = ref.read(settingsServiceProvider);
 
@@ -266,7 +309,93 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     }
   }
 
+  /// Stream-mode entry point. Opens a live PCM stream and feeds it
+  /// into the engine's `transcribeStream`. Each commit replaces the
+  /// running transcription text in app state, so the UI shows the
+  /// rolling 10 s window's text live. Whisper-only today — others
+  /// don't expose the streaming session API.
+  Future<void> _startStreamRecording() async {
+    final audioService = ref.read(audioServiceProvider);
+    final transcriptionService = ref.read(transcriptionServiceProvider);
+    final engine = transcriptionService.currentEngine;
+    if (engine == null || !engine.supportsStreaming) {
+      _showErrorDialog(
+          'Streaming requires the Whisper engine. Switch backend in Settings.');
+      return;
+    }
+
+    final pcmStream = await audioService.startStreamingRecording();
+    if (pcmStream == null) {
+      _showErrorDialog('Microphone unavailable for streaming.');
+      return;
+    }
+
+    setState(() {
+      _isRecording = true;
+      _isPaused = false;
+      _recordingDuration = Duration.zero;
+      _amplitudes = [];
+    });
+    _pulseController.repeat(reverse: true);
+
+    // Funnel mic frames through a controller so the engine stream can
+    // be cancelled cleanly on stop without tearing down the recorder.
+    _micController = StreamController<Float32List>(sync: true);
+    pcmStream.listen(_micController!.add,
+        onError: _micController!.addError, onDone: _micController!.close);
+
+    final segStream = engine.transcribeStream(_micController!.stream);
+    if (segStream == null) {
+      await _stopStreamRecording();
+      _showErrorDialog('Engine returned no streaming session.');
+      return;
+    }
+
+    final appNotifier = ref.read(appStateProvider.notifier);
+    appNotifier.startTranscription();
+    _streamSub = segStream.listen((seg) {
+      // The engine's streaming contract overwrites the rolling text on
+      // every commit — replace the current "transcription" rather than
+      // append, so the user sees the latest decoder pass instead of a
+      // duplicated growing string.
+      appNotifier.replaceLiveStreamingText(seg.text);
+    }, onError: (Object e, StackTrace st) {
+      Log.instance.w('mic-stream', 'transcribeStream failed', error: e, stack: st);
+    });
+
+    // Heartbeat for the duration display (no amplitude — record
+    // doesn't expose it during stream mode on every platform).
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (_isRecording && !_isPaused && mounted) {
+        setState(
+            () => _recordingDuration += const Duration(milliseconds: 100));
+      }
+    });
+  }
+
+  Future<void> _stopStreamRecording() async {
+    final audioService = ref.read(audioServiceProvider);
+    await audioService.stopStreaming();
+    await _streamSub?.cancel();
+    _streamSub = null;
+    await _micController?.close();
+    _micController = null;
+    _timer?.cancel();
+    _pulseController.stop();
+    _pulseController.reset();
+    if (mounted) {
+      setState(() {
+        _isRecording = false;
+        _isPaused = false;
+      });
+    }
+  }
+
   Future<void> _stopRecording() async {
+    if (_streamMode) {
+      await _stopStreamRecording();
+      return;
+    }
     final audioService = ref.read(audioServiceProvider);
 
     try {

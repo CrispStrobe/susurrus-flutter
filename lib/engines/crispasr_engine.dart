@@ -432,9 +432,24 @@ class CrispASREngine implements TranscriptionEngine {
     String? initialPrompt,
     bool vad = false,
     String? vadModelPath,
+    String? targetLanguage,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
+    // Apply sticky session-state setters before dispatching transcribe.
+    // Currently just target-language for translation backends; the
+    // session API also exposes setSourceLanguage / setPunctuation /
+    // setTranslate which we'd plumb here when we add UI for them.
+    if (_session != null && targetLanguage != null && targetLanguage.isNotEmpty) {
+      try {
+        _session!.setTargetLanguage(targetLanguage);
+      } catch (e) {
+        // Backend doesn't support translation — log and continue with
+        // verbatim transcription rather than failing the whole call.
+        Log.instance.d('crispasr',
+            'setTargetLanguage rejected by ${_session?.backend}: $e');
+      }
+    }
     if (!_isInitialized) {
       throw const EngineInitializationException(
         'Engine not initialized',

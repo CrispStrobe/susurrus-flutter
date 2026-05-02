@@ -132,6 +132,8 @@
   "recorderDeleteTitle": "Aufnahme löschen",
   "recorderDeleteBody": "Möchten Sie diese Aufnahme wirklich löschen?",
   "recorderQueuedForTranscription": "Aufnahme zur Transkription eingereiht.",
+  "recorderStream": "Stream",
+  "recorderStreamTooltip": "Live-Mikrofon-Transkription (Whisper-Schiebefenster). Teil-Text erscheint beim Sprechen.",
 
   "outputShowTimestamps": "Zeitstempel anzeigen",
   "outputShowSpeakers": "Sprecher anzeigen",
@@ -318,6 +320,8 @@
   "advancedInitialPromptHint": "z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“",
   "advancedRestorePunctuation": "Interpunktion wiederherstellen (FireRedPunc)",
   "advancedRestorePunctuationSubtitle": "Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.",
+  "advancedTargetLanguage": "Übersetzen in (Zielsprache)",
+  "advancedTargetLanguageHelper": "Nur sichtbar für übersetzungsfähige Backends (Canary, Voxtral, Qwen3, Cohere, Whisper). „Keine Übersetzung\" für wortgetreue Transkription.",
 
   "synthTitle": "Synthese",
   "synthModelLabel": "TTS-Modell",

@@ -391,6 +391,14 @@ class AppStateNotifier extends StateNotifier<AppState> {
   void clearTranscription() {
     state = const AppState();
   }
+
+  /// Replace the live transcription text in-place. Used by mic-stream
+  /// mode where the engine emits a rolling decode of the last 10 s
+  /// window — each commit overwrites rather than appends, otherwise
+  /// the text would visibly duplicate as the window slides.
+  void replaceLiveStreamingText(String text) {
+    state = state.copyWith(currentTranscription: text);
+  }
 }
 
 /// Manages the app's locale based on user preference or system default.

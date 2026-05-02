@@ -45,6 +45,12 @@ abstract class TranscriptionEngine {
     String? initialPrompt,
     bool vad = false,
     String? vadModelPath,
+    /// Target language for true speech-translation backends (canary,
+    /// voxtral, voxtral4b, qwen3, cohere). When non-null and ≠ source,
+    /// the backend translates instead of transcribing verbatim. Whisper
+    /// uses the legacy [translate] boolean which always targets English.
+    /// Engines that don't translate ignore this field.
+    String? targetLanguage,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

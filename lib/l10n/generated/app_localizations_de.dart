@@ -321,6 +321,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Aufnahme zur Transkription eingereiht.';
 
   @override
+  String get recorderStream => 'Stream';
+
+  @override
+  String get recorderStreamTooltip =>
+      'Live-Mikrofon-Transkription (Whisper-Schiebefenster). Teil-Text erscheint beim Sprechen.';
+
+  @override
   String get outputShowTimestamps => 'Zeitstempel anzeigen';
 
   @override
@@ -748,6 +755,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get advancedRestorePunctuationSubtitle =>
       'Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.';
+
+  @override
+  String get advancedTargetLanguage => 'Übersetzen in (Zielsprache)';
+
+  @override
+  String get advancedTargetLanguageHelper =>
+      'Nur sichtbar für übersetzungsfähige Backends (Canary, Voxtral, Qwen3, Cohere, Whisper). „Keine Übersetzung\" für wortgetreue Transkription.';
 
   @override
   String get synthTitle => 'Synthese';

@@ -87,6 +87,7 @@ class TranscriptionService {
     String? initialPrompt,
     bool vad = false,
     bool restorePunctuation = false,
+    String? targetLanguage,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -134,6 +135,7 @@ class TranscriptionService {
         initialPrompt: initialPrompt,
         vad: vad && vadModelPath != null,
         vadModelPath: vadModelPath,
+        targetLanguage: targetLanguage,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -185,6 +187,7 @@ class TranscriptionService {
     String? initialPrompt,
     bool vad = false,
     bool restorePunctuation = false,
+    String? targetLanguage,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -214,6 +217,7 @@ class TranscriptionService {
         initialPrompt: initialPrompt,
         vad: vad,
         restorePunctuation: restorePunctuation,
+        targetLanguage: targetLanguage,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
@@ -395,6 +399,7 @@ class TranscriptionService {
     String? initialPrompt,
     bool vad = false,
     String? vadModelPath,
+    String? targetLanguage,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -415,6 +420,7 @@ class TranscriptionService {
         initialPrompt: initialPrompt,
         vad: vad,
         vadModelPath: vadModelPath,
+        targetLanguage: targetLanguage,
         onSegment: onSegment,
         onProgress: onProgress,
       );

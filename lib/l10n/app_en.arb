@@ -132,6 +132,8 @@
   "recorderDeleteTitle": "Delete recording",
   "recorderDeleteBody": "Are you sure you want to delete this recording?",
   "recorderQueuedForTranscription": "Recording queued for transcription.",
+  "recorderStream": "Stream",
+  "recorderStreamTooltip": "Live mic transcribe (Whisper sliding window). Partial text appears as you speak.",
 
   "outputShowTimestamps": "Show timestamps",
   "outputShowSpeakers": "Show speakers",
@@ -318,6 +320,8 @@
   "advancedInitialPromptHint": "e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"",
   "advancedRestorePunctuation": "Restore punctuation (FireRedPunc)",
   "advancedRestorePunctuationSubtitle": "Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.",
+  "advancedTargetLanguage": "Translate to (target language)",
+  "advancedTargetLanguageHelper": "Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.",
 
   "synthTitle": "Synthesize",
   "synthModelLabel": "TTS model",

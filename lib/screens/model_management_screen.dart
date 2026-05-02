@@ -20,6 +20,11 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   double _downloadProgress = 0.0;
   // null = "All". Otherwise filter to entries whose `kind` matches.
   ModelKind? _kindFilter;
+  // Secondary filter active when _kindFilter == ModelKind.voice. Empty
+  // means "any language". Each voice catalog entry's description ends
+  // in `[lang=xx]` (xx ∈ en/de/fr/it/jp/kr/nl/pl/pt/sp/in/es) so we
+  // can group them without parsing the filename.
+  String _voiceLangFilter = '';
 
   @override
   void initState() {
@@ -113,14 +118,22 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
       return _buildEmptyState();
     }
 
-    final filtered = _kindFilter == null
+    var filtered = _kindFilter == null
         ? models
         : models.where((m) => m.kind == _kindFilter).toList();
+    // Sub-filter by language inside the Voices tab.
+    if (_kindFilter == ModelKind.voice && _voiceLangFilter.isNotEmpty) {
+      filtered = filtered
+          .where((m) => m.description.contains('[lang=$_voiceLangFilter]'))
+          .toList();
+    }
 
     return Column(
       children: [
         _buildSummaryCard(models),
         _buildKindFilterRow(models),
+        if (_kindFilter == ModelKind.voice)
+          _buildVoiceLangFilterRow(models),
         Expanded(
           child: filtered.isEmpty
               ? Center(
@@ -176,6 +189,44 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           chip('Voices', ModelKind.voice),
           chip('Codecs', ModelKind.codec),
           chip('Post-processors', ModelKind.punc),
+        ],
+      ),
+    );
+  }
+
+  /// Sub-filter row shown only when the Voices tab is active. Pulls
+  /// the unique language codes from the voice catalog descriptions
+  /// (each contains `[lang=xx]`) and renders one chip per language
+  /// plus an "All" chip. Counts in parens reveal which languages are
+  /// represented in the bundled catalog.
+  Widget _buildVoiceLangFilterRow(List<ModelInfo> models) {
+    final voices = models.where((m) => m.kind == ModelKind.voice).toList();
+    final langCounts = <String, int>{};
+    final re = RegExp(r'\[lang=([a-z]+)\]');
+    for (final m in voices) {
+      final hit = re.firstMatch(m.description);
+      if (hit == null) continue;
+      langCounts.update(hit.group(1)!, (v) => v + 1, ifAbsent: () => 1);
+    }
+    final langs = langCounts.keys.toList()..sort();
+    if (langs.isEmpty) return const SizedBox.shrink();
+
+    Widget chip(String label, String value, int n) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: FilterChip(
+            label: Text('$label ($n)'),
+            selected: _voiceLangFilter == value,
+            onSelected: (_) => setState(() => _voiceLangFilter = value),
+          ),
+        );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+      child: Row(
+        children: [
+          chip('All langs', '', voices.length),
+          for (final l in langs) chip(l, l, langCounts[l]!),
         ],
       ),
     );

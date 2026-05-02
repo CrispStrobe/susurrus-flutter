@@ -171,6 +171,7 @@ class MockEngine implements TranscriptionEngine {
     String? initialPrompt,
     bool vad = false,
     String? vadModelPath,
+    String? targetLanguage,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {

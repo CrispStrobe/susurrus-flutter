@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../main.dart' show transcriptionServiceProvider;
+import '../services/model_service.dart';
 
 /// Per-run state for the "Advanced decoding" block — translate flag,
 /// beam-search strategy, initial prompt. Held as a Riverpod state
@@ -25,12 +27,21 @@ class AdvancedOptions {
   /// raw output is unpunctuated lowercase.
   final bool restorePunctuation;
 
+  /// Target language for translation backends (canary / voxtral /
+  /// voxtral4b / qwen3 / cohere). When equal to source (or empty),
+  /// the backend transcribes verbatim. When different, it translates
+  /// from source → target. Whisper has its own boolean toggle
+  /// ([translate]) that always targets English; this field only takes
+  /// effect on session backends that advertise translation support.
+  final String targetLanguage;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
     this.initialPrompt = '',
     this.vad = false,
     this.restorePunctuation = false,
+    this.targetLanguage = '',
   });
 
   AdvancedOptions copyWith({
@@ -39,6 +50,7 @@ class AdvancedOptions {
     String? initialPrompt,
     bool? vad,
     bool? restorePunctuation,
+    String? targetLanguage,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -46,7 +58,15 @@ class AdvancedOptions {
         initialPrompt: initialPrompt ?? this.initialPrompt,
         vad: vad ?? this.vad,
         restorePunctuation: restorePunctuation ?? this.restorePunctuation,
+        targetLanguage: targetLanguage ?? this.targetLanguage,
       );
+
+  /// Backends that accept a target-language hint different from the
+  /// source — i.e. true speech-translation. Used by the UI to show /
+  /// hide the target-lang dropdown.
+  static const Set<String> translationCapableBackends = {
+    'canary', 'cohere', 'voxtral', 'voxtral4b', 'qwen3', 'whisper',
+  };
 }
 
 final advancedOptionsProvider =
@@ -139,6 +159,11 @@ class _AdvancedDecodingSectionState
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(restorePunctuation: v),
         ),
+        // Target-language picker for translation. Only shown when the
+        // currently-loaded model's backend advertises true speech
+        // translation (canary, voxtral, qwen3, cohere, whisper). The
+        // empty default means "no translation — transcribe verbatim".
+        _buildTargetLanguageRow(context, opts),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: TextField(
@@ -157,6 +182,64 @@ class _AdvancedDecodingSectionState
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTargetLanguageRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    // Resolve the active backend from the loaded model id. The engine
+    // exposes engineId only, so look the model up in the static
+    // catalogs — same source of truth the model picker uses. Misses
+    // dynamically-discovered HF quants but the backend name is stable
+    // across quants of the same family, so this is good enough.
+    final svc = ref.read(transcriptionServiceProvider);
+    final modelId = svc.currentEngine?.currentModelId;
+    String backend = '';
+    if (modelId != null) {
+      final cached = ModelService.whisperCppModels[modelId] ??
+          ModelService.crispasrBackendModels[modelId];
+      backend = cached?.backend ?? '';
+    }
+    if (!AdvancedOptions.translationCapableBackends.contains(backend)) {
+      // Hide the dropdown for backends that don't translate. Keeps
+      // the panel uncluttered for the wav2vec2 / parakeet / mimo-asr
+      // common case.
+      return const SizedBox.shrink();
+    }
+    const langs = <MapEntry<String, String>>[
+      MapEntry('', 'No translation (verbatim)'),
+      MapEntry('en', 'English'),
+      MapEntry('de', 'German'),
+      MapEntry('es', 'Spanish'),
+      MapEntry('fr', 'French'),
+      MapEntry('it', 'Italian'),
+      MapEntry('pt', 'Portuguese'),
+      MapEntry('zh', 'Chinese'),
+      MapEntry('ja', 'Japanese'),
+      MapEntry('ko', 'Korean'),
+      MapEntry('ru', 'Russian'),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: l.advancedTargetLanguage,
+          helperText: l.advancedTargetLanguageHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        initialValue: opts.targetLanguage,
+        items: [
+          for (final e in langs)
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ],
+        onChanged: (v) =>
+            ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(targetLanguage: v ?? ''),
+      ),
     );
   }
 }

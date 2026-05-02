@@ -674,6 +674,18 @@ abstract class AppLocalizations {
   /// **'Recording queued for transcription.'**
   String get recorderQueuedForTranscription;
 
+  /// No description provided for @recorderStream.
+  ///
+  /// In en, this message translates to:
+  /// **'Stream'**
+  String get recorderStream;
+
+  /// No description provided for @recorderStreamTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Live mic transcribe (Whisper sliding window). Partial text appears as you speak.'**
+  String get recorderStreamTooltip;
+
   /// No description provided for @outputShowTimestamps.
   ///
   /// In en, this message translates to:
@@ -1423,6 +1435,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.'**
   String get advancedRestorePunctuationSubtitle;
+
+  /// No description provided for @advancedTargetLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate to (target language)'**
+  String get advancedTargetLanguage;
+
+  /// No description provided for @advancedTargetLanguageHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.'**
+  String get advancedTargetLanguageHelper;
 
   /// No description provided for @synthTitle.
   ///
