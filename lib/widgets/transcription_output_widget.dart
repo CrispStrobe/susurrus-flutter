@@ -300,13 +300,23 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
               const SizedBox(height: 8),
 
-              // Transcription text
-              hasSearch
-                  ? _buildHighlightedText(segment.text, _searchQuery)
-                  : SelectableText(
-                      segment.text,
-                      style: const TextStyle(fontSize: 16),
-                    ),
+              // Transcription text. When the user has "show confidence"
+              // on AND the engine emitted per-word data, tint each word
+              // green→red based on its probability so low-confidence
+              // tokens jump out visually. Falls back to flat text when
+              // no word array is present (mock engine, session backends
+              // that don't expose per-word p yet, search results).
+              if (hasSearch)
+                _buildHighlightedText(segment.text, _searchQuery)
+              else if (_showConfidence &&
+                  segment.words != null &&
+                  segment.words!.isNotEmpty)
+                _buildConfidenceTintedText(segment)
+              else
+                SelectableText(
+                  segment.text,
+                  style: const TextStyle(fontSize: 16),
+                ),
             ],
           ),
         ),
@@ -350,6 +360,53 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
       spans.add(TextSpan(text: text.substring(start)));
     }
 
+    return SelectableText.rich(
+      TextSpan(children: spans),
+      style: const TextStyle(fontSize: 16),
+    );
+  }
+
+  /// Render `segment.text` with per-word foreground tint based on each
+  /// word's `confidence` score. Whisper emits real per-token
+  /// probabilities; session backends currently report `1.0` (uniform
+  /// green) until the C-ABI extension lands. The original spacing
+  /// between words is preserved verbatim — we walk the segment text
+  /// linearly and only colour ranges that match a known word.
+  Widget _buildConfidenceTintedText(TranscriptionSegment segment) {
+    final text = segment.text;
+    final words = segment.words!;
+    final spans = <TextSpan>[];
+    var cursor = 0;
+    for (final w in words) {
+      // Find the next occurrence of this word's text starting at cursor.
+      // Tolerates leading punctuation / whitespace that the model
+      // attached to the segment text but not the word entry.
+      final hit = text.indexOf(w.word, cursor);
+      if (hit < 0) {
+        // Word doesn't line up with the segment text — bail to plain
+        // rendering rather than show garbled colours.
+        return SelectableText(text, style: const TextStyle(fontSize: 16));
+      }
+      if (hit > cursor) {
+        spans.add(TextSpan(text: text.substring(cursor, hit)));
+      }
+      spans.add(TextSpan(
+        text: w.word,
+        style: TextStyle(
+          color: _getConfidenceColor(w.confidence),
+          // Underline very-low-confidence words on top of the colour
+          // shift — colour alone is insufficient for users with red /
+          // green deficiency.
+          decoration: w.confidence < 0.5
+              ? TextDecoration.underline
+              : TextDecoration.none,
+        ),
+      ));
+      cursor = hit + w.word.length;
+    }
+    if (cursor < text.length) {
+      spans.add(TextSpan(text: text.substring(cursor)));
+    }
     return SelectableText.rich(
       TextSpan(children: spans),
       style: const TextStyle(fontSize: 16),

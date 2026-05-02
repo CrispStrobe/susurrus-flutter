@@ -743,16 +743,28 @@ class CrispASREngine implements TranscriptionEngine {
                   word: w.text,
                   startTime: w.start,
                   endTime: w.end,
-                  confidence: 1.0,
+                  // crispasr 0.5.5+ exposes per-word probability via
+                  // crispasr_session_result_word_p; older builds (and
+                  // backends that don't compute one) report -1, which
+                  // the binding clamps to 1.0 so we render neutrally.
+                  confidence: w.p.clamp(0.0, 1.0),
                 ))
             .toList();
       }
+
+      // Segment-level confidence is the mean of its words' p when we
+      // have them, otherwise 1.0. Lets the segment header badge agree
+      // with the per-word colours instead of always showing "100%".
+      final segConfidence = (words == null || words.isEmpty)
+          ? 1.0
+          : words.map((w) => w.confidence).reduce((a, b) => a + b) /
+              words.length;
 
       final seg = TranscriptionSegment(
         text: s.text.trim(),
         startTime: s.start,
         endTime: s.end,
-        confidence: 1.0,
+        confidence: segConfidence,
         words: words,
         metadata: {
           'engine': engineId,
