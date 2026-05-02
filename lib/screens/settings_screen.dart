@@ -645,16 +645,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final packageInfo = await PackageInfo.fromPlatform();
       info['App Version'] =
           '${packageInfo.version} (${packageInfo.buildNumber})';
+      final deviceInfo = DeviceInfoPlugin();
       if (Platform.isIOS) {
-        final deviceInfo = DeviceInfoPlugin();
         final iosInfo = await deviceInfo.iosInfo;
         info['Device'] = '${iosInfo.name} (${iosInfo.model})';
         info['iOS Version'] = '${iosInfo.systemName} ${iosInfo.systemVersion}';
       } else if (Platform.isAndroid) {
-        final deviceInfo = DeviceInfoPlugin();
         final androidInfo = await deviceInfo.androidInfo;
         info['Device'] = '${androidInfo.manufacturer} ${androidInfo.model}';
         info['Android Version'] = 'API ${androidInfo.version.sdkInt}';
+      } else if (Platform.isMacOS) {
+        final macInfo = await deviceInfo.macOsInfo;
+        info['Device'] = '${macInfo.computerName} (${macInfo.model})';
+        info['macOS Version'] = macInfo.osRelease;
+      } else if (Platform.isWindows) {
+        final winInfo = await deviceInfo.windowsInfo;
+        info['Device'] = winInfo.computerName;
+        info['Windows Version'] =
+            '${winInfo.productName} (build ${winInfo.buildNumber})';
+      } else if (Platform.isLinux) {
+        final linuxInfo = await deviceInfo.linuxInfo;
+        info['Device'] = linuxInfo.name;
+        info['Linux Version'] = linuxInfo.prettyName;
       }
     } catch (e) {
       info['Error'] = 'Could not load system info';

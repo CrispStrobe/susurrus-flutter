@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../utils/audio_utils.dart';
@@ -415,7 +416,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      displayPath?.split('/').last ?? l.noFileSelected,
+                      displayPath != null
+                          ? p.basename(displayPath)
+                          : l.noFileSelected,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

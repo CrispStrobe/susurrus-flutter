@@ -26,7 +26,6 @@ dependencies:
   go_router: ^17.2.1
 
   # Audio handling
-  audio_session: ^0.2.3
   just_audio: ^0.10.5
   # just_audio has no native Windows/Linux implementation; libmpv-backed
   # plugin fills that gap. macOS/iOS/Android keep the official backend.

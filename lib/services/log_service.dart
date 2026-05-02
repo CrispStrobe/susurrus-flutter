@@ -7,6 +7,15 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+// Windows GUI builds detach from the console, so stderr's underlying
+// handle is invalid (errno 6). `IOSink.writeln` enqueues the bytes
+// synchronously but the actual write happens later in the event loop,
+// where its FileSystemException escapes the sync try/catch and lands
+// on platformDispatcher.onError as `[uncaught]` for every log line.
+// `stdioType` returns `other` precisely for those detached streams; we
+// skip stderr in that case (file sink still captures everything).
+final bool _stderrUsable = stdioType(stderr) != StdioType.other;
+
 enum LogLevel { trace, debug, info, warn, error }
 
 extension LogLevelX on LogLevel {
@@ -258,7 +267,7 @@ class Log {
     // stderr does not.
     if (kDebugMode) {
       debugPrint(formatted);
-    } else {
+    } else if (_stderrUsable) {
       try {
         stderr.writeln(formatted);
       } catch (_) {}
