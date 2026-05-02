@@ -98,7 +98,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
-          cmake --build build --config Release --parallel --target whisper
+          cmake --build build --config Release --parallel --target crispasr
           ls -lh build/src/libwhisper*.dylib
 
       - name: Pub get
@@ -161,7 +161,7 @@ jobs:
         working-directory: repos/CrispASR
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
-          cmake --build build --config Release --parallel --target whisper
+          cmake --build build --config Release --parallel --target crispasr
           ls -lh build/src/libwhisper*.so*
 
       - name: Enable linux desktop + pub get

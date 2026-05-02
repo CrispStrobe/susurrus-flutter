@@ -52,7 +52,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
-          cmake --build build --config Release --parallel --target whisper
+          cmake --build build --config Release --parallel --target crispasr
           ls -lh build/src/libwhisper*.dylib
 
       - name: Pub get
@@ -126,7 +126,7 @@ jobs:
         working-directory: repos/CrispASR
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
-          cmake --build build --config Release --parallel --target whisper
+          cmake --build build --config Release --parallel --target crispasr
           ls -lh build/src/libwhisper*.so*
 
       - name: Enable Linux desktop + pub get
@@ -376,7 +376,7 @@ jobs:
         shell: pwsh
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF
-          cmake --build build --config Release --parallel --target whisper
+          cmake --build build --config Release --parallel --target crispasr
           Get-ChildItem build -Recurse -Filter *.dll | Select-Object FullName, Length
 
       - name: Enable Windows desktop + pub get
