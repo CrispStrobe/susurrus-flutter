@@ -117,7 +117,7 @@ jobs:
             ./scripts/bundle_macos_dylibs.sh
 
       - name: Upload .app artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: crisper_weaver-macos-debug
           path: repos/CrisperWeaver/build/macos/Build/Products/Debug/crisper_weaver.app
@@ -201,7 +201,7 @@ jobs:
           ls -lh "$BUNDLE/lib/"
 
       - name: Upload Linux bundle
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: crisper_weaver-linux-debug
           path: repos/CrisperWeaver/build/linux/x64/debug/bundle
