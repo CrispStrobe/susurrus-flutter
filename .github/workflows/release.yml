@@ -27,13 +27,13 @@ jobs:
       contents: write
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -94,13 +94,13 @@ jobs:
       contents: write
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -186,13 +186,13 @@ jobs:
       contents: write
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -288,13 +288,13 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -351,13 +351,13 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
           ref: ${{ inputs.tag || github.ref }}
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}

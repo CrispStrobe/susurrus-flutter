@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR (Dart FFI package)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -74,12 +74,12 @@ jobs:
     needs: analyze-and-test
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -117,7 +117,7 @@ jobs:
             ./scripts/bundle_macos_dylibs.sh
 
       - name: Upload .app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: crisper_weaver-macos-debug
           path: repos/CrisperWeaver/build/macos/Build/Products/Debug/crisper_weaver.app
@@ -130,12 +130,12 @@ jobs:
     needs: analyze-and-test
     steps:
       - name: Check out CrisperWeaver
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: repos/CrisperWeaver
 
       - name: Check out sibling CrispASR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
@@ -201,7 +201,7 @@ jobs:
           ls -lh "$BUNDLE/lib/"
 
       - name: Upload Linux bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: crisper_weaver-linux-debug
           path: repos/CrisperWeaver/build/linux/x64/debug/bundle
