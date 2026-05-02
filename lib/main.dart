@@ -399,6 +399,33 @@ class AppStateNotifier extends StateNotifier<AppState> {
   void replaceLiveStreamingText(String text) {
     state = state.copyWith(currentTranscription: text);
   }
+
+  /// Replace a segment's text after the user manually edited it.
+  /// Marks the segment as `edited: true` in metadata so the UI can
+  /// flag it visually. Updates the joined `currentTranscription` so
+  /// downstream consumers (export, copy-all) see the corrected text.
+  void editSegment(int index, String newText) {
+    if (index < 0 || index >= state.segments.length) return;
+    final original = state.segments[index];
+    final updated = TranscriptionSegment(
+      text: newText,
+      startTime: original.startTime,
+      endTime: original.endTime,
+      speaker: original.speaker,
+      confidence: original.confidence,
+      words: original.words,
+      metadata: {
+        ...original.metadata,
+        'edited': true,
+      },
+    );
+    final segments = [...state.segments];
+    segments[index] = updated;
+    state = state.copyWith(
+      segments: segments,
+      currentTranscription: segments.map((s) => s.text).join(' ').trim(),
+    );
+  }
 }
 
 /// Manages the app's locale based on user preference or system default.

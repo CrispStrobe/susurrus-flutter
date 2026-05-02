@@ -35,6 +35,13 @@ class AdvancedOptions {
   /// effect on session backends that advertise translation support.
   final String targetLanguage;
 
+  /// Audio Q&A prompt for instruct-tuned audio-LLM backends (voxtral
+  /// / voxtral4b / qwen3). When non-empty, the backend ANSWERS the
+  /// prompt instead of producing a verbatim transcript ("Summarize",
+  /// "What's the speaker's tone?", "What did they say about X?").
+  /// Empty means "transcribe normally" — the historical default.
+  final String askPrompt;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -42,6 +49,7 @@ class AdvancedOptions {
     this.vad = false,
     this.restorePunctuation = false,
     this.targetLanguage = '',
+    this.askPrompt = '',
   });
 
   AdvancedOptions copyWith({
@@ -51,6 +59,7 @@ class AdvancedOptions {
     bool? vad,
     bool? restorePunctuation,
     String? targetLanguage,
+    String? askPrompt,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -59,6 +68,7 @@ class AdvancedOptions {
         vad: vad ?? this.vad,
         restorePunctuation: restorePunctuation ?? this.restorePunctuation,
         targetLanguage: targetLanguage ?? this.targetLanguage,
+        askPrompt: askPrompt ?? this.askPrompt,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -66,6 +76,12 @@ class AdvancedOptions {
   /// hide the target-lang dropdown.
   static const Set<String> translationCapableBackends = {
     'canary', 'cohere', 'voxtral', 'voxtral4b', 'qwen3', 'whisper',
+  };
+
+  /// Backends that accept a free-form Q&A prompt (instruct-tuned
+  /// audio-LLM). Used by the UI to show / hide the ask field.
+  static const Set<String> askCapableBackends = {
+    'voxtral', 'voxtral4b', 'qwen3',
   };
 }
 
@@ -87,17 +103,20 @@ class _AdvancedDecodingSectionState
     extends ConsumerState<AdvancedDecodingSection> {
   bool _expanded = false;
   late final TextEditingController _promptController;
+  late final TextEditingController _askController;
 
   @override
   void initState() {
     super.initState();
     final initial = ref.read(advancedOptionsProvider);
     _promptController = TextEditingController(text: initial.initialPrompt);
+    _askController = TextEditingController(text: initial.askPrompt);
   }
 
   @override
   void dispose() {
     _promptController.dispose();
+    _askController.dispose();
     super.dispose();
   }
 
@@ -164,6 +183,11 @@ class _AdvancedDecodingSectionState
         // translation (canary, voxtral, qwen3, cohere, whisper). The
         // empty default means "no translation — transcribe verbatim".
         _buildTargetLanguageRow(context, opts),
+        // Audio Q&A prompt. Only shown when the currently-loaded
+        // model's backend is an instruct-tuned audio-LLM (voxtral,
+        // voxtral4b, qwen3-asr). Non-empty answer-mode replaces the
+        // verbatim transcription with the LLM's response to the prompt.
+        _buildAskRow(context, opts),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: TextField(
@@ -185,23 +209,44 @@ class _AdvancedDecodingSectionState
     );
   }
 
+  String _activeBackend() {
+    final svc = ref.read(transcriptionServiceProvider);
+    final modelId = svc.currentEngine?.currentModelId;
+    if (modelId == null) return '';
+    final cached = ModelService.whisperCppModels[modelId] ??
+        ModelService.crispasrBackendModels[modelId];
+    return cached?.backend ?? '';
+  }
+
+  Widget _buildAskRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (!AdvancedOptions.askCapableBackends.contains(_activeBackend())) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: TextField(
+        controller: _askController,
+        maxLines: 2,
+        decoration: InputDecoration(
+          labelText: l.advancedAskPrompt,
+          hintText: l.advancedAskPromptHint,
+          helperText: l.advancedAskPromptHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+            opts.copyWith(askPrompt: v),
+      ),
+    );
+  }
+
   Widget _buildTargetLanguageRow(
       BuildContext context, AdvancedOptions opts) {
     final l = AppLocalizations.of(context);
-    // Resolve the active backend from the loaded model id. The engine
-    // exposes engineId only, so look the model up in the static
-    // catalogs — same source of truth the model picker uses. Misses
-    // dynamically-discovered HF quants but the backend name is stable
-    // across quants of the same family, so this is good enough.
-    final svc = ref.read(transcriptionServiceProvider);
-    final modelId = svc.currentEngine?.currentModelId;
-    String backend = '';
-    if (modelId != null) {
-      final cached = ModelService.whisperCppModels[modelId] ??
-          ModelService.crispasrBackendModels[modelId];
-      backend = cached?.backend ?? '';
-    }
-    if (!AdvancedOptions.translationCapableBackends.contains(backend)) {
+    if (!AdvancedOptions.translationCapableBackends.contains(_activeBackend())) {
       // Hide the dropdown for backends that don't translate. Keeps
       // the panel uncluttered for the wav2vec2 / parakeet / mimo-asr
       // common case.

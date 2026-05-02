@@ -433,13 +433,12 @@ class CrispASREngine implements TranscriptionEngine {
     bool vad = false,
     String? vadModelPath,
     String? targetLanguage,
+    String? askPrompt,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
     // Apply sticky session-state setters before dispatching transcribe.
-    // Currently just target-language for translation backends; the
-    // session API also exposes setSourceLanguage / setPunctuation /
-    // setTranslate which we'd plumb here when we add UI for them.
+    // Per-call args win when supplied, otherwise these are the fallback.
     if (_session != null && targetLanguage != null && targetLanguage.isNotEmpty) {
       try {
         _session!.setTargetLanguage(targetLanguage);
@@ -448,6 +447,20 @@ class CrispASREngine implements TranscriptionEngine {
         // verbatim transcription rather than failing the whole call.
         Log.instance.d('crispasr',
             'setTargetLanguage rejected by ${_session?.backend}: $e');
+      }
+    }
+    // Audio Q&A: when non-empty, voxtral / qwen3-asr answer the
+    // prompt instead of producing a verbatim transcript. Always set
+    // (including empty string) so a previous ask doesn't stick across
+    // a switch back to normal mode.
+    if (_session != null) {
+      try {
+        _session!.setAsk(askPrompt ?? '');
+      } catch (e) {
+        // Older libwhisper without the setAsk symbol — silent skip;
+        // the field has zero effect on those builds anyway.
+        Log.instance.d('crispasr',
+            'setAsk rejected by ${_session?.backend}: $e');
       }
     }
     if (!_isInitialized) {

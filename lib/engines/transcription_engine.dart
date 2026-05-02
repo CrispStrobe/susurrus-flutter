@@ -51,6 +51,11 @@ abstract class TranscriptionEngine {
     /// uses the legacy [translate] boolean which always targets English.
     /// Engines that don't translate ignore this field.
     String? targetLanguage,
+    /// Free-form Q&A prompt for instruct-tuned audio-LLM backends
+    /// (voxtral, voxtral4b, qwen3-asr). When non-null + non-empty, the
+    /// backend ANSWERS the prompt instead of producing a verbatim
+    /// transcript. Other backends ignore.
+    String? askPrompt,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

@@ -322,6 +322,9 @@
   "advancedRestorePunctuationSubtitle": "Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.",
   "advancedTargetLanguage": "Translate to (target language)",
   "advancedTargetLanguageHelper": "Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.",
+  "advancedAskPrompt": "Ask the audio (Q&A mode)",
+  "advancedAskPromptHint": "e.g. \"Summarize\" or \"What's the speaker's tone?\"",
+  "advancedAskPromptHelper": "Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.",
 
   "synthTitle": "Synthesize",
   "synthModelLabel": "TTS model",

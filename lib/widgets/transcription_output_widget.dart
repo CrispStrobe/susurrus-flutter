@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 import '../l10n/generated/app_localizations.dart';
+import '../main.dart' show appStateProvider, selectedAudioPathProvider;
 
-class TranscriptionOutputWidget extends StatefulWidget {
+class TranscriptionOutputWidget extends ConsumerStatefulWidget {
   final List<TranscriptionSegment> segments;
   final String? currentTranscription;
 
@@ -15,11 +20,12 @@ class TranscriptionOutputWidget extends StatefulWidget {
   });
 
   @override
-  State<TranscriptionOutputWidget> createState() =>
+  ConsumerState<TranscriptionOutputWidget> createState() =>
       _TranscriptionOutputWidgetState();
 }
 
-class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
+class _TranscriptionOutputWidgetState
+    extends ConsumerState<TranscriptionOutputWidget>
     with TickerProviderStateMixin {
   bool _showTimestamps = true;
   bool _showSpeakers = true;
@@ -29,6 +35,15 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+
+  // Karaoke playback state. The player is created lazily on the first
+  // _playSegment call so unused transcripts don't allocate one. Active
+  // position drives the highlighted-word render via positionStream;
+  // _karaokePlaying is true while we're actively syncing UI.
+  AudioPlayer? _player;
+  StreamSubscription<Duration>? _posSub;
+  Duration _karaokePos = Duration.zero;
+  bool _karaokePlaying = false;
 
   @override
   void initState() {
@@ -41,6 +56,8 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     _tabController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
+    _posSub?.cancel();
+    _player?.dispose();
     super.dispose();
   }
 
@@ -244,6 +261,16 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
                   const Spacer(),
 
+                  // Tiny pencil icon to flag manually-edited segments.
+                  // Set in metadata by AppStateNotifier.editSegment.
+                  if (segment.metadata['edited'] == true) ...[
+                    const Tooltip(
+                      message: 'Edited',
+                      child: Icon(Icons.edit, size: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+
                   if (_showConfidence) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -300,14 +327,15 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
 
               const SizedBox(height: 8),
 
-              // Transcription text. When the user has "show confidence"
-              // on AND the engine emitted per-word data, tint each word
-              // green→red based on its probability so low-confidence
-              // tokens jump out visually. Falls back to flat text when
-              // no word array is present (mock engine, session backends
-              // that don't expose per-word p yet, search results).
+              // Transcription text. Render priority:
+              //   1. Search highlight (yellow background on matches)
+              //   2. Karaoke active-word highlight (during playback)
+              //   3. Per-word confidence tint
+              //   4. Plain SelectableText
               if (hasSearch)
                 _buildHighlightedText(segment.text, _searchQuery)
+              else if (_karaokePlaying && _karaokeActiveSegment(segment))
+                _buildKaraokeText(segment)
               else if (_showConfidence &&
                   segment.words != null &&
                   segment.words!.isNotEmpty)
@@ -372,6 +400,72 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
   /// green) until the C-ABI extension lands. The original spacing
   /// between words is preserved verbatim — we walk the segment text
   /// linearly and only colour ranges that match a known word.
+  /// True when karaoke playback's current position falls inside this
+  /// segment's `[startTime, endTime]` range. Used to render the
+  /// active-word highlight only on the currently-playing segment so
+  /// scrollback doesn't get noisy.
+  bool _karaokeActiveSegment(TranscriptionSegment segment) {
+    final t = _karaokePos.inMilliseconds / 1000.0;
+    return t >= segment.startTime && t <= segment.endTime + 0.1;
+  }
+
+  /// Karaoke render: same per-word span layout as confidence-tint, but
+  /// the colour scheme is "currently spoken word = filled badge,
+  /// already-spoken = subtle grey, upcoming = full opacity". Falls
+  /// back to plain text when the segment has no word-level data.
+  Widget _buildKaraokeText(TranscriptionSegment segment) {
+    final words = segment.words;
+    if (words == null || words.isEmpty) {
+      // No per-word data — show segment-level highlight so user still
+      // sees something during playback.
+      return SelectableText(
+        segment.text,
+        style: TextStyle(
+          fontSize: 16,
+          backgroundColor: Theme.of(context)
+              .colorScheme
+              .primary
+              .withValues(alpha: 0.15),
+        ),
+      );
+    }
+    final tSec = _karaokePos.inMilliseconds / 1000.0;
+    final text = segment.text;
+    final spans = <TextSpan>[];
+    var cursor = 0;
+    final accent = Theme.of(context).colorScheme.primary;
+    for (final w in words) {
+      final hit = text.indexOf(w.word, cursor);
+      if (hit < 0) {
+        return SelectableText(text, style: const TextStyle(fontSize: 16));
+      }
+      if (hit > cursor) {
+        spans.add(TextSpan(text: text.substring(cursor, hit)));
+      }
+      final isActive = tSec >= w.startTime && tSec <= w.endTime + 0.05;
+      final isPast = tSec > w.endTime;
+      spans.add(TextSpan(
+        text: w.word,
+        style: TextStyle(
+          color: isActive
+              ? Colors.white
+              : (isPast ? Colors.grey : null),
+          backgroundColor:
+              isActive ? accent : null,
+          fontWeight: isActive ? FontWeight.bold : null,
+        ),
+      ));
+      cursor = hit + w.word.length;
+    }
+    if (cursor < text.length) {
+      spans.add(TextSpan(text: text.substring(cursor)));
+    }
+    return SelectableText.rich(
+      TextSpan(children: spans),
+      style: const TextStyle(fontSize: 16),
+    );
+  }
+
   Widget _buildConfidenceTintedText(TranscriptionSegment segment) {
     final text = segment.text;
     final words = segment.words!;
@@ -551,15 +645,43 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
     }
   }
 
-  void _playSegment(TranscriptionSegment segment) {
-    // TODO: Implement audio playback for specific segment
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)
-            .outputPlayingSegment(segment.formattedTime)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  /// Play the source audio from the segment's start time, with
+  /// karaoke-style word highlighting driven by `positionStream`. Falls
+  /// back to a stub snackbar when no source path is available
+  /// (mic-stream transcripts, history entries that lost their file).
+  Future<void> _playSegment(TranscriptionSegment segment) async {
+    final audioPath = ref.read(selectedAudioPathProvider);
+    if (audioPath == null || audioPath.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)
+              .outputPlayingSegment(segment.formattedTime)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    _player ??= AudioPlayer();
+    _posSub ??= _player!.positionStream.listen((p) {
+      if (!mounted) return;
+      setState(() {
+        _karaokePos = p;
+        _karaokePlaying = _player!.playing;
+      });
+    });
+    try {
+      // Reload only when switching files (cheap no-op when same path).
+      if (_player!.audioSource == null) {
+        await _player!.setFilePath(audioPath);
+      }
+      await _player!.seek(Duration(milliseconds: (segment.startTime * 1000).round()));
+      await _player!.play();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Playback failed: $e')),
+      );
+    }
   }
 
   void _copySegmentText(TranscriptionSegment segment) {
@@ -590,16 +712,41 @@ class _TranscriptionOutputWidgetState extends State<TranscriptionOutputWidget>
   }
 
   void _editSegment(TranscriptionSegment segment) {
-    // TODO: Implement segment editing
+    final index = widget.segments.indexOf(segment);
+    if (index < 0) return;
+    final controller = TextEditingController(text: segment.text);
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).outputEditSegment),
-        content: Text(AppLocalizations.of(context).outputEditNotImplemented),
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(ctx).outputEditSegment),
+        content: SizedBox(
+          width: 480,
+          child: TextField(
+            controller: controller,
+            maxLines: 6,
+            autofocus: true,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: segment.formattedTime,
+            ),
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppLocalizations.of(context).ok),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(ctx).cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final next = controller.text.trim();
+              if (next.isNotEmpty && next != segment.text) {
+                ref
+                    .read(appStateProvider.notifier)
+                    .editSegment(index, next);
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: Text(AppLocalizations.of(ctx).ok),
           ),
         ],
       ),

@@ -1448,6 +1448,24 @@ abstract class AppLocalizations {
   /// **'Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.'**
   String get advancedTargetLanguageHelper;
 
+  /// No description provided for @advancedAskPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the audio (Q&A mode)'**
+  String get advancedAskPrompt;
+
+  /// No description provided for @advancedAskPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. \"Summarize\" or \"What\'s the speaker\'s tone?\"'**
+  String get advancedAskPromptHint;
+
+  /// No description provided for @advancedAskPromptHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.'**
+  String get advancedAskPromptHelper;
+
   /// No description provided for @synthTitle.
   ///
   /// In en, this message translates to:

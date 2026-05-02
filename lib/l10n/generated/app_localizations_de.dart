@@ -764,6 +764,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nur sichtbar für übersetzungsfähige Backends (Canary, Voxtral, Qwen3, Cohere, Whisper). „Keine Übersetzung\" für wortgetreue Transkription.';
 
   @override
+  String get advancedAskPrompt => 'Audio fragen (Q&A-Modus)';
+
+  @override
+  String get advancedAskPromptHint =>
+      'z. B. „Zusammenfassen\" oder „Wie klingt der Sprecher?\"';
+
+  @override
+  String get advancedAskPromptHelper =>
+      'Nur Voxtral / Qwen3-ASR. Wenn gesetzt, ANTWORTET das LLM auf deine Frage, statt eine wortgetreue Transkription zu liefern. Leer lassen für normale Transkription.';
+
+  @override
   String get synthTitle => 'Synthese';
 
   @override
