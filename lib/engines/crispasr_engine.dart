@@ -516,19 +516,40 @@ class CrispASREngine implements TranscriptionEngine {
       List<TranscriptionSegment> segments;
 
       if (_model != null) {
-        // Whisper-specific path
-        final nativeSegments = await _runTranscription(
-          audioData,
-          language: language,
-          wordTimestamps: enableWordTimestamps,
-          translate: translate,
-          beamSearch: beamSearch,
-          initialPrompt: initialPrompt,
-          vad: vad,
-          vadModelPath: vadModelPath,
-        );
-        segments = _mapWhisperSegments(
-            nativeSegments, enableWordTimestamps, onSegment);
+        // Whisper-specific path. For long audio (>60 s), slice into
+        // 30 s chunks and dispatch each separately so segments stream
+        // into the UI every ~10 s (assuming ~3× realtime decode on M1)
+        // instead of arriving in one batch after the full file.
+        // Cross-chunk decoder context is lost — fine for whisper, which
+        // resets state between calls anyway.
+        final audioSeconds = audioData.length / 16000.0;
+        if (audioSeconds > 60.0 && !vad) {
+          // VAD path stays single-call (it has its own slice/stitch
+          // pipeline and benefits from cross-chunk silence detection).
+          segments = await _runChunkedWhisper(
+            audioData,
+            language: language,
+            wordTimestamps: enableWordTimestamps,
+            translate: translate,
+            beamSearch: beamSearch,
+            initialPrompt: initialPrompt,
+            onSegment: onSegment,
+            onProgress: onProgress,
+          );
+        } else {
+          final nativeSegments = await _runTranscription(
+            audioData,
+            language: language,
+            wordTimestamps: enableWordTimestamps,
+            translate: translate,
+            beamSearch: beamSearch,
+            initialPrompt: initialPrompt,
+            vad: vad,
+            vadModelPath: vadModelPath,
+          );
+          segments = _mapWhisperSegments(
+              nativeSegments, enableWordTimestamps, onSegment);
+        }
       } else {
         // Unified session path (Parakeet, Canary, etc.)
         final sessionSegments = await _runSessionTranscription(
@@ -612,6 +633,98 @@ class CrispASREngine implements TranscriptionEngine {
     } finally {
       _isProcessing = false;
     }
+  }
+
+  /// Chunked Whisper transcription for long audio. Slices into 30 s
+  /// windows, dispatches each through `_runTranscription`, adjusts
+  /// segment timestamps to absolute time, and fires `onSegment` per
+  /// segment so the UI updates incrementally as each chunk completes
+  /// instead of waiting for the whole file.
+  ///
+  /// Cross-chunk decoder context is intentionally not preserved —
+  /// whisper resets state between `whisper_full` calls anyway, and
+  /// 30 s windows keep the per-chunk encode cost bounded. Initial
+  /// prompt is passed to every chunk so domain-vocabulary biasing
+  /// still applies throughout.
+  Future<List<TranscriptionSegment>> _runChunkedWhisper(
+    Float32List audioData, {
+    String? language,
+    bool wordTimestamps = false,
+    bool translate = false,
+    bool beamSearch = false,
+    String? initialPrompt,
+    void Function(TranscriptionSegment segment)? onSegment,
+    void Function(double progress)? onProgress,
+  }) async {
+    const sampleRate = 16000;
+    const chunkSeconds = 30;
+    const chunkSamples = chunkSeconds * sampleRate;
+    final totalSamples = audioData.length;
+    final nChunks = (totalSamples / chunkSamples).ceil();
+
+    final allSegments = <TranscriptionSegment>[];
+    for (var i = 0; i < nChunks; i++) {
+      if (_cancelRequested) break;
+      final start = i * chunkSamples;
+      final end =
+          (start + chunkSamples) > totalSamples ? totalSamples : start + chunkSamples;
+      final chunk = Float32List.sublistView(audioData, start, end);
+      final offsetSeconds = start / sampleRate;
+
+      Log.instance.d('crispasr', 'chunk dispatch', fields: {
+        'i': i,
+        'of': nChunks,
+        't0': offsetSeconds.toStringAsFixed(1),
+        'samples': chunk.length,
+      });
+
+      final nativeSegments = await _runTranscription(
+        chunk,
+        language: language,
+        wordTimestamps: wordTimestamps,
+        translate: translate,
+        beamSearch: beamSearch,
+        initialPrompt: initialPrompt,
+        vad: false,
+        vadModelPath: null,
+      );
+
+      // Re-map with the chunk's time offset baked into each segment +
+      // word so absolute timestamps remain monotonic across chunks.
+      // Reuses the same builder as the single-call path; we apply the
+      // offset here rather than changing _mapWhisperSegments to keep
+      // the canonical mapper offset-agnostic.
+      final chunkSegments = _mapWhisperSegments(
+        nativeSegments,
+        wordTimestamps,
+        null, // we'll fire onSegment manually below with adjusted times
+      );
+      for (final raw in chunkSegments) {
+        final shifted = TranscriptionSegment(
+          text: raw.text,
+          startTime: raw.startTime + offsetSeconds,
+          endTime: raw.endTime + offsetSeconds,
+          speaker: raw.speaker,
+          confidence: raw.confidence,
+          words: raw.words?.map((w) => TranscriptionWord(
+                word: w.word,
+                startTime: w.startTime + offsetSeconds,
+                endTime: w.endTime + offsetSeconds,
+                confidence: w.confidence,
+              )).toList(),
+          metadata: {
+            ...raw.metadata,
+            'chunkIndex': i,
+            'chunkOffsetSeconds': offsetSeconds,
+          },
+        );
+        allSegments.add(shifted);
+        onSegment?.call(shifted);
+      }
+      // Per-chunk progress: fraction of audio dispatched. Caller scales.
+      onProgress?.call((i + 1) / nChunks);
+    }
+    return allSegments;
   }
 
   Future<List<crispasr.Segment>> _runTranscription(

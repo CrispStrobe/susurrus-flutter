@@ -335,6 +335,83 @@ Speedup roadmap, ordered by ROI / effort:
    kokoro) with `install_name_tool` rewrites to `@rpath/`.
 6. Reports linked backends parsed from `nm` output.
 
+### 5.19 Real-time partial display during file transcribe
+
+**What:** the engine already calls `onSegment` for each finished
+segment via the existing `transcribeFile(..., onSegment: …)` hook,
+but `TranscriptionScreen` only renders the final result list. On a
+10-min file the user sees nothing for 30 s, then the whole transcript
+arrives in one paint. Wire the per-segment callback into
+`AppStateNotifier.addSegment` (which already exists and updates
+`currentTranscription` incrementally) so each finished segment shows
+up as it lands.
+
+**Where:** `lib/screens/transcription_screen.dart` —
+`onSegment: appStateNotifier.addSegment` is already passed, but the
+final `completeTranscription(segments)` call clobbers the incremental
+list. Either drop the final replace (segments are equivalent) or
+de-dupe by index. Half day.
+
+**Risk:** low. Existing tests cover `addSegment` shape.
+
+### 5.20 Speaker name labels
+
+**What:** diarisation labels speakers as "Speaker 1", "Speaker 2",
+… today. Tap a speaker chip → rename → name persists for the
+session and into history JSON. Optional: auto-suggest names from
+known voices (out of scope for v1).
+
+**Where:** `lib/services/history_service.dart` adds a per-session
+`speakerNames: Map<String, String>` field; `TranscriptionOutputWidget`
+header chip becomes editable (PopupMenu → Rename). Half day.
+
+**Risk:** low. Localised to UI + history schema bump (handled
+backward-compat by the loader treating absent map as empty).
+
+### 5.21 Background download manager + Storage tab
+
+**What:** model downloads currently block on the main isolate (the
+Dio Future runs on the platform thread, but `_dio.download` rebuilds
+the UI per progress tick). On big models the UI stutters. Move
+downloads to a worker isolate; the main thread just listens to a
+progress stream. Plus add a "Storage" tab in Settings (or Models
+header) that lists `[backend, size, count]` rows with per-backend
+delete buttons.
+
+**Where:** `lib/services/model_service.dart::downloadWhisperCppModel`
+becomes the entry point that spawns an isolate; the existing
+`_activeDownloads` map tracks the cancel tokens. Storage tab is a
+new screen / dialog. ~1 day.
+
+**Risk:** medium. Isolate ↔ main-thread message passing for download
+progress; need to drop the Dio instance into the isolate (dio works
+inside isolates per their docs).
+
+### 5.22 iOS feature parity verification
+
+**What:** most of what we built (streaming mic via `record`,
+`FilePicker.getDirectoryPath`, `just_audio` playback, the .mlmodelc
+bundle path) hasn't been verified on a real iOS device since the
+v0.2.0 → v0.3.0 cycle. Spin up a sideload IPA, walk through every
+screen, log the breakage, fix.
+
+**Likely sore spots:**
+* `record` package's `startStream` API differs across iOS ↔ macOS.
+* `FilePicker.getDirectoryPath` is desktop-only on file_picker 11
+  per their docs — needs a substitute on iOS (write to app sandbox
+  + share via UIDocumentPickerViewController).
+* CoreML `.mlmodelc` files need to be writable by the app sandbox
+  on iOS; macOS's `<app-docs>/models/whisper_cpp/...` works but the
+  iOS path resolution probably needs `getApplicationSupportDirectory`
+  variants.
+* The custom-models-dir setting probably should be hidden on iOS
+  (sandbox doesn't allow arbitrary host paths).
+
+**Where:** every service file that touches paths or platform APIs.
+~1 day to test + fix.
+
+**Risk:** medium-high. iOS surface always surprises.
+
 ### 5.9 Dependency refresh
 
 37 packages have newer versions blocked by constraint overrides (`intl`, `material_color_utilities`, `record_linux`). Revisit after Flutter 3.39 lands: many of the overrides are there to paper over SDK transitions.
