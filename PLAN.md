@@ -92,13 +92,18 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 ## 5. Open roadmap items
 
-### 5.1 Finish i18n
+### 5.1 Finish i18n — ✅ shipped
 
-**What:** migrate remaining hardcoded strings in `lib/widgets/` and older `lib/screens/settings_screen.dart` paths to `AppLocalizations.of(context)!.<key>`.
-
-**Where:** grep for string literals in `lib/widgets/` and `lib/screens/settings_screen.dart`. Add matching keys to both `lib/l10n/app_en.arb` and `lib/l10n/app_de.arb`. Regenerate with `flutter gen-l10n` (automatic on `flutter pub get`).
-
-**Risk:** low. Mechanical work.
+Substantively done. Two sweeps this session moved 40+ hardcoded
+strings from `lib/widgets/` and `lib/screens/` behind
+`AppLocalizations`: transcription share/save menu (TXT/SRT/VTT/JSON),
+snackbars (load/save/playback/synthesize/copy failures + success
+toasts), settings dialogs (Select Engine, HF Token + label),
+download-model prompt body, audio-recorder/diariser/log-viewer
+tooltips, log popup menu items, streaming error dialogs. Only the
+brand string "CrisperWeaver" on the about screen is intentionally
+left as a literal. EN+DE entries in lockstep, guarded by
+`test/arb_consistency_test.dart`.
 
 ### 5.2 iOS build verification — ✅ DONE
 

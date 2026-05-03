@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -104,6 +105,16 @@ class HistoryService {
   final _uuid = const Uuid();
 
   Directory? _dir;
+
+  /// Default constructor — uses path_provider to land entries under
+  /// `<app-docs>/history/` like the production app.
+  HistoryService();
+
+  /// Test-only injection: skip path_provider and write entries
+  /// straight into [dir]. Avoids the need for a path_provider mock
+  /// in unit tests that just want to exercise save/load round-trips.
+  @visibleForTesting
+  HistoryService.withDirectory(Directory dir) : _dir = dir;
 
   Future<Directory> _ensureDir() async {
     if (_dir != null) return _dir!;
