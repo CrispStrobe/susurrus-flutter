@@ -100,43 +100,36 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 **Risk:** low. Mechanical work.
 
-### 5.2 iOS build verification — partial
+### 5.2 iOS build verification — ✅ DONE
 
-**Verified:**
-* `cd ios && pod install` succeeds. 12 plugin pods + 16 total
-  (DKImagePicker, audio_session, file_picker, just_audio,
-  permission_handler, receive_sharing_intent, record_ios, share_plus,
-  shared_preferences_foundation, url_launcher_ios, etc.). Took ~30 s
-  cold; subsequent runs are quick.
-* CocoaPods warns about the Profile build config not having a base
-  xcconfig wired. Added `ios/Flutter/Profile.xcconfig` that includes
-  `Pods-Runner.profile.xcconfig` + `Generated.xcconfig` so the file
-  exists; the Profile build config in `Runner.xcodeproj` still points
-  at `Release.xcconfig`, so until someone re-targets it in Xcode the
-  Profile builds use Release Pods settings (fine for non-perf builds).
+* `cd ios && pod install` succeeds. 16 pods (DKImagePicker,
+  audio_session, file_picker, just_audio, permission_handler,
+  receive_sharing_intent, record_ios, share_plus,
+  shared_preferences_foundation, url_launcher_ios, etc.).
+* `ios/Flutter/Profile.xcconfig` added so CocoaPods stops warning
+  about an unwired Profile config.
+* `flutter build ios --debug --simulator` — green, 96.8 s, produces
+  `build/ios/iphonesimulator/Runner.app` with 17 embedded frameworks.
+* `flutter build ios --debug --no-codesign` (device) — green, 56.5 s,
+  produces `build/ios/iphoneos/Runner.app`.
+* `PrivacyInfo.xcprivacy` lands in the .app bundle root; Info.plist
+  in the bundle is clean (no NSPrivacy* keys, MinimumOSVersion 13.0,
+  microphone description present).
 
-**Blocked on this machine:** `flutter build ios --debug --no-codesign`
-fails with "iOS 26.2 is not installed" — Xcode 26.2's command-line
-tools shipped without the iOS platform. `xcodebuild -downloadPlatform
-iOS` reports `Insufficient space available. Requires 8.39 GB`; only
-5.9 GB free on the boot disk. To unblock:
-
-```sh
-# free at least 10 GB on / first, then:
-xcodebuild -downloadPlatform iOS
-flutter build ios --debug --no-codesign
-```
+**Got there by:** `xcodebuild -downloadPlatform iOS` to pull
+the iOS 26.3.1 simulator runtime (16 GB on disk under
+`/Library/Developer/CoreSimulator/Volumes/`), after first freeing
+boot-disk space via the symlink-and-clean dance documented in this
+session (HF model dirs symlinked to `/Volumes/backups/ai/...`,
+`flutter clean` across five sibling Flutter projects).
 
 **Bridging header — DON'T DROP IT.** The earlier note in this PLAN
 ("the header is a 1-liner now and nothing Swift-side imports it")
 was wrong. `AppDelegate.swift` calls
 `GeneratedPluginRegistrant.register(with: self)`; that class is
 declared in the auto-generated `GeneratedPluginRegistrant.h`
-(Objective-C). The bridging header (`Runner-Bridging-Header.h`,
-which `#import`s exactly that file) is the only thing exposing the
+(Objective-C). The bridging header is the only thing exposing the
 class to Swift. Removing it breaks the Swift compile.
-
-**Risk:** low. Only the disk-space dance is in the way.
 
 ### 5.3 Android native-lib CI wiring
 
