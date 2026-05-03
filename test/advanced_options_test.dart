@@ -20,6 +20,7 @@ void main() {
       expect(o.askPrompt, '');
       expect(o.temperature, 0.0);
       expect(o.sourceLanguage, '');
+      expect(o.bestOf, 1);
     });
 
     test('copyWith with no args returns identical-valued copy', () {
@@ -55,6 +56,15 @@ void main() {
       final cleared = updated.copyWith(sourceLanguage: '');
       expect(cleared.sourceLanguage, '');
       expect(cleared.targetLanguage, 'en');
+    });
+
+    test('bestOf roundtrips through copyWith', () {
+      const original = AdvancedOptions();
+      final five = original.copyWith(bestOf: 5);
+      expect(five.bestOf, 5);
+
+      final back = five.copyWith(bestOf: 1);
+      expect(back.bestOf, 1);
     });
 
     test('copyWith preserves untouched fields when one is changed', () {

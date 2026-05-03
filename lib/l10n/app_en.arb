@@ -289,6 +289,13 @@
   "transcriptionDownloadModel": "Download Model",
   "transcriptionDownload": "DOWNLOAD",
 
+  "advancedBestOfSingle": "Best-of-N: single decode (1)",
+  "advancedBestOfCurrent": "Best-of-N: {n} decodes",
+  "@advancedBestOfCurrent": {
+    "placeholders": {"n": {"type": "int"}}
+  },
+  "advancedBestOfHelper": "1 = single decode (default). >1 runs N independent decodes and picks the highest-scoring result. Whisper consumes this internally; other backends loop externally and pick the highest-mean-confidence transcript. Cost is N× per-call decode time.",
+
   "advancedTemperatureGreedy": "Decoder temperature: greedy (0.00)",
   "advancedTemperatureCurrent": "Decoder temperature: {value}",
   "@advancedTemperatureCurrent": {

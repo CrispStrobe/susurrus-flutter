@@ -435,6 +435,7 @@ class CrispASREngine implements TranscriptionEngine {
     String? targetLanguage,
     String? askPrompt,
     double temperature = 0.0,
+    int bestOf = 1,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -475,6 +476,20 @@ class CrispASREngine implements TranscriptionEngine {
       } catch (e) {
         Log.instance.d('crispasr',
             'setTemperature rejected by ${_session?.backend}: $e');
+      }
+    }
+    // Best-of-N: works on every session backend per the C ABI
+    // (whisper consumes via `wparams.greedy.best_of`, others run N
+    // decodes externally and pick the highest-mean-confidence
+    // result). Always set so a previous non-1 value doesn't stick
+    // when the user drags the slider back to 1.
+    if (_session != null) {
+      try {
+        _session!.setBestOf(bestOf);
+      } catch (e) {
+        // Older libcrispasr without the symbol — silent skip.
+        Log.instance.d('crispasr',
+            'setBestOf rejected by ${_session?.backend}: $e');
       }
     }
     if (!_isInitialized) {
@@ -547,6 +562,7 @@ class CrispASREngine implements TranscriptionEngine {
             translate: translate,
             beamSearch: beamSearch,
             initialPrompt: initialPrompt,
+            bestOf: bestOf,
             onSegment: onSegment,
             onProgress: onProgress,
           );
@@ -560,6 +576,7 @@ class CrispASREngine implements TranscriptionEngine {
             initialPrompt: initialPrompt,
             vad: vad,
             vadModelPath: vadModelPath,
+            bestOf: bestOf,
           );
           segments = _mapWhisperSegments(
               nativeSegments, enableWordTimestamps, onSegment);
@@ -702,6 +719,7 @@ class CrispASREngine implements TranscriptionEngine {
     bool translate = false,
     bool beamSearch = false,
     String? initialPrompt,
+    int bestOf = 1,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -736,6 +754,7 @@ class CrispASREngine implements TranscriptionEngine {
         initialPrompt: initialPrompt,
         vad: false,
         vadModelPath: null,
+        bestOf: bestOf,
       );
 
       // Re-map with the chunk's time offset baked into each segment +
@@ -769,6 +788,7 @@ class CrispASREngine implements TranscriptionEngine {
     String? initialPrompt,
     bool vad = false,
     String? vadModelPath,
+    int bestOf = 1,
   }) async {
     // Keep FFI call off the UI thread where possible. `Isolate.run` requires
     // sending the model handle across isolates which FFI can't do, so we
@@ -793,6 +813,7 @@ class CrispASREngine implements TranscriptionEngine {
         translate: translate,
         strategy: beamSearch ? 1 : 0, // 0 = greedy, 1 = beam search
         initialPrompt: prompt,
+        bestOf: bestOf,
         vad: useVad,
         vadModelPath: useVad ? vadModelPath : null,
       ),

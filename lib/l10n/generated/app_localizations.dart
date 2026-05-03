@@ -1238,6 +1238,24 @@ abstract class AppLocalizations {
   /// **'DOWNLOAD'**
   String get transcriptionDownload;
 
+  /// No description provided for @advancedBestOfSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Best-of-N: single decode (1)'**
+  String get advancedBestOfSingle;
+
+  /// No description provided for @advancedBestOfCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Best-of-N: {n} decodes'**
+  String advancedBestOfCurrent(int n);
+
+  /// No description provided for @advancedBestOfHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'1 = single decode (default). >1 runs N independent decodes and picks the highest-scoring result. Whisper consumes this internally; other backends loop externally and pick the highest-mean-confidence transcript. Cost is N× per-call decode time.'**
+  String get advancedBestOfHelper;
+
   /// No description provided for @advancedTemperatureGreedy.
   ///
   /// In en, this message translates to:

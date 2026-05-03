@@ -990,6 +990,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
+          bestOf: adv.bestOf,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1007,6 +1008,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
+          bestOf: adv.bestOf,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1096,6 +1098,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
+          bestOf: adv.bestOf,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);

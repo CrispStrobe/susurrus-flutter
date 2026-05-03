@@ -59,6 +59,15 @@ class AdvancedOptions {
   /// when whisper's autodetect is unreliable on noisy audio.
   final String sourceLanguage;
 
+  /// Best-of-N decoding. 1 = single decode (historical default).
+  /// >1 runs N independent decodes and picks the highest-scoring
+  /// result. For Whisper this is internal (`wparams.greedy.best_of`);
+  /// for every other backend the CrispASR C side loops externally
+  /// and picks the highest-mean-confidence result. Useful when
+  /// greedy hallucinates a repetition or the audio is noisy.
+  /// Cost: N× the per-call decode time.
+  final int bestOf;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -69,6 +78,7 @@ class AdvancedOptions {
     this.askPrompt = '',
     this.temperature = 0.0,
     this.sourceLanguage = '',
+    this.bestOf = 1,
   });
 
   AdvancedOptions copyWith({
@@ -81,6 +91,7 @@ class AdvancedOptions {
     String? askPrompt,
     double? temperature,
     String? sourceLanguage,
+    int? bestOf,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -92,6 +103,7 @@ class AdvancedOptions {
         askPrompt: askPrompt ?? this.askPrompt,
         temperature: temperature ?? this.temperature,
         sourceLanguage: sourceLanguage ?? this.sourceLanguage,
+        bestOf: bestOf ?? this.bestOf,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -210,6 +222,13 @@ class _AdvancedDecodingSectionState
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(restorePunctuation: v),
         ),
+        // Best-of-N slider. Works on every backend per CrispASR
+        // §60o: Whisper consumes it as `wparams.greedy.best_of`;
+        // other backends run N decodes externally and pick the
+        // highest-mean-confidence result. Cost is N× per-call
+        // decode time, so the slider is always visible but
+        // defaults to 1 (single decode).
+        _buildBestOfRow(context, opts),
         // Decoder temperature slider. Hidden on backends that don't
         // honour `setTemperature` (whisper, mimo-asr, wav2vec2, …) so
         // the panel stays uncluttered for the common case.
@@ -252,6 +271,35 @@ class _AdvancedDecodingSectionState
     final cached = ModelService.whisperCppModels[modelId] ??
         ModelService.crispasrBackendModels[modelId];
     return cached?.backend ?? '';
+  }
+
+  Widget _buildBestOfRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    final n = opts.bestOf;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            n <= 1 ? l.advancedBestOfSingle : l.advancedBestOfCurrent(n),
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          Slider(
+            value: n.toDouble(),
+            min: 1,
+            max: 10,
+            divisions: 9,
+            label: n.toString(),
+            onChanged: (v) =>
+                ref.read(advancedOptionsProvider.notifier).state =
+                    opts.copyWith(bestOf: v.round()),
+          ),
+          Text(l.advancedBestOfHelper,
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
+    );
   }
 
   Widget _buildTemperatureRow(BuildContext context, AdvancedOptions opts) {

@@ -61,6 +61,12 @@ abstract class TranscriptionEngine {
     /// sampling. Backends without runtime temperature support silently
     /// no-op.
     double temperature = 0.0,
+    /// Best-of-N decoding. 1 = single decode (default). >1 runs N
+    /// independent decodes and picks the highest-scoring result.
+    /// For Whisper this maps to `wparams.greedy.best_of`; for other
+    /// backends CrispASR runs N transcribes externally and picks
+    /// the highest-mean-confidence result.
+    int bestOf = 1,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

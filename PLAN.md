@@ -212,12 +212,16 @@ Shipped this session (v0.4.x prep):
   `_session.setTemperature(t)` per-call so a previous non-zero value
   doesn't stick after the user drags back to 0.
 
-Remaining (follow-up):
-- **Best-of-N** — *blocked on upstream CrispASR*. Neither
-  `crispasr_session_set_best_of` nor a `best_of` field on
-  `TranscribeOptions` exists yet; would need a C-ABI addition + Dart
-  binding before the slider can do anything. Whisper-side `best_of`
-  could still be wired by extending `TranscribeOptions` directly.
+Shipped after this session's CrispASR best-of-N landed
+(`crispasr_session_set_best_of` + `TranscribeOptions.bestOf`):
+- **Best-of-N** — slider 1–10 in Advanced Options, always visible.
+  Whisper consumes via `wparams.greedy.best_of`; other backends
+  loop externally and pick the highest-mean-confidence transcript
+  (per CrispASR's C-side implementation). `bestOf=1` default = single
+  decode (historical behaviour). Threaded through TranscriptionService
+  → TranscriptionEngine → CrispASREngine, with `setBestOf` set on
+  every dispatch so a previous non-1 value doesn't stick. The Dart
+  wrapper's `setBestOf` method was added in this same change.
 - **Source / target language** — target-lang dropdown shipped in an
   earlier slice; explicit source-lang picker still pending for backends
   that accept `-sl` separately from autodetect.

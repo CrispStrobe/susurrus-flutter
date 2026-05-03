@@ -90,6 +90,7 @@ class TranscriptionService {
     String? targetLanguage,
     String? askPrompt,
     double temperature = 0.0,
+    int bestOf = 1,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -140,6 +141,7 @@ class TranscriptionService {
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
         temperature: temperature,
+        bestOf: bestOf,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -194,6 +196,7 @@ class TranscriptionService {
     String? targetLanguage,
     String? askPrompt,
     double temperature = 0.0,
+    int bestOf = 1,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -226,6 +229,7 @@ class TranscriptionService {
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
         temperature: temperature,
+        bestOf: bestOf,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
@@ -410,6 +414,7 @@ class TranscriptionService {
     String? targetLanguage,
     String? askPrompt,
     double temperature = 0.0,
+    int bestOf = 1,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -433,6 +438,7 @@ class TranscriptionService {
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
         temperature: temperature,
+        bestOf: bestOf,
         onSegment: onSegment,
         onProgress: onProgress,
       );

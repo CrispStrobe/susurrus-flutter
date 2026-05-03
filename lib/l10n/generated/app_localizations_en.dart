@@ -666,6 +666,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionDownload => 'DOWNLOAD';
 
   @override
+  String get advancedBestOfSingle => 'Best-of-N: single decode (1)';
+
+  @override
+  String advancedBestOfCurrent(int n) {
+    return 'Best-of-N: $n decodes';
+  }
+
+  @override
+  String get advancedBestOfHelper =>
+      '1 = single decode (default). >1 runs N independent decodes and picks the highest-scoring result. Whisper consumes this internally; other backends loop externally and pick the highest-mean-confidence transcript. Cost is N× per-call decode time.';
+
+  @override
   String get advancedTemperatureGreedy => 'Decoder temperature: greedy (0.00)';
 
   @override

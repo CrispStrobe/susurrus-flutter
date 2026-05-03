@@ -174,6 +174,7 @@ class MockEngine implements TranscriptionEngine {
     String? targetLanguage,
     String? askPrompt,
     double temperature = 0.0,
+    int bestOf = 1,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
