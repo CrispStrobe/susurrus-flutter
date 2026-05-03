@@ -968,6 +968,84 @@ abstract class AppLocalizations {
   /// **'Download, update, or delete transcription models'**
   String get settingsManageModelsSubtitle;
 
+  /// No description provided for @settingsStorageBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage breakdown'**
+  String get settingsStorageBreakdown;
+
+  /// No description provided for @settingsStorageBreakdownSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See per-backend disk usage and free up space'**
+  String get settingsStorageBreakdownSubtitle;
+
+  /// No description provided for @storageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage breakdown'**
+  String get storageTitle;
+
+  /// No description provided for @storageRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get storageRefresh;
+
+  /// No description provided for @storageEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No model files on disk yet.'**
+  String get storageEmpty;
+
+  /// No description provided for @storageTotalUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Total on disk'**
+  String get storageTotalUsed;
+
+  /// No description provided for @storageBackendCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 backend} other{{count} backends}}'**
+  String storageBackendCount(int count);
+
+  /// No description provided for @storageFilesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} • {count, plural, one{1 file} other{{count} files}}'**
+  String storageFilesCount(String size, int count);
+
+  /// No description provided for @storageDeleteAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all models for this backend'**
+  String get storageDeleteAllTooltip;
+
+  /// No description provided for @storageDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all {backend} models?'**
+  String storageDeleteTitle(String backend);
+
+  /// No description provided for @storageDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This will free {size} across {count, plural, one{1 file} other{{count} files}} and cannot be undone.'**
+  String storageDeleteMessage(String size, int count);
+
+  /// No description provided for @storageDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get storageDeleteConfirm;
+
+  /// No description provided for @storageDeletedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Freed {size}'**
+  String storageDeletedSnack(String size);
+
   /// No description provided for @settingsDebugging.
   ///
   /// In en, this message translates to:

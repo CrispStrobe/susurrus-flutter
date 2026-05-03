@@ -17,6 +17,7 @@ import 'screens/model_management_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/logs_screen.dart';
 import 'screens/about_screen.dart';
+import 'screens/storage_screen.dart';
 import 'screens/synthesize_screen.dart';
 import 'services/audio_service.dart';
 import 'services/history_service.dart';
@@ -196,6 +197,11 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/about',
         name: 'about',
         builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/storage',
+        name: 'storage',
+        builder: (context, state) => const StorageScreen(),
       ),
       GoRoute(
         path: '/synthesize',

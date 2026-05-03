@@ -207,6 +207,40 @@
   "settingsClearCacheSubtitle": "Temporäre Dateien und Cache entfernen",
   "settingsManageModels": "Modelle verwalten",
   "settingsManageModelsSubtitle": "Transkriptions-Modelle laden, aktualisieren oder löschen",
+  "settingsStorageBreakdown": "Speicheraufteilung",
+  "settingsStorageBreakdownSubtitle": "Speicherverbrauch pro Backend ansehen und freigeben",
+  "storageTitle": "Speicheraufteilung",
+  "storageRefresh": "Aktualisieren",
+  "storageEmpty": "Noch keine Modelldateien auf der Festplatte.",
+  "storageTotalUsed": "Gesamt belegt",
+  "storageBackendCount": "{count, plural, one{1 Backend} other{{count} Backends}}",
+  "@storageBackendCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "storageFilesCount": "{size} • {count, plural, one{1 Datei} other{{count} Dateien}}",
+  "@storageFilesCount": {
+    "placeholders": {
+      "size": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "storageDeleteAllTooltip": "Alle Modelle dieses Backends löschen",
+  "storageDeleteTitle": "Alle Modelle von {backend} löschen?",
+  "@storageDeleteTitle": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "storageDeleteMessage": "Dadurch werden {size} aus {count, plural, one{1 Datei} other{{count} Dateien}} freigegeben. Diese Aktion lässt sich nicht rückgängig machen.",
+  "@storageDeleteMessage": {
+    "placeholders": {
+      "size": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "storageDeleteConfirm": "Löschen",
+  "storageDeletedSnack": "{size} freigegeben",
+  "@storageDeletedSnack": {
+    "placeholders": {"size": {"type": "String"}}
+  },
   "settingsDebugging": "Debugging & Entwicklung",
   "settingsLogLevel": "Protokoll-Ebene",
   "settingsLogLevelCurrent": "Aktuell: {level}",

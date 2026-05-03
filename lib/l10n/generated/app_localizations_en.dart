@@ -491,6 +491,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'Download, update, or delete transcription models';
 
   @override
+  String get settingsStorageBreakdown => 'Storage breakdown';
+
+  @override
+  String get settingsStorageBreakdownSubtitle =>
+      'See per-backend disk usage and free up space';
+
+  @override
+  String get storageTitle => 'Storage breakdown';
+
+  @override
+  String get storageRefresh => 'Refresh';
+
+  @override
+  String get storageEmpty => 'No model files on disk yet.';
+
+  @override
+  String get storageTotalUsed => 'Total on disk';
+
+  @override
+  String storageBackendCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count backends',
+      one: '1 backend',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String storageFilesCount(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return '$size • $_temp0';
+  }
+
+  @override
+  String get storageDeleteAllTooltip => 'Delete all models for this backend';
+
+  @override
+  String storageDeleteTitle(String backend) {
+    return 'Delete all $backend models?';
+  }
+
+  @override
+  String storageDeleteMessage(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return 'This will free $size across $_temp0 and cannot be undone.';
+  }
+
+  @override
+  String get storageDeleteConfirm => 'Delete';
+
+  @override
+  String storageDeletedSnack(String size) {
+    return 'Freed $size';
+  }
+
+  @override
   String get settingsDebugging => 'Debugging & development';
 
   @override

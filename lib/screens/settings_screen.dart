@@ -438,6 +438,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/models'),
         ),
+        ListTile(
+          title: Text(AppLocalizations.of(context).settingsStorageBreakdown),
+          subtitle: Text(
+              AppLocalizations.of(context).settingsStorageBreakdownSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/storage'),
+        ),
       ],
     );
   }

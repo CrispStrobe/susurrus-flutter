@@ -207,6 +207,40 @@
   "settingsClearCacheSubtitle": "Clear temporary files and cache",
   "settingsManageModels": "Manage models",
   "settingsManageModelsSubtitle": "Download, update, or delete transcription models",
+  "settingsStorageBreakdown": "Storage breakdown",
+  "settingsStorageBreakdownSubtitle": "See per-backend disk usage and free up space",
+  "storageTitle": "Storage breakdown",
+  "storageRefresh": "Refresh",
+  "storageEmpty": "No model files on disk yet.",
+  "storageTotalUsed": "Total on disk",
+  "storageBackendCount": "{count, plural, one{1 backend} other{{count} backends}}",
+  "@storageBackendCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "storageFilesCount": "{size} • {count, plural, one{1 file} other{{count} files}}",
+  "@storageFilesCount": {
+    "placeholders": {
+      "size": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "storageDeleteAllTooltip": "Delete all models for this backend",
+  "storageDeleteTitle": "Delete all {backend} models?",
+  "@storageDeleteTitle": {
+    "placeholders": {"backend": {"type": "String"}}
+  },
+  "storageDeleteMessage": "This will free {size} across {count, plural, one{1 file} other{{count} files}} and cannot be undone.",
+  "@storageDeleteMessage": {
+    "placeholders": {
+      "size": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "storageDeleteConfirm": "Delete",
+  "storageDeletedSnack": "Freed {size}",
+  "@storageDeletedSnack": {
+    "placeholders": {"size": {"type": "String"}}
+  },
   "settingsDebugging": "Debugging & development",
   "settingsLogLevel": "Log level",
   "settingsLogLevelCurrent": "Currently {level}",

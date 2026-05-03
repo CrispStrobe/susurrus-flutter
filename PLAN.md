@@ -368,24 +368,25 @@ header chip becomes editable (PopupMenu → Rename). Half day.
 **Risk:** low. Localised to UI + history schema bump (handled
 backward-compat by the loader treating absent map as empty).
 
-### 5.21 Background download manager + Storage tab
+### 5.21 Background download manager + Storage tab — SHIPPED
 
-**What:** model downloads currently block on the main isolate (the
-Dio Future runs on the platform thread, but `_dio.download` rebuilds
-the UI per progress tick). On big models the UI stutters. Move
-downloads to a worker isolate; the main thread just listens to a
-progress stream. Plus add a "Storage" tab in Settings (or Models
-header) that lists `[backend, size, count]` rows with per-backend
-delete buttons.
+**What:** added `lib/screens/storage_screen.dart` (Settings →
+"Storage breakdown" → /storage) showing per-backend disk usage
+with a one-click "delete all of X" action. `(other)` bucket is
+read-only — those files come from manual drops or the
+`Use/Manage models` flow that already has its own per-row delete.
+Throttled `_downloadWithResume`'s progress callback from ~10 Hz
+to ~4 Hz (250ms) so multi-GB downloads no longer rebuild the UI
+hundreds of times per second. Skipped the worker-isolate move:
+the throttle alone fixed the stutter, and isolating Dio for the
+sake of one progress tick wasn't worth the message-passing
+plumbing.
 
-**Where:** `lib/services/model_service.dart::downloadWhisperCppModel`
-becomes the entry point that spawns an isolate; the existing
-`_activeDownloads` map tracks the cancel tokens. Storage tab is a
-new screen / dialog. ~1 day.
-
-**Risk:** medium. Isolate ↔ main-thread message passing for download
-progress; need to drop the Dio instance into the isolate (dio works
-inside isolates per their docs).
+**Where:** `lib/services/model_service.dart` — added
+`getStorageByBackend()`, `deleteBackendModels(backend)`, the
+`BackendStorage` data class, and a `_BackendBytes` accumulator.
+Route registered in `lib/main.dart`. ARB strings under
+`storage*` and `settingsStorageBreakdown*` (en + de).
 
 ### 5.22 iOS feature parity verification
 

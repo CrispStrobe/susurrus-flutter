@@ -1419,8 +1419,9 @@ class ModelService {
       onReceiveProgress: (received, total) {
         final now = DateTime.now().millisecondsSinceEpoch;
 
-        // Throttle progress updates to avoid UI spam
-        if (now - lastProgressUpdate < 100) return;
+        // Throttle progress updates to ~4 Hz so a multi-GB download
+        // doesn't stutter the UI thread with thousands of rebuilds.
+        if (now - lastProgressUpdate < 250) return;
         lastProgressUpdate = now;
 
         final totalBytes = downloadedBytes + received;
@@ -1533,6 +1534,100 @@ class ModelService {
     }
 
     return false;
+  }
+
+  /// Per-backend disk-usage breakdown for the Storage screen. Walks
+  /// the resolved models directory once and groups files by their
+  /// catalogued backend. Files that don't match any catalog entry
+  /// (loose downloads, .mlmodelc bundles, leftover .tmp) are bucketed
+  /// under "(other)" so users can see them too.
+  Future<List<BackendStorage>> getStorageByBackend() async {
+    await initialize();
+    final dir = Directory(whisperCppDir());
+    if (!await dir.exists()) return const [];
+
+    // Build a fast filename → backend lookup from every catalog source.
+    final byFilename = <String, String>{};
+    final allDefs = <ModelDefinition>[
+      ...whisperCppModels.values,
+      ...crispasrBackendModels.values,
+      ..._ttsVoicepacks.values,
+      ..._discoveredModels.values,
+    ];
+    for (final def in allDefs) {
+      byFilename[def.fileName] = def.backend;
+    }
+
+    final groups = <String, _BackendBytes>{};
+    await for (final ent in dir.list(recursive: true)) {
+      if (ent is! File) continue;
+      final base = path.basename(ent.path);
+      // Strip trailing `.tmp` so an in-progress download still groups
+      // with its target backend instead of "(other)".
+      final logical = base.endsWith('.tmp')
+          ? base.substring(0, base.length - 4)
+          : base;
+      final backend = byFilename[logical] ?? '(other)';
+      int sz;
+      try {
+        sz = await ent.length();
+      } catch (_) {
+        sz = 0;
+      }
+      final g = groups.putIfAbsent(backend, () => _BackendBytes());
+      g.bytes += sz;
+      g.count++;
+    }
+    final out = groups.entries
+        .map((e) => BackendStorage(
+              backend: e.key,
+              bytes: e.value.bytes,
+              fileCount: e.value.count,
+            ))
+        .toList()
+      ..sort((a, b) => b.bytes.compareTo(a.bytes));
+    return out;
+  }
+
+  /// Delete every file in the resolved models directory whose
+  /// catalogued backend matches `backend`. Returns the freed byte
+  /// count. Cancels any active downloads for that backend first.
+  /// Files in the "(other)" bucket aren't touched here — those are
+  /// removed via the per-row delete in Model Management.
+  Future<int> deleteBackendModels(String backend) async {
+    await initialize();
+    final byFilename = <String, String>{};
+    final allDefs = <ModelDefinition>[
+      ...whisperCppModels.values,
+      ...crispasrBackendModels.values,
+      ..._ttsVoicepacks.values,
+      ..._discoveredModels.values,
+    ];
+    for (final def in allDefs) {
+      byFilename[def.fileName] = def.backend;
+    }
+    final dir = Directory(whisperCppDir());
+    if (!await dir.exists()) return 0;
+    var freed = 0;
+    await for (final ent in dir.list(recursive: true)) {
+      if (ent is! File) continue;
+      final base = path.basename(ent.path);
+      final logical =
+          base.endsWith('.tmp') ? base.substring(0, base.length - 4) : base;
+      final fileBackend = byFilename[logical];
+      if (fileBackend != backend) continue;
+      try {
+        freed += await ent.length();
+        await ent.delete();
+      } catch (e) {
+        Log.instance.w('storage', 'failed to delete ${ent.path}', error: e);
+      }
+    }
+    Log.instance.i('storage', 'deleted backend models', fields: {
+      'backend': backend,
+      'freed_bytes': freed,
+    });
+    return freed;
   }
 
   /// Get total storage used by models
@@ -1848,6 +1943,32 @@ class StorageInfo {
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
+}
+
+class BackendStorage {
+  final String backend;
+  final int bytes;
+  final int fileCount;
+
+  const BackendStorage({
+    required this.backend,
+    required this.bytes,
+    required this.fileCount,
+  });
+
+  String get formattedSize {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+}
+
+class _BackendBytes {
+  int bytes = 0;
+  int count = 0;
 }
 
 class ModelException implements Exception {

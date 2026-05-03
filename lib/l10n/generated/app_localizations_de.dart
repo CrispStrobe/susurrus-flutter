@@ -495,6 +495,74 @@ class AppLocalizationsDe extends AppLocalizations {
       'Transkriptions-Modelle laden, aktualisieren oder löschen';
 
   @override
+  String get settingsStorageBreakdown => 'Speicheraufteilung';
+
+  @override
+  String get settingsStorageBreakdownSubtitle =>
+      'Speicherverbrauch pro Backend ansehen und freigeben';
+
+  @override
+  String get storageTitle => 'Speicheraufteilung';
+
+  @override
+  String get storageRefresh => 'Aktualisieren';
+
+  @override
+  String get storageEmpty => 'Noch keine Modelldateien auf der Festplatte.';
+
+  @override
+  String get storageTotalUsed => 'Gesamt belegt';
+
+  @override
+  String storageBackendCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Backends',
+      one: '1 Backend',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String storageFilesCount(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Dateien',
+      one: '1 Datei',
+    );
+    return '$size • $_temp0';
+  }
+
+  @override
+  String get storageDeleteAllTooltip => 'Alle Modelle dieses Backends löschen';
+
+  @override
+  String storageDeleteTitle(String backend) {
+    return 'Alle Modelle von $backend löschen?';
+  }
+
+  @override
+  String storageDeleteMessage(String size, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Dateien',
+      one: '1 Datei',
+    );
+    return 'Dadurch werden $size aus $_temp0 freigegeben. Diese Aktion lässt sich nicht rückgängig machen.';
+  }
+
+  @override
+  String get storageDeleteConfirm => 'Löschen';
+
+  @override
+  String storageDeletedSnack(String size) {
+    return '$size freigegeben';
+  }
+
+  @override
   String get settingsDebugging => 'Debugging & Entwicklung';
 
   @override
