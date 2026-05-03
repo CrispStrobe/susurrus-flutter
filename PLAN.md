@@ -100,15 +100,43 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 **Risk:** low. Mechanical work.
 
-### 5.2 iOS build verification
+### 5.2 iOS build verification — partial
 
-**What:** the Podfile's been rewritten to a clean minimal Flutter template; `pod install` should now succeed. Still unverified:
+**Verified:**
+* `cd ios && pod install` succeeds. 12 plugin pods + 16 total
+  (DKImagePicker, audio_session, file_picker, just_audio,
+  permission_handler, receive_sharing_intent, record_ios, share_plus,
+  shared_preferences_foundation, url_launcher_ios, etc.). Took ~30 s
+  cold; subsequent runs are quick.
+* CocoaPods warns about the Profile build config not having a base
+  xcconfig wired. Added `ios/Flutter/Profile.xcconfig` that includes
+  `Pods-Runner.profile.xcconfig` + `Generated.xcconfig` so the file
+  exists; the Profile build config in `Runner.xcodeproj` still points
+  at `Release.xcconfig`, so until someone re-targets it in Xcode the
+  Profile builds use Release Pods settings (fine for non-perf builds).
 
-- `cd ios && pod install` on a Mac with CocoaPods installed.
-- `flutter build ios --debug --no-codesign` to confirm the Runner target still links.
-- Drop the orphan `Runner-Bridging-Header.h` reference in `ios/Runner.xcodeproj/project.pbxproj` — the header is a 1-liner now and nothing Swift-side imports it. Keeping it wired is a no-op but cleaner to remove.
+**Blocked on this machine:** `flutter build ios --debug --no-codesign`
+fails with "iOS 26.2 is not installed" — Xcode 26.2's command-line
+tools shipped without the iOS platform. `xcodebuild -downloadPlatform
+iOS` reports `Insufficient space available. Requires 8.39 GB`; only
+5.9 GB free on the boot disk. To unblock:
 
-**Risk:** low.
+```sh
+# free at least 10 GB on / first, then:
+xcodebuild -downloadPlatform iOS
+flutter build ios --debug --no-codesign
+```
+
+**Bridging header — DON'T DROP IT.** The earlier note in this PLAN
+("the header is a 1-liner now and nothing Swift-side imports it")
+was wrong. `AppDelegate.swift` calls
+`GeneratedPluginRegistrant.register(with: self)`; that class is
+declared in the auto-generated `GeneratedPluginRegistrant.h`
+(Objective-C). The bridging header (`Runner-Bridging-Header.h`,
+which `#import`s exactly that file) is the only thing exposing the
+class to Swift. Removing it breaks the Swift compile.
+
+**Risk:** low. Only the disk-space dance is in the way.
 
 ### 5.3 Android native-lib CI wiring
 
@@ -422,7 +450,8 @@ Route registered in `lib/main.dart`. ARB strings under
    xcframework with `CrispASR/build-ios.sh`, drag it into Runner with
    "Embed & Sign", then verify `defaultLibName()` resolves on a
    sideload run. Without this the app launches but every transcription
-   fails with "no backends".
+   fails with "no backends". (Blocked on this machine until the iOS
+   platform is installed — see §5.2 for the disk-space dance.)
 2. **Mic permission prompt.** First `record.hasPermission()` call must
    show the system mic prompt (`NSMicrophoneUsageDescription` is
    already set). Verify both initial-grant and "denied → re-enter
