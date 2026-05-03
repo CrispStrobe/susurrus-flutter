@@ -437,43 +437,52 @@ Route registered in `lib/main.dart`. ARB strings under
 
 **Still needs a real device:**
 
-1. **Native library bundling.** `package:crispasr` opens
-   `libcrispasr.dylib` or `crispasr.framework/crispasr` via
-   `dart:ffi.DynamicLibrary.open()`. Nothing in `ios/` currently
-   bundles either, and the obvious `CrispASR/build-ios.sh` is the
-   *wrong* script — it ships `BUILD_SHARED_LIBS=OFF` and packages
-   `libwhisper.a` (static) into a static-lib xcframework, which
-   `DynamicLibrary.open()` cannot load.
+1. **Native library bundling.** ✅ DONE — verified end-to-end on this
+   machine. Two new scripts wire it in:
 
-   The right tool is **`CrispASR/build-xcframework.sh`** (already in
-   the repo, no edits needed). It:
-   - builds device + simulator slices for iOS, macOS, visionOS, tvOS
-   - combines `libcrispasr.a + libggml*.a + libcrispasr.coreml.a`
-     into a real dynamic library via
-     `clang++ -dynamiclib -Wl,-force_load,combined.a -framework CoreML …`
-   - wraps it in a proper `crispasr.framework` bundle with module map
-     and Info.plist
-   - sets `install_name = @rpath/crispasr.framework/crispasr` —
-     which is already the third candidate in
-     `package:crispasr`'s `_libCandidates()`, so no Dart loader
-     change is needed
-   - marks the binary with `vtool -set-build-version ios …` so it
-     passes App Store validation
-   - includes `-DCRISPASR_COREML=ON` so the `.mlmodelc` companions
-     we just wired (§5.22 fix above) actually get used
-   - emits `build-apple/crispasr.xcframework`
+   - `scripts/build_ios_xcframework.sh` — slim iOS-only build (device +
+     simulator arm64 slices). The full upstream
+     `CrispASR/build-xcframework.sh` builds 7 Apple platform slices in
+     30–60 min and 7–20 GB of disk; this slim variant produces just the
+     two iOS slices in ~1.5 min once the cmake configure has run, with
+     the right CrispASR cmake flags discovered by trial:
+     - `-DCRISPASR_WITH_ESPEAK_NG=OFF` — kokoro otherwise links against
+       homebrew's macOS libespeak-ng, which doesn't satisfy iOS arm64
+       at link time. Kokoro on iOS therefore can't phonemize (one of
+       30+ backends affected; everything else works).
+     - Default `-DCRISPASR_COREML=OFF` when `IOS_MIN_OS_VERSION < 14`
+       (CoreML needs 14+). Bump the env var to enable.
+     - The combine step globs `src/${release_dir}/lib*.a` to pull in
+       all 30 per-backend static archives plus `libcrisp_audio.a`
+       from its sibling build dir; without those we get linker errors
+       for `_voxtral_init_from_file`, `_kokoro_init_from_file`, etc.
+     - Dedup `.o` files by basename across archives: `moonshine` and
+       `moonshine_streaming` both ship `moonshine-tokenizer.o`,
+       which would otherwise cause duplicate-symbol errors at the
+       `clang++ -dynamiclib -force_load combined.a` step. First lib
+       wins (alphabetical order on the per-lib subdirs).
 
-   Wiring into Runner:
-   - `cd ~/code/CrispASR && ./build-xcframework.sh` (long; builds 7
-     Apple platform slices)
-   - Open `ios/Runner.xcworkspace`, drag `crispasr.xcframework` into
-     the Runner target with **Embed & Sign**
-   - Verify `defaultLibName()` resolves to
-     `crispasr.framework/crispasr` on a sideload build
+   - `scripts/wire_ios_xcframework.rb` — uses the xcodeproj Ruby gem
+     (already on disk via CocoaPods) to add the xcframework as a
+     linked + embedded framework on the Runner target, with
+     `CodeSignOnCopy` so Xcode signs it during the build, and adds
+     `$(PROJECT_DIR)/Frameworks` to FRAMEWORK_SEARCH_PATHS.
+     Idempotent.
 
-   Without this the app launches but every transcription fails with
-   "no backends". (Blocked on this machine until the iOS platform is
-   installed — see §5.2 for the disk-space dance.)
+   Result: `flutter build ios --debug --no-codesign` produces a
+   `Runner.app/Frameworks/crispasr.framework` (~4.8 MB stripped, dSYM
+   separate) with `install_name = @rpath/crispasr.framework/crispasr`,
+   which already matches the third candidate in `package:crispasr`'s
+   `_libCandidates()`. `xcrun dyld_info -exports` confirms 322+
+   exported symbols including `_crispasr_session_open`,
+   `_kokoro_init_from_file`, `_voxtral_init_from_file`,
+   `_whisper_init_from_file`. The xcframework itself is gitignored
+   (regenerate via the build script); CI wires it via the new
+   release.yml steps.
+
+   Local rebuild after a CrispASR change:
+   `bash scripts/build_ios_xcframework.sh && flutter build ios`
+   (rerun `wire_ios_xcframework.rb` only if the pbxproj was wiped).
 2. **Mic permission prompt.** First `record.hasPermission()` call must
    show the system mic prompt (`NSMicrophoneUsageDescription` is
    already set). Verify both initial-grant and "denied → re-enter

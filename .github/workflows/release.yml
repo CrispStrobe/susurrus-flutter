@@ -299,6 +299,7 @@ jobs:
           repository: ${{ env.CRISPASR_REPO }}
           ref: ${{ env.CRISPASR_REF }}
           path: repos/CrispASR
+          submodules: recursive
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -307,14 +308,33 @@ jobs:
           channel: stable
           cache: true
 
+      # Build crispasr.xcframework with iOS-only slices (device +
+      # simulator, arm64). Without this, the IPA's Runner.app launches
+      # but every transcription fails with "no backends" because
+      # nothing in ios/ supplies libcrispasr to dart:ffi.
+      - name: Build crispasr.xcframework (iOS slim)
+        working-directory: repos/CrisperWeaver
+        env:
+          CRISPASR_DIR: ${{ github.workspace }}/repos/CrispASR
+          IOS_MIN_OS_VERSION: "13.0"
+        run: bash scripts/build_ios_xcframework.sh
+
+      # Add the xcframework to Runner.xcodeproj as a linked + embedded
+      # framework via the xcodeproj Ruby gem (already installed because
+      # CocoaPods uses it).
+      - name: Wire xcframework into Runner.xcodeproj
+        working-directory: repos/CrisperWeaver
+        run: |
+          gem install xcodeproj --no-document
+          ruby scripts/wire_ios_xcframework.rb
+
       - name: Pub get
         working-directory: repos/CrisperWeaver
         run: flutter pub get
 
       - name: Build iOS (no codesign)
         working-directory: repos/CrisperWeaver
-        run: |
-          flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign
 
       - name: Package IPA
         working-directory: repos/CrisperWeaver
