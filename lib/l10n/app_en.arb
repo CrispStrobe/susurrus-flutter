@@ -294,6 +294,21 @@
     "placeholders": {"value": {"type": "String"}}
   },
   "advancedTemperatureHelper": "0.00 = greedy / reproducible. > 0 = stochastic sampling — useful when greedy decoding hallucinates a repetition. Whisper has its own internal fallback ladder; this affects sampling backends (canary, cohere, parakeet, moonshine).",
+  "downloadModelPrompt": "The model \"{name}\" is not yet downloaded. Would you like to download it now (~{size})?",
+  "@downloadModelPrompt": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "size": {"type": "String"}
+    }
+  },
+  "tooltipDeleteRecording": "Delete recording",
+  "tooltipUseForTranscription": "Use for transcription",
+  "tooltipModelSelectionHelp": "Model selection help",
+  "tooltipDownloadModel": "Download model",
+  "tooltipDisplayLevel": "Display level",
+  "tooltipPauseAutoScroll": "Pause auto-scroll",
+  "tooltipResumeAutoScroll": "Resume auto-scroll",
+  "labelApiToken": "API Token",
 
   "playbackFailed": "Playback failed: {error}",
   "@playbackFailed": {

@@ -612,9 +612,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
-                decoration: const InputDecoration(
-                    labelText: 'API Token',
-                    border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                    labelText: l.labelApiToken,
+                    border: const OutlineInputBorder(),
                     hintText: 'hf_...'),
                 obscureText: true,
                 autocorrect: false,

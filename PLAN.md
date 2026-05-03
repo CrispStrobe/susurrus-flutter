@@ -160,11 +160,22 @@ Advanced Options remain optional polish items.
 
 ### 5.6 Backend-specific UX
 
-- **Canary / Voxtral:** source/target language pickers (currently the UI assumes Whisper's single `lang` field).
-- **Voxtral / Granite:** `--ask` audio Q&A mode — a prompt field below the transcribe button, feed user text into the session's generation prompt.
-- **Parakeet / FastConformer-CTC:** expose beam-search / best-of-N toggles where the backend supports them.
-
-**Where:** `lib/screens/transcription_screen.dart` + `lib/engines/crispasr_engine.dart` (pass through to `CrispasrSession`).
+- ✅ **Voxtral / Granite `--ask` Q&A** — shipped in §5.8 first slice
+  (Advanced Options → "Ask the audio" prompt field, gated on
+  `AdvancedOptions.askCapableBackends`).
+- ✅ **Canary / Voxtral target-language picker** — shipped in the
+  same slice (Advanced Options → target-language dropdown, gated on
+  `translationCapableBackends`).
+- ✅ **Beam search toggle** — shipped in v0.1.4 first slice for every
+  backend that honours it (whisper + the per-backend `beamSearch:`
+  pass-through in `CrispASREngine.transcribe`).
+- ⏳ **Source-language picker** — when the user picks a target lang
+  for translation, the source lang is still inferred from the global
+  language dropdown / autodetect. A separate source picker would
+  unblock cross-lang translation where autodetect is unreliable.
+- ⏳ **Parakeet / FastConformer-CTC best-of-N** — best-of-N is
+  upstream-blocked (no `crispasr_session_set_best_of` in the C ABI;
+  see §5.8 + CrispASR PLAN Phase 6).
 
 ### 5.7 Batch transcription ✅ shipped in v0.1.4
 
@@ -208,7 +219,17 @@ Remaining (follow-up):
 - **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
 - **Grammar (GBNF)** — Whisper-only, niche but valuable for structured output.
 - **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired yet.
-- **Auto-download default** — CrispASR's `-m auto` per backend. "Auto-download default" button per card in Model Management.
+- **Auto-download default** — CrispASR's `-m auto` per backend.
+  *Needs a design pass before becoming a dev task:* the model catalog
+  has no `isDefault` flag, the Model Management list is per-quant not
+  per-backend, and "smallest functional default" varies wildly
+  (whisper-tiny works standalone; parakeet has one variant; kokoro
+  needs a paired voicepack; voxtral-q4_k is gigabytes). Three plausible
+  shapes — (a) a `recommendedDefault: true` flag on `ModelDefinition`
+  + a "Recommended" badge in the cards, (b) a "Quick start" AppBar
+  action with a curated bottom-sheet ("Whisper Tiny + parakeet + a
+  kokoro voice"), (c) per-backend collapsible sections each with a
+  "Download default" header button. Pick one before implementing.
 
 **Where:** `lib/widgets/advanced_options_widget.dart` (new), swap the inline block in `transcription_screen.dart`. Also a new enum `EngineCapability { vad, beamSearch, bestOf, temperature, initialPrompt, translation, audioQA, grammar, streaming }` on `TranscriptionEngine` so the UI knows which controls to show.
 

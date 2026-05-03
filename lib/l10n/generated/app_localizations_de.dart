@@ -679,6 +679,35 @@ class AppLocalizationsDe extends AppLocalizations {
       '0,00 = greedy / reproduzierbar. > 0 = stochastisches Sampling — hilfreich, wenn greedy in einer halluzinierten Wiederholung hängenbleibt. Whisper hat eine eigene interne Fallback-Leiter; dieser Wert betrifft Sampling-Backends (canary, cohere, parakeet, moonshine).';
 
   @override
+  String downloadModelPrompt(String name, String size) {
+    return 'Das Modell „$name\" ist noch nicht heruntergeladen. Jetzt herunterladen (~$size)?';
+  }
+
+  @override
+  String get tooltipDeleteRecording => 'Aufnahme löschen';
+
+  @override
+  String get tooltipUseForTranscription => 'Für Transkription verwenden';
+
+  @override
+  String get tooltipModelSelectionHelp => 'Hilfe zur Modellauswahl';
+
+  @override
+  String get tooltipDownloadModel => 'Modell herunterladen';
+
+  @override
+  String get tooltipDisplayLevel => 'Anzeige-Stufe';
+
+  @override
+  String get tooltipPauseAutoScroll => 'Auto-Scroll pausieren';
+
+  @override
+  String get tooltipResumeAutoScroll => 'Auto-Scroll fortsetzen';
+
+  @override
+  String get labelApiToken => 'API-Token';
+
+  @override
   String playbackFailed(String error) {
     return 'Wiedergabe fehlgeschlagen: $error';
   }

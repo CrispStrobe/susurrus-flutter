@@ -1250,6 +1250,60 @@ abstract class AppLocalizations {
   /// **'0.00 = greedy / reproducible. > 0 = stochastic sampling — useful when greedy decoding hallucinates a repetition. Whisper has its own internal fallback ladder; this affects sampling backends (canary, cohere, parakeet, moonshine).'**
   String get advancedTemperatureHelper;
 
+  /// No description provided for @downloadModelPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'The model \"{name}\" is not yet downloaded. Would you like to download it now (~{size})?'**
+  String downloadModelPrompt(String name, String size);
+
+  /// No description provided for @tooltipDeleteRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete recording'**
+  String get tooltipDeleteRecording;
+
+  /// No description provided for @tooltipUseForTranscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use for transcription'**
+  String get tooltipUseForTranscription;
+
+  /// No description provided for @tooltipModelSelectionHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Model selection help'**
+  String get tooltipModelSelectionHelp;
+
+  /// No description provided for @tooltipDownloadModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Download model'**
+  String get tooltipDownloadModel;
+
+  /// No description provided for @tooltipDisplayLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display level'**
+  String get tooltipDisplayLevel;
+
+  /// No description provided for @tooltipPauseAutoScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause auto-scroll'**
+  String get tooltipPauseAutoScroll;
+
+  /// No description provided for @tooltipResumeAutoScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume auto-scroll'**
+  String get tooltipResumeAutoScroll;
+
+  /// No description provided for @labelApiToken.
+  ///
+  /// In en, this message translates to:
+  /// **'API Token'**
+  String get labelApiToken;
+
   /// No description provided for @playbackFailed.
   ///
   /// In en, this message translates to:

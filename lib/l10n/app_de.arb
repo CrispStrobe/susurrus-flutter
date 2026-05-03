@@ -294,6 +294,21 @@
     "placeholders": {"value": {"type": "String"}}
   },
   "advancedTemperatureHelper": "0,00 = greedy / reproduzierbar. > 0 = stochastisches Sampling — hilfreich, wenn greedy in einer halluzinierten Wiederholung hängenbleibt. Whisper hat eine eigene interne Fallback-Leiter; dieser Wert betrifft Sampling-Backends (canary, cohere, parakeet, moonshine).",
+  "downloadModelPrompt": "Das Modell „{name}\" ist noch nicht heruntergeladen. Jetzt herunterladen (~{size})?",
+  "@downloadModelPrompt": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "size": {"type": "String"}
+    }
+  },
+  "tooltipDeleteRecording": "Aufnahme löschen",
+  "tooltipUseForTranscription": "Für Transkription verwenden",
+  "tooltipModelSelectionHelp": "Hilfe zur Modellauswahl",
+  "tooltipDownloadModel": "Modell herunterladen",
+  "tooltipDisplayLevel": "Anzeige-Stufe",
+  "tooltipPauseAutoScroll": "Auto-Scroll pausieren",
+  "tooltipResumeAutoScroll": "Auto-Scroll fortsetzen",
+  "labelApiToken": "API-Token",
 
   "playbackFailed": "Wiedergabe fehlgeschlagen: {error}",
   "@playbackFailed": {

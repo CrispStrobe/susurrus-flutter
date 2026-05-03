@@ -252,12 +252,13 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
               IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: _deleteRecording,
-                tooltip: 'Delete recording',
+                tooltip: AppLocalizations.of(context).tooltipDeleteRecording,
               ),
               IconButton(
                 icon: const Icon(Icons.upload),
                 onPressed: _useRecording,
-                tooltip: 'Use for transcription',
+                tooltip:
+                    AppLocalizations.of(context).tooltipUseForTranscription,
               ),
             ],
           ),

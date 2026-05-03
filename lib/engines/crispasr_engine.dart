@@ -660,6 +660,41 @@ class CrispASREngine implements TranscriptionEngine {
   /// 30 s windows keep the per-chunk encode cost bounded. Initial
   /// prompt is passed to every chunk so domain-vocabulary biasing
   /// still applies throughout.
+  /// Apply a positive time offset to a segment's `startTime`,
+  /// `endTime`, and per-word timings, then bake the chunk index +
+  /// offset into the metadata. Pure data transform — extracted from
+  /// the chunked-whisper inner loop so the timestamp arithmetic can
+  /// be unit-tested without spinning up a CrispASR session.
+  ///
+  /// Public so `test/chunked_offset_test.dart` can call it directly;
+  /// callers in production code go through `_runChunkedWhisper`.
+  static TranscriptionSegment shiftSegmentByOffset(
+    TranscriptionSegment raw, {
+    required double offsetSeconds,
+    required int chunkIndex,
+  }) {
+    return TranscriptionSegment(
+      text: raw.text,
+      startTime: raw.startTime + offsetSeconds,
+      endTime: raw.endTime + offsetSeconds,
+      speaker: raw.speaker,
+      confidence: raw.confidence,
+      words: raw.words
+          ?.map((w) => TranscriptionWord(
+                word: w.word,
+                startTime: w.startTime + offsetSeconds,
+                endTime: w.endTime + offsetSeconds,
+                confidence: w.confidence,
+              ))
+          .toList(),
+      metadata: {
+        ...raw.metadata,
+        'chunkIndex': chunkIndex,
+        'chunkOffsetSeconds': offsetSeconds,
+      },
+    );
+  }
+
   Future<List<TranscriptionSegment>> _runChunkedWhisper(
     Float32List audioData, {
     String? language,
@@ -714,24 +749,8 @@ class CrispASREngine implements TranscriptionEngine {
         null, // we'll fire onSegment manually below with adjusted times
       );
       for (final raw in chunkSegments) {
-        final shifted = TranscriptionSegment(
-          text: raw.text,
-          startTime: raw.startTime + offsetSeconds,
-          endTime: raw.endTime + offsetSeconds,
-          speaker: raw.speaker,
-          confidence: raw.confidence,
-          words: raw.words?.map((w) => TranscriptionWord(
-                word: w.word,
-                startTime: w.startTime + offsetSeconds,
-                endTime: w.endTime + offsetSeconds,
-                confidence: w.confidence,
-              )).toList(),
-          metadata: {
-            ...raw.metadata,
-            'chunkIndex': i,
-            'chunkOffsetSeconds': offsetSeconds,
-          },
-        );
+        final shifted = shiftSegmentByOffset(raw,
+            offsetSeconds: offsetSeconds, chunkIndex: i);
         allSegments.add(shifted);
         onSegment?.call(shifted);
       }

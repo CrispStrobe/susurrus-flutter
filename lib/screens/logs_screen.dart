@@ -85,7 +85,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
         title: Text(l.logsTitle),
         actions: [
           PopupMenuButton<LogLevel>(
-            tooltip: 'Display level',
+            tooltip: l.tooltipDisplayLevel,
             icon: const Icon(Icons.filter_list),
             initialValue: _minDisplay,
             onSelected: (v) => setState(() => _minDisplay = v),
@@ -97,7 +97,9 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 .toList(),
           ),
           IconButton(
-            tooltip: _autoScroll ? 'Pause auto-scroll' : 'Resume auto-scroll',
+            tooltip: _autoScroll
+                ? l.tooltipPauseAutoScroll
+                : l.tooltipResumeAutoScroll,
             icon: Icon(_autoScroll ? Icons.pause : Icons.play_arrow),
             onPressed: () => setState(() => _autoScroll = !_autoScroll),
           ),

@@ -116,7 +116,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
             IconButton(
               icon: const Icon(Icons.help_outline),
               onPressed: _showModelHelp,
-              tooltip: 'Model selection help',
+              tooltip: AppLocalizations.of(context).tooltipModelSelectionHelp,
             ),
           ],
         ),

@@ -676,7 +676,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     return IconButton(
       icon: const Icon(Icons.download, size: 20),
       onPressed: () => _downloadModel(model),
-      tooltip: 'Download model',
+      tooltip: AppLocalizations.of(context).tooltipDownloadModel,
     );
   }
 
@@ -1222,10 +1222,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).transcriptionDownloadModel),
-        content: Text(
-          'The model "${model.displayName}" is not yet downloaded. '
-          'Would you like to download it now (~${model.size})?',
-        ),
+        content: Text(AppLocalizations.of(context)
+            .downloadModelPrompt(model.displayName, model.size)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
