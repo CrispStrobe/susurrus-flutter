@@ -1547,25 +1547,27 @@ class ModelService {
     await initialize();
     final dir = Directory(whisperCppDir());
     if (!await dir.exists()) return const [];
+    return groupDirByBackend(dir, _buildFilenameBackendMap());
+  }
 
-    // Build a fast filename → backend lookup from every catalog source.
-    final byFilename = <String, String>{};
-    final allDefs = <ModelDefinition>[
-      ...whisperCppModels.values,
-      ...crispasrBackendModels.values,
-      ..._ttsVoicepacks.values,
-      ..._discoveredModels.values,
-    ];
-    for (final def in allDefs) {
-      byFilename[def.fileName] = def.backend;
-    }
-
+  /// Pure file-walk + grouping logic, factored out of
+  /// [getStorageByBackend] so it can be tested with a temp dir +
+  /// fake filenames without spinning up path_provider, an FFI
+  /// session, or any of the catalog setup. The returned list is
+  /// sorted by descending byte count.
+  ///
+  /// `byFilename` maps catalog filename → backend label. Anything not
+  /// in the map lands in the `(other)` bucket. Trailing `.tmp` is
+  /// stripped before lookup so an in-progress download still groups
+  /// with its target backend.
+  static Future<List<BackendStorage>> groupDirByBackend(
+    Directory dir,
+    Map<String, String> byFilename,
+  ) async {
     final groups = <String, _BackendBytes>{};
     await for (final ent in dir.list(recursive: true)) {
       if (ent is! File) continue;
       final base = path.basename(ent.path);
-      // Strip trailing `.tmp` so an in-progress download still groups
-      // with its target backend instead of "(other)".
       final logical = base.endsWith('.tmp')
           ? base.substring(0, base.length - 4)
           : base;
@@ -1580,7 +1582,7 @@ class ModelService {
       g.bytes += sz;
       g.count++;
     }
-    final out = groups.entries
+    return groups.entries
         .map((e) => BackendStorage(
               backend: e.key,
               bytes: e.value.bytes,
@@ -1588,16 +1590,9 @@ class ModelService {
             ))
         .toList()
       ..sort((a, b) => b.bytes.compareTo(a.bytes));
-    return out;
   }
 
-  /// Delete every file in the resolved models directory whose
-  /// catalogued backend matches `backend`. Returns the freed byte
-  /// count. Cancels any active downloads for that backend first.
-  /// Files in the "(other)" bucket aren't touched here — those are
-  /// removed via the per-row delete in Model Management.
-  Future<int> deleteBackendModels(String backend) async {
-    await initialize();
+  Map<String, String> _buildFilenameBackendMap() {
     final byFilename = <String, String>{};
     final allDefs = <ModelDefinition>[
       ...whisperCppModels.values,
@@ -1608,14 +1603,43 @@ class ModelService {
     for (final def in allDefs) {
       byFilename[def.fileName] = def.backend;
     }
+    return byFilename;
+  }
+
+  /// Delete every file in the resolved models directory whose
+  /// catalogued backend matches `backend`. Returns the freed byte
+  /// count. Cancels any active downloads for that backend first.
+  /// Files in the "(other)" bucket aren't touched here — those are
+  /// removed via the per-row delete in Model Management.
+  Future<int> deleteBackendModels(String backend) async {
+    await initialize();
     final dir = Directory(whisperCppDir());
     if (!await dir.exists()) return 0;
+    final freed = await deleteBackendFilesIn(
+        dir, _buildFilenameBackendMap(), backend);
+    Log.instance.i('storage', 'deleted backend models', fields: {
+      'backend': backend,
+      'freed_bytes': freed,
+    });
+    return freed;
+  }
+
+  /// Pure deletion logic, factored out of [deleteBackendModels] so
+  /// it can be tested with a temp dir. Returns the freed byte count.
+  /// Errors per-file are swallowed (logged and skipped) so a stuck
+  /// inode doesn't abort the rest of the sweep.
+  static Future<int> deleteBackendFilesIn(
+    Directory dir,
+    Map<String, String> byFilename,
+    String backend,
+  ) async {
     var freed = 0;
     await for (final ent in dir.list(recursive: true)) {
       if (ent is! File) continue;
       final base = path.basename(ent.path);
-      final logical =
-          base.endsWith('.tmp') ? base.substring(0, base.length - 4) : base;
+      final logical = base.endsWith('.tmp')
+          ? base.substring(0, base.length - 4)
+          : base;
       final fileBackend = byFilename[logical];
       if (fileBackend != backend) continue;
       try {
@@ -1625,10 +1649,6 @@ class ModelService {
         Log.instance.w('storage', 'failed to delete ${ent.path}', error: e);
       }
     }
-    Log.instance.i('storage', 'deleted backend models', fields: {
-      'backend': backend,
-      'freed_bytes': freed,
-    });
     return freed;
   }
 
