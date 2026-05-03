@@ -445,13 +445,42 @@ Route registered in `lib/main.dart`. ARB strings under
 **Still needs a real device:**
 
 1. **Native library bundling.** `package:crispasr` opens
-   `libcrispasr.dylib` (or `crispasr.framework/crispasr`) via
-   `dart:ffi`. Nothing in `ios/` currently bundles either. Build the
-   xcframework with `CrispASR/build-ios.sh`, drag it into Runner with
-   "Embed & Sign", then verify `defaultLibName()` resolves on a
-   sideload run. Without this the app launches but every transcription
-   fails with "no backends". (Blocked on this machine until the iOS
-   platform is installed — see §5.2 for the disk-space dance.)
+   `libcrispasr.dylib` or `crispasr.framework/crispasr` via
+   `dart:ffi.DynamicLibrary.open()`. Nothing in `ios/` currently
+   bundles either, and the obvious `CrispASR/build-ios.sh` is the
+   *wrong* script — it ships `BUILD_SHARED_LIBS=OFF` and packages
+   `libwhisper.a` (static) into a static-lib xcframework, which
+   `DynamicLibrary.open()` cannot load.
+
+   The right tool is **`CrispASR/build-xcframework.sh`** (already in
+   the repo, no edits needed). It:
+   - builds device + simulator slices for iOS, macOS, visionOS, tvOS
+   - combines `libcrispasr.a + libggml*.a + libcrispasr.coreml.a`
+     into a real dynamic library via
+     `clang++ -dynamiclib -Wl,-force_load,combined.a -framework CoreML …`
+   - wraps it in a proper `crispasr.framework` bundle with module map
+     and Info.plist
+   - sets `install_name = @rpath/crispasr.framework/crispasr` —
+     which is already the third candidate in
+     `package:crispasr`'s `_libCandidates()`, so no Dart loader
+     change is needed
+   - marks the binary with `vtool -set-build-version ios …` so it
+     passes App Store validation
+   - includes `-DCRISPASR_COREML=ON` so the `.mlmodelc` companions
+     we just wired (§5.22 fix above) actually get used
+   - emits `build-apple/crispasr.xcframework`
+
+   Wiring into Runner:
+   - `cd ~/code/CrispASR && ./build-xcframework.sh` (long; builds 7
+     Apple platform slices)
+   - Open `ios/Runner.xcworkspace`, drag `crispasr.xcframework` into
+     the Runner target with **Embed & Sign**
+   - Verify `defaultLibName()` resolves to
+     `crispasr.framework/crispasr` on a sideload build
+
+   Without this the app launches but every transcription fails with
+   "no backends". (Blocked on this machine until the iOS platform is
+   installed — see §5.2 for the disk-space dance.)
 2. **Mic permission prompt.** First `record.hasPermission()` call must
    show the system mic prompt (`NSMicrophoneUsageDescription` is
    already set). Verify both initial-grant and "denied → re-enter
@@ -460,10 +489,13 @@ Route registered in `lib/main.dart`. ARB strings under
    is documented as iOS-supported but the macOS path is what's been
    exercised. Confirm chunks arrive at sub-second cadence and the
    live transcript heartbeat works.
-4. **`just_audio` playback.** No `audio_session` configuration today.
-   Recording or silent-mode can stop playback unexpectedly. If that
-   shows up on device, add `audio_session` and call
-   `AVAudioSession.setCategory(.playAndRecord)` on first audio op.
+4. **`just_audio` playback.** ✅ Configured —
+   `_configureAudioSession()` in `lib/main.dart` calls
+   `AudioSession.instance.configure(AudioSessionConfiguration.speech())`
+   at startup (iOS/Android only). `speech()` is just_audio's
+   recommended preset for transcription apps: `playAndRecord` +
+   speaker override + bluetooth allow. Still needs on-device
+   confirmation that recording-→-playback transitions are smooth.
 5. **Background audio continuation.** `UIBackgroundModes = [audio]`
    is declared but only takes effect once an audio session is active.
    Verify that streaming mic survives a screen-lock.

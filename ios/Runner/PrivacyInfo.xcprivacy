@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App is fully on-device; no tracking, no third-party SDKs that
+         track, no data collection beyond what the user explicitly
+         records and saves locally. -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- Audio data the user records or imports for transcription stays
+         on-device (the whole point of CrispASR). Declared as
+         "AppFunctionality" not linked to user identity, no tracking. -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeAudioData</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Required-reason API declarations, per Apple's May 2024
+         requirement (https://developer.apple.com/support/third-party-SDK-requirements/).
+         Reason codes from
+         https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <!-- shared_preferences uses NSUserDefaults to persist app
+             settings (preferred engine, default backend, log level,
+             custom models dir, HF token, etc.). CA92.1 = "Access info
+             from same app, per documentation". -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+
+        <!-- path_provider + dart:io File ops touch creation/modification
+             timestamps when scanning the models directory and history
+             dir. C617.1 = "Inside app container, app group container,
+             or sandbox directory". -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>C617.1</string>
+            </array>
+        </dict>
+
+        <!-- log_service writes to logs/session.log; reading file size
+             back is a "system boot time" / "disk space" adjacent op
+             but the actual API surface is path_provider's free-disk
+             query. E174.1 = "Inside app container, … display to user
+             on-device only". -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>E174.1</string>
+            </array>
+        </dict>
+
+        <!-- DateTime.now().millisecondsSinceEpoch in download progress
+             throttle, log timestamps, recording filenames. 35F9.1 =
+             "Display to user on-device only" (the timestamps never
+             leave the device). -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>35F9.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

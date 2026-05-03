@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'dart:ui' show AppExitResponse;
 
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,6 +67,7 @@ void main() async {
 
   await _requestPermissions();
   await _initializeServices();
+  await _configureAudioSession();
   await registerNativeLicenses();
 
   final prefs = await SharedPreferences.getInstance();
@@ -110,6 +112,26 @@ Future<void> _initializeServices() async {
     await getApplicationDocumentsDirectory();
   } catch (e) {
     debugPrint('Failed to initialize services: $e');
+  }
+}
+
+/// Configure AVAudioSession (iOS) / AudioFocus (Android) so playback
+/// and recording cooperate with the rest of the OS — silent-mode
+/// honours playback, mic recording doesn't permanently steal the
+/// session from other apps, and the `UIBackgroundModes = audio`
+/// declaration in Info.plist actually keeps streaming-mic alive when
+/// the screen locks. `speech()` is just_audio's recommended preset
+/// for transcription/dictation apps: `playAndRecord` category +
+/// `speakerOverride` so speaker output works when no headphones are
+/// connected. No-op on desktop.
+Future<void> _configureAudioSession() async {
+  if (!(Platform.isIOS || Platform.isAndroid)) return;
+  try {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.speech());
+  } catch (e, st) {
+    Log.instance.w('main', 'audio_session configure failed',
+        error: e, stack: st);
   }
 }
 

@@ -27,6 +27,10 @@ dependencies:
 
   # Audio handling
   just_audio: ^0.10.5
+  # Already a transitive dep via just_audio; pulled up to a direct
+  # dep so `lib/main.dart::_configureAudioSession()` can import it
+  # without the depend_on_referenced_packages lint.
+  audio_session: ^0.2.3
   # just_audio has no native Windows/Linux implementation; libmpv-backed
   # plugin fills that gap. macOS/iOS/Android keep the official backend.
   just_audio_media_kit: ^2.1.0

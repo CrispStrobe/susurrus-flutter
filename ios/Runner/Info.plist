@@ -314,55 +314,18 @@
 		<string>com.crispstrobe.crisperweaver.recording</string>
 	</array>
 
-	<!-- Privacy Manifest (iOS 17+) -->
-	<key>NSPrivacyManifestRequired</key>
-	<true/>
-	<key>NSPrivacyCollectedDataTypes</key>
-	<array>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeAudioData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSPrivacyTrackingDomains</key>
-	<array/>
-	<key>NSPrivacyAccessedAPITypes</key>
-	<array>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>C617.1</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>CA92.1</string>
-			</array>
-		</dict>
-	</array>
+	<!--
+	Privacy manifest lives in PrivacyInfo.xcprivacy (separate file, in the
+	Runner target's resources). NSPrivacy* keys in Info.plist are ignored
+	by Apple's tooling; declaring them here used to look like the manifest
+	was present when it wasn't. Removed.
 
-	<!-- Accessibility -->
-	<key>UIAccessibilityEnabled</key>
-	<true/>
+	Also removed three other dead Info.plist keys:
+	- UIAccessibilityEnabled (not a real Info.plist key)
+	- UIApplicationExitsOnSuspend (deprecated since iOS 13, ignored)
+	- UIPrerenderedIcon (deprecated since iOS 11, ignored)
+	-->
 
-	<!-- Performance and Memory -->
-	<key>UIApplicationExitsOnSuspend</key>
-	<false/>
-	<key>UIPrerenderedIcon</key>
-	<false/>
 
 	<!-- CarPlay Support (optional) -->
 	<!--
