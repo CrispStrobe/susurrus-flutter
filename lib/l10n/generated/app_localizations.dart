@@ -1124,6 +1124,186 @@ abstract class AppLocalizations {
   /// **'Author, contact, disclaimer, licenses'**
   String get settingsAboutCrisperWeaverSubtitle;
 
+  /// No description provided for @settingsHfTokenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hugging Face API Token'**
+  String get settingsHfTokenTitle;
+
+  /// No description provided for @settingsHfTokenSave.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get settingsHfTokenSave;
+
+  /// No description provided for @settingsHfTokenCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'CANCEL'**
+  String get settingsHfTokenCancel;
+
+  /// No description provided for @transcriptionNoModelsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No models found'**
+  String get transcriptionNoModelsFound;
+
+  /// No description provided for @transcriptionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get transcriptionRetry;
+
+  /// No description provided for @transcriptionLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Load failed: {error}'**
+  String transcriptionLoadFailed(String error);
+
+  /// No description provided for @transcriptionSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {path}'**
+  String transcriptionSavedTo(String path);
+
+  /// No description provided for @transcriptionSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String transcriptionSaveFailed(String error);
+
+  /// No description provided for @transcriptionCopiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get transcriptionCopiedToClipboard;
+
+  /// No description provided for @transcriptionShareSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share or save'**
+  String get transcriptionShareSheetTitle;
+
+  /// No description provided for @transcriptionSharePlainText.
+  ///
+  /// In en, this message translates to:
+  /// **'Share plain text'**
+  String get transcriptionSharePlainText;
+
+  /// No description provided for @transcriptionCopyToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to clipboard'**
+  String get transcriptionCopyToClipboard;
+
+  /// No description provided for @transcriptionSaveAsTxt.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as TXT'**
+  String get transcriptionSaveAsTxt;
+
+  /// No description provided for @transcriptionSaveAsSrt.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as SRT'**
+  String get transcriptionSaveAsSrt;
+
+  /// No description provided for @transcriptionSaveAsVtt.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as VTT'**
+  String get transcriptionSaveAsVtt;
+
+  /// No description provided for @transcriptionSaveAsJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as JSON'**
+  String get transcriptionSaveAsJson;
+
+  /// No description provided for @transcriptionDownloadModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Model'**
+  String get transcriptionDownloadModel;
+
+  /// No description provided for @transcriptionDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'DOWNLOAD'**
+  String get transcriptionDownload;
+
+  /// No description provided for @advancedTemperatureGreedy.
+  ///
+  /// In en, this message translates to:
+  /// **'Decoder temperature: greedy (0.00)'**
+  String get advancedTemperatureGreedy;
+
+  /// No description provided for @advancedTemperatureCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Decoder temperature: {value}'**
+  String advancedTemperatureCurrent(String value);
+
+  /// No description provided for @advancedTemperatureHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'0.00 = greedy / reproducible. > 0 = stochastic sampling — useful when greedy decoding hallucinates a repetition. Whisper has its own internal fallback ladder; this affects sampling backends (canary, cohere, parakeet, moonshine).'**
+  String get advancedTemperatureHelper;
+
+  /// No description provided for @playbackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback failed: {error}'**
+  String playbackFailed(String error);
+
+  /// No description provided for @synthesizeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesize failed: {error}'**
+  String synthesizeFailed(String error);
+
+  /// No description provided for @logsShowLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {level} and above'**
+  String logsShowLevel(String level);
+
+  /// No description provided for @logsCopyVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy visible'**
+  String get logsCopyVisible;
+
+  /// No description provided for @logsCopyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy all'**
+  String get logsCopyAll;
+
+  /// No description provided for @logsExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to file'**
+  String get logsExport;
+
+  /// No description provided for @logsShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as file'**
+  String get logsShare;
+
+  /// No description provided for @diarizationAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get diarizationAuto;
+
+  /// No description provided for @diarizationModelSelectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diarization Model Selection'**
+  String get diarizationModelSelectionTitle;
+
   /// No description provided for @aboutServiceProvider.
   ///
   /// In en, this message translates to:
@@ -1237,30 +1417,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by message, tag, or error…'**
   String get logsFilterHint;
-
-  /// No description provided for @logsCopyVisible.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy visible'**
-  String get logsCopyVisible;
-
-  /// No description provided for @logsCopyAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy all'**
-  String get logsCopyAll;
-
-  /// No description provided for @logsExport.
-  ///
-  /// In en, this message translates to:
-  /// **'Export to file'**
-  String get logsExport;
-
-  /// No description provided for @logsShare.
-  ///
-  /// In en, this message translates to:
-  /// **'Share as file'**
-  String get logsShare;
 
   /// No description provided for @modelsTitle.
   ///

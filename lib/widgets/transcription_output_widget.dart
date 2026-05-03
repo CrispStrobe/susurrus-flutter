@@ -739,7 +739,9 @@ class _TranscriptionOutputWidgetState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Playback failed: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .playbackFailed(e.toString()))),
       );
     }
   }

@@ -257,6 +257,64 @@
   "settingsVersion": "Version",
   "settingsAboutCrisperWeaver": "Über CrisperWeaver",
   "settingsAboutCrisperWeaverSubtitle": "Anbieter, Kontakt, Haftungsausschluss, Lizenzen",
+  "settingsSelectEngine": "Engine wählen",
+  "settingsHfTokenTitle": "Hugging Face API-Token",
+  "settingsHfTokenSubtitle": "Erforderlich für gesperrte oder private Repositories.",
+  "settingsHfTokenSave": "SPEICHERN",
+  "settingsHfTokenCancel": "ABBRECHEN",
+
+  "transcriptionNoModelsFound": "Keine Modelle gefunden",
+  "transcriptionRetry": "Erneut versuchen",
+  "transcriptionLoadFailed": "Laden fehlgeschlagen: {error}",
+  "@transcriptionLoadFailed": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+  "transcriptionSavedTo": "Gespeichert: {path}",
+  "@transcriptionSavedTo": {
+    "placeholders": {"path": {"type": "String"}}
+  },
+  "transcriptionSaveFailed": "Speichern fehlgeschlagen: {error}",
+  "@transcriptionSaveFailed": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+  "transcriptionCopiedToClipboard": "In Zwischenablage kopiert",
+  "transcriptionShareSheetTitle": "Teilen oder speichern",
+  "transcriptionSharePlainText": "Als Text teilen",
+  "transcriptionCopyToClipboard": "In Zwischenablage kopieren",
+  "transcriptionSaveAsTxt": "Als TXT speichern",
+  "transcriptionSaveAsSrt": "Als SRT speichern",
+  "transcriptionSaveAsVtt": "Als VTT speichern",
+  "transcriptionSaveAsJson": "Als JSON speichern",
+  "transcriptionDownloadModel": "Modell herunterladen",
+  "transcriptionDownload": "HERUNTERLADEN",
+
+  "advancedTemperatureGreedy": "Decoder-Temperatur: greedy (0,00)",
+  "advancedTemperatureCurrent": "Decoder-Temperatur: {value}",
+  "@advancedTemperatureCurrent": {
+    "placeholders": {"value": {"type": "String"}}
+  },
+  "advancedTemperatureHelper": "0,00 = greedy / reproduzierbar. > 0 = stochastisches Sampling — hilfreich, wenn greedy in einer halluzinierten Wiederholung hängenbleibt. Whisper hat eine eigene interne Fallback-Leiter; dieser Wert betrifft Sampling-Backends (canary, cohere, parakeet, moonshine).",
+
+  "playbackFailed": "Wiedergabe fehlgeschlagen: {error}",
+  "@playbackFailed": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+  "synthesizeFailed": "Synthese fehlgeschlagen: {error}",
+  "@synthesizeFailed": {
+    "placeholders": {"error": {"type": "String"}}
+  },
+
+  "logsShowLevel": "{level} und darüber anzeigen",
+  "@logsShowLevel": {
+    "placeholders": {"level": {"type": "String"}}
+  },
+  "logsCopyVisible": "Sichtbare kopieren",
+  "logsCopyAll": "Alle kopieren",
+  "logsExport": "In Datei exportieren",
+  "logsShare": "Als Datei teilen",
+
+  "diarizationAuto": "Auto",
+  "diarizationModelSelectionTitle": "Diarisierung: Modellauswahl",
 
   "aboutServiceProvider": "Anbieter",
   "aboutContact": "Kontakt",

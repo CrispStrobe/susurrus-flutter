@@ -89,6 +89,7 @@ class TranscriptionService {
     bool restorePunctuation = false,
     String? targetLanguage,
     String? askPrompt,
+    double temperature = 0.0,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -138,6 +139,7 @@ class TranscriptionService {
         vadModelPath: vadModelPath,
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
+        temperature: temperature,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -191,6 +193,7 @@ class TranscriptionService {
     bool restorePunctuation = false,
     String? targetLanguage,
     String? askPrompt,
+    double temperature = 0.0,
     int? minSpeakers,
     int? maxSpeakers,
     void Function(double progress)? onProgress,
@@ -222,6 +225,7 @@ class TranscriptionService {
         restorePunctuation: restorePunctuation,
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
+        temperature: temperature,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
@@ -405,6 +409,7 @@ class TranscriptionService {
     String? vadModelPath,
     String? targetLanguage,
     String? askPrompt,
+    double temperature = 0.0,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -427,6 +432,7 @@ class TranscriptionService {
         vadModelPath: vadModelPath,
         targetLanguage: targetLanguage,
         askPrompt: askPrompt,
+        temperature: temperature,
         onSegment: onSegment,
         onProgress: onProgress,
       );

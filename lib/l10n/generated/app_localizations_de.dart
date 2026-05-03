@@ -393,7 +393,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsHfTokenSubtitle =>
-      'Für gated oder private Repositories erforderlich.';
+      'Erforderlich für gesperrte oder private Repositories.';
 
   @override
   String get settingsLoading => 'Lade…';
@@ -607,6 +607,111 @@ class AppLocalizationsDe extends AppLocalizations {
       'Anbieter, Kontakt, Haftungsausschluss, Lizenzen';
 
   @override
+  String get settingsHfTokenTitle => 'Hugging Face API-Token';
+
+  @override
+  String get settingsHfTokenSave => 'SPEICHERN';
+
+  @override
+  String get settingsHfTokenCancel => 'ABBRECHEN';
+
+  @override
+  String get transcriptionNoModelsFound => 'Keine Modelle gefunden';
+
+  @override
+  String get transcriptionRetry => 'Erneut versuchen';
+
+  @override
+  String transcriptionLoadFailed(String error) {
+    return 'Laden fehlgeschlagen: $error';
+  }
+
+  @override
+  String transcriptionSavedTo(String path) {
+    return 'Gespeichert: $path';
+  }
+
+  @override
+  String transcriptionSaveFailed(String error) {
+    return 'Speichern fehlgeschlagen: $error';
+  }
+
+  @override
+  String get transcriptionCopiedToClipboard => 'In Zwischenablage kopiert';
+
+  @override
+  String get transcriptionShareSheetTitle => 'Teilen oder speichern';
+
+  @override
+  String get transcriptionSharePlainText => 'Als Text teilen';
+
+  @override
+  String get transcriptionCopyToClipboard => 'In Zwischenablage kopieren';
+
+  @override
+  String get transcriptionSaveAsTxt => 'Als TXT speichern';
+
+  @override
+  String get transcriptionSaveAsSrt => 'Als SRT speichern';
+
+  @override
+  String get transcriptionSaveAsVtt => 'Als VTT speichern';
+
+  @override
+  String get transcriptionSaveAsJson => 'Als JSON speichern';
+
+  @override
+  String get transcriptionDownloadModel => 'Modell herunterladen';
+
+  @override
+  String get transcriptionDownload => 'HERUNTERLADEN';
+
+  @override
+  String get advancedTemperatureGreedy => 'Decoder-Temperatur: greedy (0,00)';
+
+  @override
+  String advancedTemperatureCurrent(String value) {
+    return 'Decoder-Temperatur: $value';
+  }
+
+  @override
+  String get advancedTemperatureHelper =>
+      '0,00 = greedy / reproduzierbar. > 0 = stochastisches Sampling — hilfreich, wenn greedy in einer halluzinierten Wiederholung hängenbleibt. Whisper hat eine eigene interne Fallback-Leiter; dieser Wert betrifft Sampling-Backends (canary, cohere, parakeet, moonshine).';
+
+  @override
+  String playbackFailed(String error) {
+    return 'Wiedergabe fehlgeschlagen: $error';
+  }
+
+  @override
+  String synthesizeFailed(String error) {
+    return 'Synthese fehlgeschlagen: $error';
+  }
+
+  @override
+  String logsShowLevel(String level) {
+    return '$level und darüber anzeigen';
+  }
+
+  @override
+  String get logsCopyVisible => 'Sichtbare kopieren';
+
+  @override
+  String get logsCopyAll => 'Alle kopieren';
+
+  @override
+  String get logsExport => 'In Datei exportieren';
+
+  @override
+  String get logsShare => 'Als Datei teilen';
+
+  @override
+  String get diarizationAuto => 'Auto';
+
+  @override
+  String get diarizationModelSelectionTitle => 'Diarisierung: Modellauswahl';
+
+  @override
   String get aboutServiceProvider => 'Anbieter';
 
   @override
@@ -667,18 +772,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get logsFilterHint => 'Nach Nachricht, Tag oder Fehler filtern…';
-
-  @override
-  String get logsCopyVisible => 'Sichtbare kopieren';
-
-  @override
-  String get logsCopyAll => 'Alle kopieren';
-
-  @override
-  String get logsExport => 'In Datei exportieren';
-
-  @override
-  String get logsShare => 'Als Datei teilen';
 
   @override
   String get modelsTitle => 'Modell-Verwaltung';

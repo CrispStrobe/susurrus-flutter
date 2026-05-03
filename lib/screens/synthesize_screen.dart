@@ -134,7 +134,9 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
       Log.instance.e('synth', 'synthesize failed', error: e, stack: st);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Synthesize failed: $e')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .synthesizeFailed(e.toString()))),
         );
       }
     } finally {

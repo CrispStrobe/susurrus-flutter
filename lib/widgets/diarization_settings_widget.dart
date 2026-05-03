@@ -140,11 +140,12 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    hint: const Text('Auto'),
+                    hint: Text(AppLocalizations.of(context).diarizationAuto),
                     items: [
-                      const DropdownMenuItem<int?>(
+                      DropdownMenuItem<int?>(
                         value: null,
-                        child: Text('Auto'),
+                        child: Text(
+                            AppLocalizations.of(context).diarizationAuto),
                       ),
                       ...List.generate(10, (i) => i + 1).map((count) {
                         return DropdownMenuItem<int?>(
@@ -185,11 +186,12 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    hint: const Text('Auto'),
+                    hint: Text(AppLocalizations.of(context).diarizationAuto),
                     items: [
-                      const DropdownMenuItem<int?>(
+                      DropdownMenuItem<int?>(
                         value: null,
-                        child: Text('Auto'),
+                        child: Text(
+                            AppLocalizations.of(context).diarizationAuto),
                       ),
                       ...List.generate(10, (i) => i + 1).map((count) {
                         return DropdownMenuItem<int?>(
@@ -292,7 +294,8 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Diarization Model Selection'),
+        title:
+            Text(AppLocalizations.of(context).diarizationModelSelectionTitle),
         content: const SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,7 +324,7 @@ class _DiarizationSettingsWidgetState extends State<DiarizationSettingsWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),

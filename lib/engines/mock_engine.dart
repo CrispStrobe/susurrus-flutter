@@ -173,6 +173,7 @@ class MockEngine implements TranscriptionEngine {
     String? vadModelPath,
     String? targetLanguage,
     String? askPrompt,
+    double temperature = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {

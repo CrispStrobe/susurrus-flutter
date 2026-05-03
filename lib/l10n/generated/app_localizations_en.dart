@@ -603,6 +603,111 @@ class AppLocalizationsEn extends AppLocalizations {
       'Author, contact, disclaimer, licenses';
 
   @override
+  String get settingsHfTokenTitle => 'Hugging Face API Token';
+
+  @override
+  String get settingsHfTokenSave => 'SAVE';
+
+  @override
+  String get settingsHfTokenCancel => 'CANCEL';
+
+  @override
+  String get transcriptionNoModelsFound => 'No models found';
+
+  @override
+  String get transcriptionRetry => 'Retry';
+
+  @override
+  String transcriptionLoadFailed(String error) {
+    return 'Load failed: $error';
+  }
+
+  @override
+  String transcriptionSavedTo(String path) {
+    return 'Saved $path';
+  }
+
+  @override
+  String transcriptionSaveFailed(String error) {
+    return 'Save failed: $error';
+  }
+
+  @override
+  String get transcriptionCopiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get transcriptionShareSheetTitle => 'Share or save';
+
+  @override
+  String get transcriptionSharePlainText => 'Share plain text';
+
+  @override
+  String get transcriptionCopyToClipboard => 'Copy to clipboard';
+
+  @override
+  String get transcriptionSaveAsTxt => 'Save as TXT';
+
+  @override
+  String get transcriptionSaveAsSrt => 'Save as SRT';
+
+  @override
+  String get transcriptionSaveAsVtt => 'Save as VTT';
+
+  @override
+  String get transcriptionSaveAsJson => 'Save as JSON';
+
+  @override
+  String get transcriptionDownloadModel => 'Download Model';
+
+  @override
+  String get transcriptionDownload => 'DOWNLOAD';
+
+  @override
+  String get advancedTemperatureGreedy => 'Decoder temperature: greedy (0.00)';
+
+  @override
+  String advancedTemperatureCurrent(String value) {
+    return 'Decoder temperature: $value';
+  }
+
+  @override
+  String get advancedTemperatureHelper =>
+      '0.00 = greedy / reproducible. > 0 = stochastic sampling — useful when greedy decoding hallucinates a repetition. Whisper has its own internal fallback ladder; this affects sampling backends (canary, cohere, parakeet, moonshine).';
+
+  @override
+  String playbackFailed(String error) {
+    return 'Playback failed: $error';
+  }
+
+  @override
+  String synthesizeFailed(String error) {
+    return 'Synthesize failed: $error';
+  }
+
+  @override
+  String logsShowLevel(String level) {
+    return 'Show $level and above';
+  }
+
+  @override
+  String get logsCopyVisible => 'Copy visible';
+
+  @override
+  String get logsCopyAll => 'Copy all';
+
+  @override
+  String get logsExport => 'Export to file';
+
+  @override
+  String get logsShare => 'Share as file';
+
+  @override
+  String get diarizationAuto => 'Auto';
+
+  @override
+  String get diarizationModelSelectionTitle => 'Diarization Model Selection';
+
+  @override
   String get aboutServiceProvider => 'Service Provider';
 
   @override
@@ -663,18 +768,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logsFilterHint => 'Filter by message, tag, or error…';
-
-  @override
-  String get logsCopyVisible => 'Copy visible';
-
-  @override
-  String get logsCopyAll => 'Copy all';
-
-  @override
-  String get logsExport => 'Export to file';
-
-  @override
-  String get logsShare => 'Share as file';
 
   @override
   String get modelsTitle => 'Model management';

@@ -42,6 +42,16 @@ class AdvancedOptions {
   /// Empty means "transcribe normally" — the historical default.
   final String askPrompt;
 
+  /// Decoder temperature for sampling backends (canary, cohere,
+  /// parakeet, moonshine — per CrispASR's `setTemperature` contract).
+  /// 0.0 = greedy (the historical default; reproducible). > 0.0 =
+  /// stochastic sampling, useful when the greedy decode is stuck on a
+  /// hallucinated repetition or when paraphrasing is desired. Whisper
+  /// has its own temperature fallback ladder inside whisper.cpp; this
+  /// field doesn't reach Whisper. Backends that don't support runtime
+  /// temperature silently no-op (the C ABI returns rc=-2).
+  final double temperature;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -50,6 +60,7 @@ class AdvancedOptions {
     this.restorePunctuation = false,
     this.targetLanguage = '',
     this.askPrompt = '',
+    this.temperature = 0.0,
   });
 
   AdvancedOptions copyWith({
@@ -60,6 +71,7 @@ class AdvancedOptions {
     bool? restorePunctuation,
     String? targetLanguage,
     String? askPrompt,
+    double? temperature,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -69,6 +81,7 @@ class AdvancedOptions {
         restorePunctuation: restorePunctuation ?? this.restorePunctuation,
         targetLanguage: targetLanguage ?? this.targetLanguage,
         askPrompt: askPrompt ?? this.askPrompt,
+        temperature: temperature ?? this.temperature,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -82,6 +95,15 @@ class AdvancedOptions {
   /// audio-LLM). Used by the UI to show / hide the ask field.
   static const Set<String> askCapableBackends = {
     'voxtral', 'voxtral4b', 'qwen3',
+  };
+
+  /// Backends that honour `crispasr_session_set_temperature` per the
+  /// CrispASR doc comment. Other session backends silently no-op
+  /// (rc=-2) but the slider has nothing to offer them, so hide it.
+  /// Whisper isn't in the list — it has its own temperature fallback
+  /// inside whisper.cpp's TranscribeOptions.
+  static const Set<String> temperatureCapableBackends = {
+    'canary', 'cohere', 'parakeet', 'moonshine',
   };
 }
 
@@ -178,6 +200,10 @@ class _AdvancedDecodingSectionState
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(restorePunctuation: v),
         ),
+        // Decoder temperature slider. Hidden on backends that don't
+        // honour `setTemperature` (whisper, mimo-asr, wav2vec2, …) so
+        // the panel stays uncluttered for the common case.
+        _buildTemperatureRow(context, opts),
         // Target-language picker for translation. Only shown when the
         // currently-loaded model's backend advertises true speech
         // translation (canary, voxtral, qwen3, cohere, whisper). The
@@ -216,6 +242,41 @@ class _AdvancedDecodingSectionState
     final cached = ModelService.whisperCppModels[modelId] ??
         ModelService.crispasrBackendModels[modelId];
     return cached?.backend ?? '';
+  }
+
+  Widget _buildTemperatureRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (!AdvancedOptions.temperatureCapableBackends
+        .contains(_activeBackend())) {
+      return const SizedBox.shrink();
+    }
+    final t = opts.temperature;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t == 0.0
+                ? l.advancedTemperatureGreedy
+                : l.advancedTemperatureCurrent(t.toStringAsFixed(2)),
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          Slider(
+            value: t,
+            min: 0.0,
+            max: 1.0,
+            divisions: 20,
+            label: t.toStringAsFixed(2),
+            onChanged: (v) =>
+                ref.read(advancedOptionsProvider.notifier).state =
+                    opts.copyWith(temperature: v),
+          ),
+          Text(l.advancedTemperatureHelper,
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
+    );
   }
 
   Widget _buildAskRow(BuildContext context, AdvancedOptions opts) {

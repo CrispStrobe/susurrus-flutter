@@ -56,6 +56,11 @@ abstract class TranscriptionEngine {
     /// backend ANSWERS the prompt instead of producing a verbatim
     /// transcript. Other backends ignore.
     String? askPrompt,
+    /// Decoder temperature for sampling backends (canary, cohere,
+    /// parakeet, moonshine). 0.0 = greedy (default). > 0.0 = stochastic
+    /// sampling. Backends without runtime temperature support silently
+    /// no-op.
+    double temperature = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

@@ -90,9 +90,9 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
             initialValue: _minDisplay,
             onSelected: (v) => setState(() => _minDisplay = v),
             itemBuilder: (_) => LogLevel.values
-                .map((l) => PopupMenuItem(
-                      value: l,
-                      child: Text('Show ${l.tag} and above'),
+                .map((lv) => PopupMenuItem(
+                      value: lv,
+                      child: Text(l.logsShowLevel(lv.tag)),
                     ))
                 .toList(),
           ),
@@ -103,13 +103,13 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: _action,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'copy', child: Text('Copy visible')),
-              PopupMenuItem(value: 'copy_all', child: Text('Copy all')),
-              PopupMenuItem(value: 'export', child: Text('Export to file')),
-              PopupMenuItem(value: 'share', child: Text('Share as file')),
-              PopupMenuDivider(),
-              PopupMenuItem(value: 'clear', child: Text('Clear')),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'copy', child: Text(l.logsCopyVisible)),
+              PopupMenuItem(value: 'copy_all', child: Text(l.logsCopyAll)),
+              PopupMenuItem(value: 'export', child: Text(l.logsExport)),
+              PopupMenuItem(value: 'share', child: Text(l.logsShare)),
+              const PopupMenuDivider(),
+              PopupMenuItem(value: 'clear', child: Text(l.clear)),
             ],
           ),
         ],

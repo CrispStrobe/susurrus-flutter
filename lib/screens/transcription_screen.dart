@@ -599,14 +599,14 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             ),
             child: Column(
               children: [
-                const Text('No models found'),
+                Text(AppLocalizations.of(context).transcriptionNoModelsFound),
                 TextButton.icon(
                   onPressed: () {
                     Log.instance.d('ui', 'Retry tapped in advanced options');
                     _loadModels();
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  label: Text(AppLocalizations.of(context).transcriptionRetry),
                 ),
               ],
             ),
@@ -699,7 +699,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Load failed: $e')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .transcriptionLoadFailed(e.toString()))),
         );
       }
     }
@@ -778,57 +780,60 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.share),
                   onSelected: (action) => _handleShareAction(action, appState),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'share',
-                      child: ListTile(
-                        leading: Icon(Icons.share),
-                        title: Text('Share plain text'),
-                        dense: true,
+                  itemBuilder: (context) {
+                    final l = AppLocalizations.of(context);
+                    return [
+                      PopupMenuItem(
+                        value: 'share',
+                        child: ListTile(
+                          leading: const Icon(Icons.share),
+                          title: Text(l.transcriptionSharePlainText),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'copy',
-                      child: ListTile(
-                        leading: Icon(Icons.copy),
-                        title: Text('Copy to clipboard'),
-                        dense: true,
+                      PopupMenuItem(
+                        value: 'copy',
+                        child: ListTile(
+                          leading: const Icon(Icons.copy),
+                          title: Text(l.transcriptionCopyToClipboard),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'save_txt',
-                      child: ListTile(
-                        leading: Icon(Icons.description),
-                        title: Text('Save as TXT'),
-                        dense: true,
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'save_txt',
+                        child: ListTile(
+                          leading: const Icon(Icons.description),
+                          title: Text(l.transcriptionSaveAsTxt),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'save_srt',
-                      child: ListTile(
-                        leading: Icon(Icons.subtitles),
-                        title: Text('Save as SRT'),
-                        dense: true,
+                      PopupMenuItem(
+                        value: 'save_srt',
+                        child: ListTile(
+                          leading: const Icon(Icons.subtitles),
+                          title: Text(l.transcriptionSaveAsSrt),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'save_vtt',
-                      child: ListTile(
-                        leading: Icon(Icons.closed_caption),
-                        title: Text('Save as VTT'),
-                        dense: true,
+                      PopupMenuItem(
+                        value: 'save_vtt',
+                        child: ListTile(
+                          leading: const Icon(Icons.closed_caption),
+                          title: Text(l.transcriptionSaveAsVtt),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'save_json',
-                      child: ListTile(
-                        leading: Icon(Icons.data_object),
-                        title: Text('Save as JSON'),
-                        dense: true,
+                      PopupMenuItem(
+                        value: 'save_json',
+                        child: ListTile(
+                          leading: const Icon(Icons.data_object),
+                          title: Text(l.transcriptionSaveAsJson),
+                          dense: true,
+                        ),
                       ),
-                    ),
-                  ],
+                    ];
+                  },
                 ),
             ],
           ),
@@ -980,6 +985,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          temperature: adv.temperature,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -996,6 +1002,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          temperature: adv.temperature,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1082,6 +1089,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          temperature: adv.temperature,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);
@@ -1142,7 +1150,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       case 'copy':
         Clipboard.setData(ClipboardData(text: appState.currentTranscription!));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Copied to clipboard')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .transcriptionCopiedToClipboard)),
         );
         break;
       case 'save_txt':
@@ -1171,13 +1181,17 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved ${file.path}')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .transcriptionSavedTo(file.path))),
       );
       await FileUtils.shareFile(file.path, subject: baseName);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .transcriptionSaveFailed(e.toString()))),
       );
     }
   }
@@ -1186,12 +1200,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: Text(AppLocalizations.of(context).error),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(AppLocalizations.of(context).ok),
           ),
         ],
       ),
@@ -1207,7 +1221,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Download Model'),
+        title: Text(AppLocalizations.of(context).transcriptionDownloadModel),
         content: Text(
           'The model "${model.displayName}" is not yet downloaded. '
           'Would you like to download it now (~${model.size})?',
@@ -1215,11 +1229,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('CANCEL'),
+            child: Text(AppLocalizations.of(context).cancel.toUpperCase()),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('DOWNLOAD'),
+            child:
+                Text(AppLocalizations.of(context).transcriptionDownload),
           ),
         ],
       ),

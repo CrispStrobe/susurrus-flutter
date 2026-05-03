@@ -138,7 +138,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Engine'),
+        title: Text(AppLocalizations.of(context).settingsSelectEngine),
         content: RadioGroup<EngineType>(
           groupValue: settings.preferredEngine,
           onChanged: (value) async {
@@ -599,43 +599,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final controller = TextEditingController(text: settings.hfToken);
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hugging Face API Token'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Required for gated or private repositories.',
-                style: TextStyle(fontSize: 12)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                  labelText: 'API Token',
-                  border: OutlineInputBorder(),
-                  hintText: 'hf_...'),
-              obscureText: true,
-              autocorrect: false,
+      builder: (context) {
+        final l = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l.settingsHfTokenTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.settingsHfTokenSubtitle,
+                  style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                    labelText: 'API Token',
+                    border: OutlineInputBorder(),
+                    hintText: 'hf_...'),
+                obscureText: true,
+                autocorrect: false,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l.settingsHfTokenCancel)),
+            ElevatedButton(
+              onPressed: () {
+                final newToken = controller.text.trim();
+                setState(() => settings.hfToken = newToken);
+                ref.read(modelServiceProvider).hfToken = newToken;
+                Navigator.of(context).pop();
+                Log.instance.i(
+                    'settings',
+                    newToken.isEmpty
+                        ? 'HF Token cleared'
+                        : 'HF Token updated');
+              },
+              child: Text(l.settingsHfTokenSave),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCEL')),
-          ElevatedButton(
-            onPressed: () {
-              final newToken = controller.text.trim();
-              setState(() => settings.hfToken = newToken);
-              ref.read(modelServiceProvider).hfToken = newToken;
-              Navigator.of(context).pop();
-              Log.instance.i('settings',
-                  newToken.isEmpty ? 'HF Token cleared' : 'HF Token updated');
-            },
-            child: const Text('SAVE'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -131,24 +131,24 @@ declared in the auto-generated `GeneratedPluginRegistrant.h`
 (Objective-C). The bridging header is the only thing exposing the
 class to Swift. Removing it breaks the Swift compile.
 
-### 5.3 Android native-lib CI wiring
+### 5.3 Android native-lib CI wiring — ✅ shipped
 
-**What:** Gradle is pure KTS; APK builds with the Mock engine. To ship real ASR on Android, CI needs to:
+`release.yml`'s `build-android` job runs `CrispASR/build-android.sh
+--vulkan` to cross-build `libcrispasr.so` + sibling backend `.so`'s
+for `arm64-v8a`, drops them into
+`android/app/src/main/jniLibs/arm64-v8a/`, then `flutter build apk
+--release`. v0.4.0 produced a 31 MB `crisper_weaver-android-arm64.apk`
+with real ASR. Still pending: an emulator smoke test in the same job
+(currently no on-device verification step).
 
-1. Checkout CrispASR (already done by the other CI jobs).
-2. Run `CrispASR/build-android.sh --vulkan` inside the runner to cross-build `libwhisper.so` + sibling backend `.so`'s for `arm64-v8a` (and optionally `x86_64` for emulator testing).
-3. Copy the `.so`'s to `android/app/src/main/jniLibs/arm64-v8a/`.
-4. `flutter build apk --release`.
+### 5.4 Windows CI end-to-end validation — ✅ shipped
 
-Where: add a new `build-android-native` job to `.github/workflows/release.yml` (or extend the existing one in `ci.yml`). The KTS already packages whatever's in `jniLibs/`.
-
-**Risk:** medium. Android NDK cross-builds are slow (~15-30 min); may want to cache the `.so`'s keyed on `CRISPASR_REF`.
-
-### 5.4 Windows CI end-to-end validation
-
-**What:** CI job, bundler script, Flutter scaffold — all in place. Release workflow runs CMake shared-DLL build of CrispASR on a Windows runner, drops DLLs next to `runner.exe` via `scripts/bundle_windows_dlls.ps1`, zips. Marked `continue-on-error` because CrispASR's upstream CI only exercises the STATIC lib path (`-DBUILD_SHARED_LIBS=OFF`) — our `-ON` build may hit symbol-export issues we haven't yet seen.
-
-**Remaining:** watch the first green run, verify `whisper.dll` contains all needed exports (`whisper_init_from_file_with_params`, `crispasr_session_open_explicit`, `crispasr_audio_load`, …), install on a real Windows box, transcribe. If export-mismatch: add explicit `__declspec(dllexport)` to the whisper.h decls.
+`release.yml`'s `build-windows` job runs the CMake shared-DLL build of
+CrispASR on a Windows runner, drops DLLs next to `runner.exe` via
+`scripts/bundle_windows_dlls.ps1`, zips. v0.4.0 produced a 25 MB
+`crisper_weaver-windows-x64.zip`. Still pending: install on a real
+Windows box and transcribe end-to-end (the export-mismatch concern
+from the original PLAN didn't materialise — green for v0.3.0 onwards).
 
 ### 5.5 Real speaker diarization — ✅ shipped
 
@@ -187,11 +187,25 @@ Shipped in v0.1.4 (first slice): **translate-to-English**, **beam search** toggl
 
 Shipped in v0.1.7: **Skip silence (VAD)** toggle. Drives `CrispasrSession.transcribeVad` (session backends) and `TranscribeOptions.vad = true` (whisper) via the new v0.4.4 library C-ABI. Silero v6.2.0 GGUF is bundled as `assets/vad/silero-v6.2.0-ggml.bin` (~885 KB).
 
+Shipped this session (v0.4.x prep):
+- **Temperature** — slider 0.0–1.0 in Advanced Options, hidden on
+  backends that don't honour `crispasr_session_set_temperature`
+  (whisper, mimo-asr, wav2vec2, …); shown for canary, cohere,
+  parakeet, moonshine. Greedy default (0.0). Threaded through
+  TranscriptionService → TranscriptionEngine → CrispASREngine →
+  `_session.setTemperature(t)` per-call so a previous non-zero value
+  doesn't stick after the user drags back to 0.
+
 Remaining (follow-up):
-- **Best-of-N** — LLM backends (Voxtral/Qwen3/Granite) support it; Whisper has `best_of`. One slider.
-- **Temperature** — `crispasr_params_set_temperature`. Greedy default; 0.2–1.0 useful for noisy audio where greedy hallucinates.
-- **Source / target language** — Canary, Voxtral, Qwen3 support translation via `-sl / -tl`. UI switches from one `language` dropdown to two when the selected backend advertises translation capability.
-- **Audio Q&A (`--ask`)** — Voxtral and Qwen3 answer free-form questions about audio. Prompt box below Transcribe, active only when the backend supports it.
+- **Best-of-N** — *blocked on upstream CrispASR*. Neither
+  `crispasr_session_set_best_of` nor a `best_of` field on
+  `TranscribeOptions` exists yet; would need a C-ABI addition + Dart
+  binding before the slider can do anything. Whisper-side `best_of`
+  could still be wired by extending `TranscribeOptions` directly.
+- **Source / target language** — target-lang dropdown shipped in an
+  earlier slice; explicit source-lang picker still pending for backends
+  that accept `-sl` separately from autodetect.
+- **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
 - **Grammar (GBNF)** — Whisper-only, niche but valuable for structured output.
 - **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired yet.
 - **Auto-download default** — CrispASR's `-m auto` per backend. "Auto-download default" button per card in Model Management.
