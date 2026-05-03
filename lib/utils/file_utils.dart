@@ -98,13 +98,13 @@ class FileUtils {
         content = text;
         break;
       case TranscriptFormat.srt:
-        content = _generateSrtContent(segments ?? []);
+        content = generateSrtContent(segments ?? []);
         break;
       case TranscriptFormat.vtt:
-        content = _generateVttContent(segments ?? []);
+        content = generateVttContent(segments ?? []);
         break;
       case TranscriptFormat.json:
-        content = _generateJsonContent(segments ?? []);
+        content = generateJsonContent(segments ?? []);
         break;
     }
 
@@ -336,20 +336,20 @@ class FileUtils {
     }
   }
 
-  static String _generateSrtContent(List<TranscriptionSegment> segments) {
+  static String generateSrtContent(List<TranscriptionSegment> segments) {
     final buffer = StringBuffer();
     for (int i = 0; i < segments.length; i++) {
       final segment = segments[i];
       buffer.writeln('${i + 1}');
       buffer.writeln(
-          '${_formatSrtTime(segment.startTime)} --> ${_formatSrtTime(segment.endTime)}');
+          '${formatSrtTime(segment.startTime)} --> ${formatSrtTime(segment.endTime)}');
       buffer.writeln('${segment.speaker ?? ''}: ${segment.text}');
       buffer.writeln();
     }
     return buffer.toString();
   }
 
-  static String _generateVttContent(List<TranscriptionSegment> segments) {
+  static String generateVttContent(List<TranscriptionSegment> segments) {
     final buffer = StringBuffer();
     buffer.writeln('WEBVTT');
     buffer.writeln();
@@ -358,14 +358,14 @@ class FileUtils {
       final segment = segments[i];
       buffer.writeln('${i + 1}');
       buffer.writeln(
-          '${_formatVttTime(segment.startTime)} --> ${_formatVttTime(segment.endTime)}');
+          '${formatVttTime(segment.startTime)} --> ${formatVttTime(segment.endTime)}');
       buffer.writeln('${segment.speaker ?? ''}: ${segment.text}');
       buffer.writeln();
     }
     return buffer.toString();
   }
 
-  static String _generateJsonContent(List<TranscriptionSegment> segments) {
+  static String generateJsonContent(List<TranscriptionSegment> segments) {
     final data = segments
         .map((segment) => {
               'text': segment.text,
@@ -379,7 +379,7 @@ class FileUtils {
     return const JsonEncoder.withIndent('  ').convert(data);
   }
 
-  static String _formatSrtTime(double seconds) {
+  static String formatSrtTime(double seconds) {
     final hours = (seconds / 3600).floor();
     final minutes = ((seconds % 3600) / 60).floor();
     final secs = seconds % 60;
@@ -391,7 +391,7 @@ class FileUtils {
         '${ms.toString().padLeft(3, '0')}';
   }
 
-  static String _formatVttTime(double seconds) {
+  static String formatVttTime(double seconds) {
     final hours = (seconds / 3600).floor();
     final minutes = ((seconds % 3600) / 60).floor();
     final secs = seconds % 60;
