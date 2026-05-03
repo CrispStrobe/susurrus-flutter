@@ -269,6 +269,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageKo => 'Korean';
 
   @override
+  String get languageRu => 'Russian';
+
+  @override
   String modelSize(String size) {
     return 'Size: $size';
   }
@@ -704,6 +707,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelApiToken => 'API Token';
 
   @override
+  String get streamingRequiresWhisper =>
+      'Streaming requires the Whisper engine. Switch backend in Settings.';
+
+  @override
+  String get streamingMicUnavailable => 'Microphone unavailable for streaming.';
+
+  @override
+  String get streamingEngineNoSession =>
+      'Engine returned no streaming session.';
+
+  @override
   String playbackFailed(String error) {
     return 'Playback failed: $error';
   }
@@ -952,7 +966,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.';
 
   @override
+  String get advancedSourceLanguage => 'Source language (override autodetect)';
+
+  @override
+  String get advancedSourceLanguageAuto => 'Auto / use main picker';
+
+  @override
+  String get advancedSourceLanguageHelper =>
+      'Pin the source language when whisper\'s autodetect is unreliable on noisy audio. Empty = fall back to the main language dropdown / autodetect.';
+
+  @override
   String get advancedTargetLanguage => 'Translate to (target language)';
+
+  @override
+  String get advancedTargetLanguageNone => 'No translation (verbatim)';
 
   @override
   String get advancedTargetLanguageHelper =>

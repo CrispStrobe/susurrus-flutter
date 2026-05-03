@@ -101,6 +101,7 @@
   "languageZh": "Chinese",
   "languageJa": "Japanese",
   "languageKo": "Korean",
+  "languageRu": "Russian",
 
   "modelSize": "Size: {size}",
   "@modelSize": {
@@ -309,6 +310,9 @@
   "tooltipPauseAutoScroll": "Pause auto-scroll",
   "tooltipResumeAutoScroll": "Resume auto-scroll",
   "labelApiToken": "API Token",
+  "streamingRequiresWhisper": "Streaming requires the Whisper engine. Switch backend in Settings.",
+  "streamingMicUnavailable": "Microphone unavailable for streaming.",
+  "streamingEngineNoSession": "Engine returned no streaming session.",
 
   "playbackFailed": "Playback failed: {error}",
   "@playbackFailed": {
@@ -431,7 +435,11 @@
   "advancedInitialPromptHint": "e.g. \"CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung\"",
   "advancedRestorePunctuation": "Restore punctuation (FireRedPunc)",
   "advancedRestorePunctuationSubtitle": "Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.",
+  "advancedSourceLanguage": "Source language (override autodetect)",
+  "advancedSourceLanguageAuto": "Auto / use main picker",
+  "advancedSourceLanguageHelper": "Pin the source language when whisper's autodetect is unreliable on noisy audio. Empty = fall back to the main language dropdown / autodetect.",
   "advancedTargetLanguage": "Translate to (target language)",
+  "advancedTargetLanguageNone": "No translation (verbatim)",
   "advancedTargetLanguageHelper": "Visible only for translation-capable backends (Canary, Voxtral, Qwen3, Cohere, Whisper). Leave at \"No translation\" for verbatim transcription.",
   "advancedAskPrompt": "Ask the audio (Q&A mode)",
   "advancedAskPromptHint": "e.g. \"Summarize\" or \"What's the speaker's tone?\"",

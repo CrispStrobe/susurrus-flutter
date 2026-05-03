@@ -968,9 +968,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
       final started = DateTime.now();
       List<TranscriptionSegment> segments = [];
-      final language = _language == 'auto' ? null : _language;
-
       final adv = ref.read(advancedOptionsProvider);
+      // Source-language override: when the user pinned a source in
+      // Advanced Options, it wins over the global picker / autodetect.
+      // Empty means "use the global picker" — same behaviour as before.
+      final language = adv.sourceLanguage.isNotEmpty
+          ? adv.sourceLanguage
+          : (_language == 'auto' ? null : _language);
 
       if (filePath != null) {
         segments = await transcriptionService.transcribeFile(
@@ -1052,7 +1056,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final queue = ref.read(batchQueueProvider.notifier);
     final appStateNotifier = ref.read(appStateProvider.notifier);
     final adv = ref.read(advancedOptionsProvider);
-    final language = _language == 'auto' ? null : _language;
+    final language = adv.sourceLanguage.isNotEmpty
+        ? adv.sourceLanguage
+        : (_language == 'auto' ? null : _language);
 
     // Load the model once for the whole batch.
     if (!_engineReady) await _ensureEngineReady();

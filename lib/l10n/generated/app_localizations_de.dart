@@ -270,6 +270,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get languageKo => 'Koreanisch';
 
   @override
+  String get languageRu => 'Russisch';
+
+  @override
   String modelSize(String size) {
     return 'Größe: $size';
   }
@@ -708,6 +711,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get labelApiToken => 'API-Token';
 
   @override
+  String get streamingRequiresWhisper =>
+      'Streaming benötigt die Whisper-Engine. Backend in den Einstellungen wechseln.';
+
+  @override
+  String get streamingMicUnavailable =>
+      'Mikrofon für Streaming nicht verfügbar.';
+
+  @override
+  String get streamingEngineNoSession =>
+      'Engine liefert keine Streaming-Sitzung.';
+
+  @override
   String playbackFailed(String error) {
     return 'Wiedergabe fehlgeschlagen: $error';
   }
@@ -958,7 +973,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.';
 
   @override
+  String get advancedSourceLanguage =>
+      'Quellsprache (Autoerkennung überschreiben)';
+
+  @override
+  String get advancedSourceLanguageAuto => 'Auto / Hauptauswahl verwenden';
+
+  @override
+  String get advancedSourceLanguageHelper =>
+      'Quellsprache festlegen, wenn Whispers Autoerkennung bei verrauschtem Audio unzuverlässig ist. Leer = Hauptsprachen-Auswahl / Autoerkennung verwenden.';
+
+  @override
   String get advancedTargetLanguage => 'Übersetzen in (Zielsprache)';
+
+  @override
+  String get advancedTargetLanguageNone => 'Keine Übersetzung (wörtlich)';
 
   @override
   String get advancedTargetLanguageHelper =>

@@ -596,6 +596,12 @@ abstract class AppLocalizations {
   /// **'Korean'**
   String get languageKo;
 
+  /// No description provided for @languageRu.
+  ///
+  /// In en, this message translates to:
+  /// **'Russian'**
+  String get languageRu;
+
   /// No description provided for @modelSize.
   ///
   /// In en, this message translates to:
@@ -1304,6 +1310,24 @@ abstract class AppLocalizations {
   /// **'API Token'**
   String get labelApiToken;
 
+  /// No description provided for @streamingRequiresWhisper.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming requires the Whisper engine. Switch backend in Settings.'**
+  String get streamingRequiresWhisper;
+
+  /// No description provided for @streamingMicUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone unavailable for streaming.'**
+  String get streamingMicUnavailable;
+
+  /// No description provided for @streamingEngineNoSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine returned no streaming session.'**
+  String get streamingEngineNoSession;
+
   /// No description provided for @playbackFailed.
   ///
   /// In en, this message translates to:
@@ -1742,11 +1766,35 @@ abstract class AppLocalizations {
   /// **'Capitalize and punctuate raw output. Useful for CTC backends (wav2vec2, fastconformer-ctc, firered-asr). Requires fireredpunc-*.gguf in Model Management.'**
   String get advancedRestorePunctuationSubtitle;
 
+  /// No description provided for @advancedSourceLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Source language (override autodetect)'**
+  String get advancedSourceLanguage;
+
+  /// No description provided for @advancedSourceLanguageAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto / use main picker'**
+  String get advancedSourceLanguageAuto;
+
+  /// No description provided for @advancedSourceLanguageHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin the source language when whisper\'s autodetect is unreliable on noisy audio. Empty = fall back to the main language dropdown / autodetect.'**
+  String get advancedSourceLanguageHelper;
+
   /// No description provided for @advancedTargetLanguage.
   ///
   /// In en, this message translates to:
   /// **'Translate to (target language)'**
   String get advancedTargetLanguage;
+
+  /// No description provided for @advancedTargetLanguageNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No translation (verbatim)'**
+  String get advancedTargetLanguageNone;
 
   /// No description provided for @advancedTargetLanguageHelper.
   ///

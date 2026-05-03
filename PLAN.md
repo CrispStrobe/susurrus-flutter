@@ -218,7 +218,7 @@ Remaining (follow-up):
   that accept `-sl` separately from autodetect.
 - **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
 - **Grammar (GBNF)** — Whisper-only, niche but valuable for structured output.
-- **Streaming on mic** — `CrispASREngine.transcribeStream` exists but isn't UI-wired yet.
+- ✅ **Streaming on mic** — already wired. `lib/widgets/audio_recorder_widget.dart` exposes a "Stream" toggle: when on, `audioService.startStreamingRecording()` opens a live PCM stream into `engine.transcribeStream`, and each emitted segment overwrites the rolling text via `AppStateNotifier.replaceLiveStreamingText`. Whisper-only (others don't expose the streaming session API). Error dialogs localised in this session.
 - **Auto-download default** — CrispASR's `-m auto` per backend.
   *Needs a design pass before becoming a dev task:* the model catalog
   has no `isDefault` flag, the Model Management list is per-quant not

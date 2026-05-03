@@ -52,6 +52,13 @@ class AdvancedOptions {
   /// temperature silently no-op (the C ABI returns rc=-2).
   final double temperature;
 
+  /// Explicit source-language override for translation backends.
+  /// Empty means "use the global language dropdown / autodetect".
+  /// Non-empty overrides `language:` on the engine call so the user
+  /// can pin the source while picking a different target — useful
+  /// when whisper's autodetect is unreliable on noisy audio.
+  final String sourceLanguage;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -61,6 +68,7 @@ class AdvancedOptions {
     this.targetLanguage = '',
     this.askPrompt = '',
     this.temperature = 0.0,
+    this.sourceLanguage = '',
   });
 
   AdvancedOptions copyWith({
@@ -72,6 +80,7 @@ class AdvancedOptions {
     String? targetLanguage,
     String? askPrompt,
     double? temperature,
+    String? sourceLanguage,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -82,6 +91,7 @@ class AdvancedOptions {
         targetLanguage: targetLanguage ?? this.targetLanguage,
         askPrompt: askPrompt ?? this.askPrompt,
         temperature: temperature ?? this.temperature,
+        sourceLanguage: sourceLanguage ?? this.sourceLanguage,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -307,45 +317,97 @@ class _AdvancedDecodingSectionState
   Widget _buildTargetLanguageRow(
       BuildContext context, AdvancedOptions opts) {
     final l = AppLocalizations.of(context);
-    if (!AdvancedOptions.translationCapableBackends.contains(_activeBackend())) {
-      // Hide the dropdown for backends that don't translate. Keeps
+    if (!AdvancedOptions.translationCapableBackends
+        .contains(_activeBackend())) {
+      // Hide the dropdowns for backends that don't translate. Keeps
       // the panel uncluttered for the wav2vec2 / parakeet / mimo-asr
       // common case.
       return const SizedBox.shrink();
     }
-    const langs = <MapEntry<String, String>>[
-      MapEntry('', 'No translation (verbatim)'),
-      MapEntry('en', 'English'),
-      MapEntry('de', 'German'),
-      MapEntry('es', 'Spanish'),
-      MapEntry('fr', 'French'),
-      MapEntry('it', 'Italian'),
-      MapEntry('pt', 'Portuguese'),
-      MapEntry('zh', 'Chinese'),
-      MapEntry('ja', 'Japanese'),
-      MapEntry('ko', 'Korean'),
-      MapEntry('ru', 'Russian'),
-    ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: l.advancedTargetLanguage,
-          helperText: l.advancedTargetLanguageHelper,
-          border: const OutlineInputBorder(),
-          isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: DropdownButtonFormField<String>(
+            decoration: InputDecoration(
+              labelText: l.advancedSourceLanguage,
+              helperText: l.advancedSourceLanguageHelper,
+              border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+            initialValue: opts.sourceLanguage,
+            items: [
+              for (final e in _sourceLanguageOptions(context))
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) =>
+                ref.read(advancedOptionsProvider.notifier).state =
+                    opts.copyWith(sourceLanguage: v ?? ''),
+          ),
         ),
-        initialValue: opts.targetLanguage,
-        items: [
-          for (final e in langs)
-            DropdownMenuItem(value: e.key, child: Text(e.value)),
-        ],
-        onChanged: (v) =>
-            ref.read(advancedOptionsProvider.notifier).state =
-                opts.copyWith(targetLanguage: v ?? ''),
-      ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: DropdownButtonFormField<String>(
+            decoration: InputDecoration(
+              labelText: l.advancedTargetLanguage,
+              helperText: l.advancedTargetLanguageHelper,
+              border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+            initialValue: opts.targetLanguage,
+            items: [
+              for (final e in _targetLanguageOptions(context))
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) =>
+                ref.read(advancedOptionsProvider.notifier).state =
+                    opts.copyWith(targetLanguage: v ?? ''),
+          ),
+        ),
+      ],
     );
+  }
+
+  List<MapEntry<String, String>> _sourceLanguageOptions(
+      BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return [
+      // Empty string = "use whatever the global language dropdown
+      // says / let whisper autodetect". Pinning a source via this
+      // override is only useful when autodetect is unreliable.
+      MapEntry('', l.advancedSourceLanguageAuto),
+      MapEntry('en', l.languageEn),
+      MapEntry('de', l.languageDe),
+      MapEntry('es', l.languageEs),
+      MapEntry('fr', l.languageFr),
+      MapEntry('it', l.languageIt),
+      MapEntry('pt', l.languagePt),
+      MapEntry('zh', l.languageZh),
+      MapEntry('ja', l.languageJa),
+      MapEntry('ko', l.languageKo),
+    ];
+  }
+
+  List<MapEntry<String, String>> _targetLanguageOptions(
+      BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return [
+      MapEntry('', l.advancedTargetLanguageNone),
+      MapEntry('en', l.languageEn),
+      MapEntry('de', l.languageDe),
+      MapEntry('es', l.languageEs),
+      MapEntry('fr', l.languageFr),
+      MapEntry('it', l.languageIt),
+      MapEntry('pt', l.languagePt),
+      MapEntry('zh', l.languageZh),
+      MapEntry('ja', l.languageJa),
+      MapEntry('ko', l.languageKo),
+      MapEntry('ru', l.languageRu),
+    ];
   }
 }

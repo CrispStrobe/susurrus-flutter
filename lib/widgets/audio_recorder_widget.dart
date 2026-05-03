@@ -321,13 +321,16 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     final engine = transcriptionService.currentEngine;
     if (engine == null || !engine.supportsStreaming) {
       _showErrorDialog(
-          'Streaming requires the Whisper engine. Switch backend in Settings.');
+          AppLocalizations.of(context).streamingRequiresWhisper);
       return;
     }
 
     final pcmStream = await audioService.startStreamingRecording();
     if (pcmStream == null) {
-      _showErrorDialog('Microphone unavailable for streaming.');
+      if (mounted) {
+        _showErrorDialog(
+            AppLocalizations.of(context).streamingMicUnavailable);
+      }
       return;
     }
 
@@ -348,7 +351,10 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     final segStream = engine.transcribeStream(_micController!.stream);
     if (segStream == null) {
       await _stopStreamRecording();
-      _showErrorDialog('Engine returned no streaming session.');
+      if (mounted) {
+        _showErrorDialog(
+            AppLocalizations.of(context).streamingEngineNoSession);
+      }
       return;
     }
 

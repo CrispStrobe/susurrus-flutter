@@ -101,6 +101,7 @@
   "languageZh": "Chinesisch",
   "languageJa": "Japanisch",
   "languageKo": "Koreanisch",
+  "languageRu": "Russisch",
 
   "modelSize": "Größe: {size}",
   "@modelSize": {
@@ -309,6 +310,9 @@
   "tooltipPauseAutoScroll": "Auto-Scroll pausieren",
   "tooltipResumeAutoScroll": "Auto-Scroll fortsetzen",
   "labelApiToken": "API-Token",
+  "streamingRequiresWhisper": "Streaming benötigt die Whisper-Engine. Backend in den Einstellungen wechseln.",
+  "streamingMicUnavailable": "Mikrofon für Streaming nicht verfügbar.",
+  "streamingEngineNoSession": "Engine liefert keine Streaming-Sitzung.",
 
   "playbackFailed": "Wiedergabe fehlgeschlagen: {error}",
   "@playbackFailed": {
@@ -431,7 +435,11 @@
   "advancedInitialPromptHint": "z. B. „CrispASR, Flutter, Riverpod, Sprecher-Unterscheidung“",
   "advancedRestorePunctuation": "Interpunktion wiederherstellen (FireRedPunc)",
   "advancedRestorePunctuationSubtitle": "Großschreibung und Satzzeichen für Roh-Transkripte. Nützlich für CTC-Backends (wav2vec2, fastconformer-ctc, firered-asr). Benötigt fireredpunc-*.gguf in der Modellverwaltung.",
+  "advancedSourceLanguage": "Quellsprache (Autoerkennung überschreiben)",
+  "advancedSourceLanguageAuto": "Auto / Hauptauswahl verwenden",
+  "advancedSourceLanguageHelper": "Quellsprache festlegen, wenn Whispers Autoerkennung bei verrauschtem Audio unzuverlässig ist. Leer = Hauptsprachen-Auswahl / Autoerkennung verwenden.",
   "advancedTargetLanguage": "Übersetzen in (Zielsprache)",
+  "advancedTargetLanguageNone": "Keine Übersetzung (wörtlich)",
   "advancedTargetLanguageHelper": "Nur sichtbar für übersetzungsfähige Backends (Canary, Voxtral, Qwen3, Cohere, Whisper). „Keine Übersetzung\" für wortgetreue Transkription.",
   "advancedAskPrompt": "Audio fragen (Q&A-Modus)",
   "advancedAskPromptHint": "z. B. „Zusammenfassen\" oder „Wie klingt der Sprecher?\"",

@@ -19,6 +19,7 @@ void main() {
       expect(o.targetLanguage, '');
       expect(o.askPrompt, '');
       expect(o.temperature, 0.0);
+      expect(o.sourceLanguage, '');
     });
 
     test('copyWith with no args returns identical-valued copy', () {
@@ -31,6 +32,7 @@ void main() {
         targetLanguage: 'de',
         askPrompt: 'Summarize the audio.',
         temperature: 0.7,
+        sourceLanguage: 'en',
       );
       final copy = original.copyWith();
       expect(copy.translate, original.translate);
@@ -41,6 +43,18 @@ void main() {
       expect(copy.targetLanguage, original.targetLanguage);
       expect(copy.askPrompt, original.askPrompt);
       expect(copy.temperature, original.temperature);
+      expect(copy.sourceLanguage, original.sourceLanguage);
+    });
+
+    test('sourceLanguage roundtrips through copyWith', () {
+      const original = AdvancedOptions(targetLanguage: 'en');
+      final updated = original.copyWith(sourceLanguage: 'de');
+      expect(updated.sourceLanguage, 'de');
+      expect(updated.targetLanguage, 'en');
+
+      final cleared = updated.copyWith(sourceLanguage: '');
+      expect(cleared.sourceLanguage, '');
+      expect(cleared.targetLanguage, 'en');
     });
 
     test('copyWith preserves untouched fields when one is changed', () {
