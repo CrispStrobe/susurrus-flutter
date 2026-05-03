@@ -93,28 +93,23 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build libwhisper.dylib
-        working-directory: repos/CrispASR
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=ON -DWHISPER_METAL=ON
-          cmake --build build --config Release --parallel --target crispasr
-          ls -lh build/src/libwhisper*.dylib
-
-      - name: Pub get
+      # Use the same end-to-end macOS build script we run locally.
+      # The earlier hand-rolled `cmake -B build … --target crispasr`
+      # diverged from `scripts/build_macos.sh` in a few load-bearing
+      # ways: it didn't disable CRISPASR_BUILD_TESTS / EXAMPLES /
+      # SERVER (so cmake configure pulled in unrelated source trees
+      # and tripped on the OBJCXX language requirement that comes in
+      # via the CoreML wrappers when CRISPASR_COREML defaults to AUTO);
+      # and it only built the `crispasr` target without first building
+      # the 30 per-backend STATIC archives, so the resulting
+      # libwhisper.dylib was missing every backend except whisper.
+      # Driving the same script we use locally keeps both paths
+      # validated together and avoids future "works on my machine" gaps.
+      - name: Build CrispASR + Flutter macOS app (one shot via script)
         working-directory: repos/CrisperWeaver
-        run: flutter pub get
-
-      - name: Build macOS app (debug)
-        working-directory: repos/CrisperWeaver
-        run: flutter build macos --debug
-
-      - name: Bundle all CrispASR dylibs + ad-hoc sign
-        working-directory: repos/CrisperWeaver
-        run: |
-          CRISPASR_DIR="$GITHUB_WORKSPACE/repos/CrispASR" \
-            APP=build/macos/Build/Products/Debug/crisper_weaver.app \
-            ./scripts/bundle_macos_dylibs.sh
+        env:
+          CRISPASR_DIR: ${{ github.workspace }}/repos/CrispASR
+        run: bash scripts/build_macos.sh debug
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v6
@@ -157,48 +152,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build libwhisper.so
-        working-directory: repos/CrispASR
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
-          cmake --build build --config Release --parallel --target crispasr
-          ls -lh build/src/libwhisper*.so*
+      - name: Enable linux desktop
+        run: flutter config --enable-linux-desktop
 
-      - name: Enable linux desktop + pub get
+      # Same shape as the macOS job above — drive the local
+      # `scripts/build_linux.sh` so the per-backend STATIC build
+      # pattern (parakeet, canary, voxtral, kokoro, …) matches what
+      # devs run on their machines. The earlier hand-rolled cmake
+      # invocation only built `crispasr` and skipped every per-
+      # backend static, which left the runtime missing every
+      # backend except whisper at app launch.
+      - name: Build CrispASR + Flutter Linux desktop (one shot via script)
         working-directory: repos/CrisperWeaver
-        run: |
-          flutter config --enable-linux-desktop
-          flutter pub get
-
-      - name: Build Linux (debug)
-        working-directory: repos/CrisperWeaver
-        run: flutter build linux --debug
-
-      - name: Bundle all CrispASR .so's into bundle/lib/
-        working-directory: repos/CrisperWeaver
-        run: |
-          BUNDLE=build/linux/x64/debug/bundle
-          mkdir -p "$BUNDLE/lib"
-
-          # Core library — pick the real file, then symlink both
-          # historical names so either open path works.
-          SO=$(ls ../CrispASR/build/src/libwhisper.so.[0-9]* 2>/dev/null | head -1)
-          [ -z "$SO" ] && SO=../CrispASR/build/src/libwhisper.so
-          cp "$SO" "$BUNDLE/lib/libwhisper.so"
-          ln -sf libwhisper.so "$BUNDLE/lib/libcrispasr.so"
-
-          # Sibling backend .so's — DT_NEEDED by libwhisper.so. Missing
-          # ones just get skipped (slim builds stay valid).
-          for name in parakeet canary qwen3_asr cohere granite_speech \
-                      canary_ctc voxtral voxtral4b; do
-            src="../CrispASR/build/src/lib${name}.so"
-            if [ -f "$src" ]; then
-              cp "$src" "$BUNDLE/lib/lib${name}.so"
-            else
-              echo "warn: $src missing, backend ${name} not runtime-ready" >&2
-            fi
-          done
-          ls -lh "$BUNDLE/lib/"
+        env:
+          CRISPASR_DIR: ${{ github.workspace }}/repos/CrispASR
+        run: bash scripts/build_linux.sh debug
 
       - name: Upload Linux bundle
         uses: actions/upload-artifact@v6
