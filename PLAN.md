@@ -388,30 +388,77 @@ plumbing.
 Route registered in `lib/main.dart`. ARB strings under
 `storage*` and `settingsStorageBreakdown*` (en + de).
 
-### 5.22 iOS feature parity verification
+### 5.22 iOS feature parity verification — AUDIT DONE; ON-DEVICE PASS PENDING
 
-**What:** most of what we built (streaming mic via `record`,
-`FilePicker.getDirectoryPath`, `just_audio` playback, the .mlmodelc
-bundle path) hasn't been verified on a real iOS device since the
-v0.2.0 → v0.3.0 cycle. Spin up a sideload IPA, walk through every
-screen, log the breakage, fix.
+**Static-audit fixes applied (no device needed):**
+* CoreML companion download was gated `Platform.isMacOS` only;
+  every modern iPhone has the Apple Neural Engine, so the
+  `.mlmodelc` is just as load-bearing on iOS. Now fires for both
+  (`lib/services/model_service.dart` near `_maybeFetchCoreMLCompanion`).
+* `ios/Runner/Info.plist` had two booby-traps that would have made
+  iOS launch noisy or unstable:
+  - `NSExtension { NSExtensionPointIdentifier =
+    com.apple.widgetkit-extension }` at the host-app level — that
+    key only belongs in an extension target's Info.plist; in the
+    main app it tells iOS to treat the host bundle as an extension.
+    Removed.
+  - `UIApplicationSceneManifest` referencing
+    `$(PRODUCT_MODULE_NAME).SceneDelegate`, but no `SceneDelegate.swift`
+    exists in the target. iOS 13+ would log a scene-connection failure
+    and fall back to the AppDelegate path on every launch. Removed
+    the manifest; a real `SceneDelegate.swift` has to land before we
+    re-introduce it.
+* The custom-models-dir picker is now hidden on iOS
+  (`lib/screens/settings_screen.dart`). On the iOS sandbox an
+  arbitrary host path is meaningless without security-scoped
+  bookmarks; the default `<app-docs>/models/whisper_cpp/` is the only
+  sane location until that flow is built.
 
-**Likely sore spots:**
-* `record` package's `startStream` API differs across iOS ↔ macOS.
-* `FilePicker.getDirectoryPath` is desktop-only on file_picker 11
-  per their docs — needs a substitute on iOS (write to app sandbox
-  + share via UIDocumentPickerViewController).
-* CoreML `.mlmodelc` files need to be writable by the app sandbox
-  on iOS; macOS's `<app-docs>/models/whisper_cpp/...` works but the
-  iOS path resolution probably needs `getApplicationSupportDirectory`
-  variants.
-* The custom-models-dir setting probably should be hidden on iOS
-  (sandbox doesn't allow arbitrary host paths).
+**Still needs a real device:**
 
-**Where:** every service file that touches paths or platform APIs.
-~1 day to test + fix.
+1. **Native library bundling.** `package:crispasr` opens
+   `libcrispasr.dylib` (or `crispasr.framework/crispasr`) via
+   `dart:ffi`. Nothing in `ios/` currently bundles either. Build the
+   xcframework with `CrispASR/build-ios.sh`, drag it into Runner with
+   "Embed & Sign", then verify `defaultLibName()` resolves on a
+   sideload run. Without this the app launches but every transcription
+   fails with "no backends".
+2. **Mic permission prompt.** First `record.hasPermission()` call must
+   show the system mic prompt (`NSMicrophoneUsageDescription` is
+   already set). Verify both initial-grant and "denied → re-enter
+   Settings → toggle on" recovery.
+3. **Streaming mic.** `AudioRecorder.startStream` with PCM16 @ 16 kHz
+   is documented as iOS-supported but the macOS path is what's been
+   exercised. Confirm chunks arrive at sub-second cadence and the
+   live transcript heartbeat works.
+4. **`just_audio` playback.** No `audio_session` configuration today.
+   Recording or silent-mode can stop playback unexpectedly. If that
+   shows up on device, add `audio_session` and call
+   `AVAudioSession.setCategory(.playAndRecord)` on first audio op.
+5. **Background audio continuation.** `UIBackgroundModes = [audio]`
+   is declared but only takes effect once an audio session is active.
+   Verify that streaming mic survives a screen-lock.
+6. **Share intake.** "Open in CrisperWeaver" from Files / Mail
+   delivers a file path through `receive_sharing_intent`. Verify the
+   path is readable (security-scoped) and the transcription screen
+   picks it up.
+7. **`FilePicker.pickFiles`** for "Open audio file" on the
+   transcription screen — file_picker on iOS surfaces this through
+   UIDocumentPicker and copies into a temp location; verify the
+   returned path is openable by `just_audio`.
+8. **CoreML companion .mlmodelc.** After the fix above, verify
+   `getApplicationDocumentsDirectory()` returns a writable path on
+   iOS for the unzip target, and that the companion actually loads
+   (look for "Loading Core ML model" in the libwhisper logs).
+9. **`PrivacyInfo.xcprivacy`.** App Store Connect rejects iOS uploads
+   from May 2024 onwards that touch certain APIs without a privacy
+   manifest *file* (the `NSPrivacy*` keys currently in `Info.plist`
+   are ignored — they belong in a separate `PrivacyInfo.xcprivacy`).
+   We use NSUserDefaults and FileTimestamp APIs, so add a manifest
+   when prepping the first TestFlight build.
 
-**Risk:** medium-high. iOS surface always surprises.
+**Risk:** medium-high. Item 1 (xcframework bundling) is the only
+launch-blocker; the rest are quality issues that surface in use.
 
 ### 5.9 Dependency refresh
 

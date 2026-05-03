@@ -1319,9 +1319,11 @@ class ModelService {
       // alongside the .bin; download + unzip if available. Best-effort
       // — failures are logged but don't fail the main download (user
       // still gets the working .bin, just without ANE acceleration).
+      // iOS gets the same treatment because the Apple Neural Engine on
+      // every modern iPhone is the entire point of the CoreML build.
       if (modelDef.backend == 'whisper' &&
           modelDef.fileName.endsWith('.bin') &&
-          Platform.isMacOS) {
+          (Platform.isMacOS || Platform.isIOS)) {
         await _maybeFetchCoreMLCompanion(modelDef, modelDir);
       }
 

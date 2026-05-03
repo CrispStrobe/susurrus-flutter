@@ -493,14 +493,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           trailing: const Icon(Icons.vpn_key),
           onTap: () => _showHfTokenDialog(settings),
         ),
-        ListTile(
-          title: Text(AppLocalizations.of(context).settingsModelsDir),
-          subtitle: Text(settings.customModelsDir.isEmpty
-              ? AppLocalizations.of(context).settingsModelsDirDefault
-              : settings.customModelsDir),
-          trailing: const Icon(Icons.folder_open),
-          onTap: () => _showModelsDirDialog(settings),
-        ),
+        // iOS sandboxes apps inside their container; pointing the model
+        // store at an arbitrary folder requires security-scoped bookmarks
+        // and a different storage flow. Hide the picker on iOS until that
+        // exists — the default path inside the app's documents directory
+        // is the only sane location there.
+        if (!Platform.isIOS)
+          ListTile(
+            title: Text(AppLocalizations.of(context).settingsModelsDir),
+            subtitle: Text(settings.customModelsDir.isEmpty
+                ? AppLocalizations.of(context).settingsModelsDirDefault
+                : settings.customModelsDir),
+            trailing: const Icon(Icons.folder_open),
+            onTap: () => _showModelsDirDialog(settings),
+          ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),

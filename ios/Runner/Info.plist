@@ -225,24 +225,14 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 
-	<!-- Scene Configuration (iOS 13+) -->
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneConfigurationName</key>
-					<string>Default Configuration</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-				</dict>
-			</array>
-		</dict>
-	</dict>
+	<!--
+	No UIApplicationSceneManifest: the standard Flutter iOS template uses
+	the AppDelegate-only single-window architecture. The previous manifest
+	referenced $(PRODUCT_MODULE_NAME).SceneDelegate, but no SceneDelegate
+	class exists in this target — iOS would log a connection failure on
+	launch on every iOS 13+ device. Add a real SceneDelegate.swift before
+	re-introducing the manifest.
+	-->
 
 	<!-- App Icon and Launch Images -->
 	<key>CFBundleIcons</key>
@@ -374,14 +364,15 @@
 	<key>UIPrerenderedIcon</key>
 	<false/>
 
-	<!-- Widget Extensions Support -->
-	<key>NSExtension</key>
-	<dict>
-		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.widgetkit-extension</string>
-	</dict>
-
 	<!-- CarPlay Support (optional) -->
+	<!--
+	NOTE: NSExtension belongs in an extension target's Info.plist, not the
+	host app's. Removed an `NSExtensionPointIdentifier =
+	com.apple.widgetkit-extension` block here that would have caused iOS to
+	treat the main bundle as an extension. If we ship a real WidgetKit
+	extension later it gets its own target with its own Info.plist.
+	-->
+
 	<key>UIApplicationSupportsCarPlay</key>
 	<false/>
 
