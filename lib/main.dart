@@ -267,6 +267,13 @@ class AppState {
   final String? errorMessage;
   final List<TranscriptionSegment> segments;
   final PerformanceStats? performance;
+  /// Per-session map from diariser-emitted speaker labels (e.g.
+  /// "Speaker 1", "Speaker 2") to user-chosen names (e.g. "Alice",
+  /// "Host"). Applied at render time so future segments arriving
+  /// after the rename also get the new label, and so the original
+  /// label is recoverable. Persisted into HistoryEntry on save so
+  /// renames survive across launches.
+  final Map<String, String> speakerNames;
 
   const AppState({
     this.currentTranscription,
@@ -275,6 +282,7 @@ class AppState {
     this.errorMessage,
     this.segments = const [],
     this.performance,
+    this.speakerNames = const {},
   });
 
   AppState copyWith({
@@ -284,6 +292,7 @@ class AppState {
     String? errorMessage,
     List<TranscriptionSegment>? segments,
     PerformanceStats? performance,
+    Map<String, String>? speakerNames,
   }) {
     return AppState(
       currentTranscription: currentTranscription ?? this.currentTranscription,
@@ -292,6 +301,7 @@ class AppState {
       errorMessage: errorMessage ?? this.errorMessage,
       segments: segments ?? this.segments,
       performance: performance ?? this.performance,
+      speakerNames: speakerNames ?? this.speakerNames,
     );
   }
 }
@@ -354,7 +364,24 @@ class AppStateNotifier extends StateNotifier<AppState> {
       progress: 0.0,
       errorMessage: null,
       segments: [], // Clear previous segments
+      speakerNames: const {}, // Drop renames from previous run
     );
+  }
+
+  /// Rename a speaker (e.g. "Speaker 1" → "Alice"). The mapping is
+  /// applied at render time so segments are not mutated; this keeps
+  /// the original label recoverable and means future segments
+  /// arriving with the original label automatically pick up the new
+  /// name. Empty `newName` removes the override.
+  void renameSpeaker(String original, String newName) {
+    if (original.isEmpty) return;
+    final next = Map<String, String>.from(state.speakerNames);
+    if (newName.trim().isEmpty) {
+      next.remove(original);
+    } else {
+      next[original] = newName.trim();
+    }
+    state = state.copyWith(speakerNames: next);
   }
 
   void updateProgress(double progress) {

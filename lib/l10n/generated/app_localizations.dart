@@ -758,6 +758,24 @@ abstract class AppLocalizations {
   /// **'Segment editing not yet implemented'**
   String get outputEditNotImplemented;
 
+  /// No description provided for @outputRenameSpeakerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename speaker'**
+  String get outputRenameSpeakerTitle;
+
+  /// No description provided for @outputRenameSpeakerOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original label: {original}'**
+  String outputRenameSpeakerOriginal(String original);
+
+  /// No description provided for @outputRenameSpeakerReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to original'**
+  String get outputRenameSpeakerReset;
+
   /// No description provided for @outputExportNotImplemented.
   ///
   /// In en, this message translates to:

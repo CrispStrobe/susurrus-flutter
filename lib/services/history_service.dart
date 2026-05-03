@@ -19,6 +19,10 @@ class HistoryEntry {
   final bool diarizationEnabled;
   final Duration processingTime;
   final List<TranscriptionSegment> segments;
+  /// User-chosen speaker labels keyed by the diariser's original label
+  /// (e.g. "Speaker 1" → "Alice"). Applied at render time so segments
+  /// stay portable. Empty when no renames were made.
+  final Map<String, String> speakerNames;
 
   const HistoryEntry({
     required this.id,
@@ -31,6 +35,7 @@ class HistoryEntry {
     this.language,
     this.diarizationEnabled = false,
     this.processingTime = Duration.zero,
+    this.speakerNames = const {},
   });
 
   String get title {
@@ -51,6 +56,9 @@ class HistoryEntry {
         'language': language,
         'diarizationEnabled': diarizationEnabled,
         'processingTimeMs': processingTime.inMilliseconds,
+        // Field added 2026-05; older history files omit it and the
+        // loader treats absent as empty so back-compat is automatic.
+        'speakerNames': speakerNames,
         'segments': segments
             .map((s) => {
                   'text': s.text,
@@ -74,6 +82,8 @@ class HistoryEntry {
         processingTime: Duration(
           milliseconds: (j['processingTimeMs'] as num?)?.toInt() ?? 0,
         ),
+        speakerNames: ((j['speakerNames'] as Map?) ?? const {})
+            .map((k, v) => MapEntry(k.toString(), v.toString())),
         segments: ((j['segments'] as List?) ?? const [])
             .cast<Map<String, dynamic>>()
             .map((m) => TranscriptionSegment(
@@ -113,6 +123,7 @@ class HistoryService {
     String? language,
     bool diarizationEnabled = false,
     Duration processingTime = Duration.zero,
+    Map<String, String> speakerNames = const {},
   }) async {
     final dir = await _ensureDir();
     final entry = HistoryEntry(
@@ -126,6 +137,7 @@ class HistoryService {
       language: language,
       diarizationEnabled: diarizationEnabled,
       processingTime: processingTime,
+      speakerNames: speakerNames,
     );
     final file = File(p.join(dir.path, '${entry.id}.json'));
     await file.writeAsString(

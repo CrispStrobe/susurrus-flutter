@@ -240,22 +240,7 @@ class _TranscriptionOutputWidgetState
                   ],
 
                   if (_showSpeakers && segment.speaker != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getSpeakerColor(segment.speaker!),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        segment.speaker!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    _buildSpeakerChip(segment.speaker!),
                     const SizedBox(width: 8),
                   ],
 
@@ -611,6 +596,81 @@ class _TranscriptionOutputWidgetState
     return Colors.red;
   }
 
+  /// Speaker chip with rename-on-tap. Display label looks up the user's
+  /// custom name in `appState.speakerNames`; falls back to the
+  /// diariser's original label (e.g. "Speaker 1"). Colour stays keyed
+  /// to the ORIGINAL label so consistent across all segments by that
+  /// speaker even after rename.
+  Widget _buildSpeakerChip(String original) {
+    final renames = ref.watch(appStateProvider).speakerNames;
+    final display = renames[original] ?? original;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _showRenameSpeakerDialog(original, display),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: _getSpeakerColor(original),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          display,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRenameSpeakerDialog(String original, String currentDisplay) {
+    final controller = TextEditingController(text: currentDisplay);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(ctx).outputRenameSpeakerTitle),
+        content: SizedBox(
+          width: 320,
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(ctx)
+                  .outputRenameSpeakerOriginal(original),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(ctx).cancel),
+          ),
+          if (currentDisplay != original)
+            TextButton(
+              onPressed: () {
+                ref.read(appStateProvider.notifier).renameSpeaker(original, '');
+                Navigator.of(ctx).pop();
+              },
+              child:
+                  Text(AppLocalizations.of(ctx).outputRenameSpeakerReset),
+            ),
+          FilledButton(
+            onPressed: () {
+              ref
+                  .read(appStateProvider.notifier)
+                  .renameSpeaker(original, controller.text);
+              Navigator.of(ctx).pop();
+            },
+            child: Text(AppLocalizations.of(ctx).ok),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleOption(String option) {
     switch (option) {
       case 'timestamps':
@@ -685,9 +745,12 @@ class _TranscriptionOutputWidgetState
   }
 
   void _copySegmentText(TranscriptionSegment segment) {
-    final text = _showSpeakers && segment.speaker != null
-        ? '${segment.speaker}: ${segment.text}'
-        : segment.text;
+    final renames = ref.read(appStateProvider).speakerNames;
+    final spk = segment.speaker == null
+        ? null
+        : (renames[segment.speaker!] ?? segment.speaker!);
+    final text =
+        _showSpeakers && spk != null ? '$spk: ${segment.text}' : segment.text;
 
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(

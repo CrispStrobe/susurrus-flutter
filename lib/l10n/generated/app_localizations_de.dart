@@ -365,6 +365,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Segment-Bearbeitung noch nicht implementiert';
 
   @override
+  String get outputRenameSpeakerTitle => 'Sprecher umbenennen';
+
+  @override
+  String outputRenameSpeakerOriginal(String original) {
+    return 'Originale Bezeichnung: $original';
+  }
+
+  @override
+  String get outputRenameSpeakerReset => 'Auf Original zurücksetzen';
+
+  @override
   String get outputExportNotImplemented =>
       'Export-Funktion noch nicht implementiert';
 

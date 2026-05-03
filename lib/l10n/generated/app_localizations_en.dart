@@ -363,6 +363,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputEditNotImplemented => 'Segment editing not yet implemented';
 
   @override
+  String get outputRenameSpeakerTitle => 'Rename speaker';
+
+  @override
+  String outputRenameSpeakerOriginal(String original) {
+    return 'Original label: $original';
+  }
+
+  @override
+  String get outputRenameSpeakerReset => 'Reset to original';
+
+  @override
   String get outputExportNotImplemented =>
       'Export functionality not yet implemented';
 

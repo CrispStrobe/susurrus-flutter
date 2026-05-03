@@ -1020,6 +1020,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               language: _language,
               diarizationEnabled: _enableDiarization,
               processingTime: DateTime.now().difference(started),
+              speakerNames: ref.read(appStateProvider).speakerNames,
             );
       } catch (e, st) {
         debugPrint('History save failed: $e\n$st');
@@ -1105,6 +1106,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 sourcePath: next.filePath,
                 diarizationEnabled: _enableDiarization,
                 processingTime: DateTime.now().difference(started),
+                speakerNames: ref.read(appStateProvider).speakerNames,
               );
           historyId = saved.id;
         } catch (e, st) {
