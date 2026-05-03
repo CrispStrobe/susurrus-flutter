@@ -163,24 +163,24 @@ MFCC/k-means stopgap is gone. Default method is `vadTurns` (mono-
 friendly, no extra model file). Pyannote GGUF + a method picker in
 Advanced Options remain optional polish items.
 
-### 5.6 Backend-specific UX
+### 5.6 Backend-specific UX — ✅ shipped
 
-- ✅ **Voxtral / Granite `--ask` Q&A** — shipped in §5.8 first slice
-  (Advanced Options → "Ask the audio" prompt field, gated on
-  `AdvancedOptions.askCapableBackends`).
-- ✅ **Canary / Voxtral target-language picker** — shipped in the
-  same slice (Advanced Options → target-language dropdown, gated on
-  `translationCapableBackends`).
-- ✅ **Beam search toggle** — shipped in v0.1.4 first slice for every
-  backend that honours it (whisper + the per-backend `beamSearch:`
-  pass-through in `CrispASREngine.transcribe`).
-- ⏳ **Source-language picker** — when the user picks a target lang
-  for translation, the source lang is still inferred from the global
-  language dropdown / autodetect. A separate source picker would
-  unblock cross-lang translation where autodetect is unreliable.
-- ⏳ **Parakeet / FastConformer-CTC best-of-N** — best-of-N is
-  upstream-blocked (no `crispasr_session_set_best_of` in the C ABI;
-  see §5.8 + CrispASR PLAN Phase 6).
+All four sub-items landed across earlier slices and this session:
+
+- ✅ **Voxtral / Granite `--ask` Q&A** — Advanced Options → "Ask
+  the audio" prompt field, gated on
+  `AdvancedOptions.askCapableBackends`.
+- ✅ **Canary / Voxtral source + target language pickers** —
+  paired Source/Target dropdowns in Advanced Options, both gated on
+  `translationCapableBackends`. Source override falls back to the
+  main language picker / autodetect when empty.
+- ✅ **Beam search toggle** — for every backend that honours it
+  (whisper + the per-backend `beamSearch:` pass-through in
+  `CrispASREngine.transcribe`).
+- ✅ **Parakeet / FastConformer-CTC best-of-N** — slider 1–10 in
+  Advanced Options, always visible. Whisper consumes via
+  `wparams.greedy.best_of`; other backends loop N decodes externally
+  per CrispASR's C-side implementation.
 
 ### 5.7 Batch transcription ✅ shipped in v0.1.4
 

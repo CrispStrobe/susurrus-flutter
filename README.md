@@ -29,16 +29,20 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 - **Receive shared audio** from the OS share sheet (Android / iOS / macOS).
 - **Choose your model family and quantisation** — q4_0 / q5_0 / q4_k / q5_k / q6_k / q8_0 variants plus f16 originals. Model picker filters by name + backend; Model Management screen auto-probes HuggingFace to discover every available quant.
 - **Download and manage models** from a built-in browser — parallel queue, resume, SHA-1 verify, cancel, delete.
-- **Advanced decoding knobs** — translate-to-English (Whisper), beam search, initial-prompt vocabulary bias (huge win for domain audio).
+- **Advanced decoding knobs** — translate-to-English (Whisper), beam search, initial-prompt vocabulary bias (huge win for domain audio), audio Q&A prompt for instruct-tuned LLM backends (Voxtral / Qwen3), source + target language pickers for true speech translation.
+- **Tune the decoder live** — best-of-N slider (1–10, picks the highest-scoring of N decodes; works on every backend) and decoder temperature slider for sampling-capable backends (canary, cohere, parakeet, moonshine).
 - **See live performance numbers** — real-time factor, words per second, wall-clock.
 - **Get word-level timestamps** and language auto-detection (via Whisper).
-- **Stream transcription** from long-running mic or file input (10 s sliding window / 3 s step).
+- **Stream transcription** from long-running mic input — partial transcripts appear in the output card while you talk (10 s sliding window / 3 s step).
+- **Watch long files transcribe in real time** — chunked Whisper splits >60 s files into 30 s windows and streams segments through as each finishes, instead of waiting until the end.
 - **Export** to `.txt`, `.srt`, `.vtt`, or `.json` through the system share sheet.
-- **Review history** — every run is persisted as JSON and browseable / re-exportable.
+- **Review history** — every run is persisted as JSON and browseable / re-exportable, with speaker renames preserved across launches.
+- **Rename diariser speakers** — tap a speaker chip in the output to override the auto-assigned label ("Speaker 1" → "Alice"); the new name persists in history.
+- **See where storage went** — Settings → Storage breakdown lists per-backend disk usage with a one-click "delete all of X" action.
 - **Diagnose with logs** — in-app viewer with filter / search / copy / export, optional file sink.
 - **Synthesize speech (TTS)** — pick a downloaded TTS model + voice + codec on the *Synthesize* screen, type text, hit *Synthesize*; output plays in-app and saves as WAV.
 - **Restore punctuation** — FireRedPunc post-processor toggle in Advanced Options; turns `wav2vec2 / fastconformer-ctc / firered-asr` lowercase output into properly punctuated text.
-- **Use CrisperWeaver in English or German** — full i18n scaffold via `flutter_localizations`.
+- **Use CrisperWeaver in English or German** — full i18n scaffold via `flutter_localizations`, every user-facing string covered (guarded by an ARB-consistency test).
 
 ## Supported models
 
