@@ -16,129 +16,18 @@ What's done, what's partial, and what's next — with enough file paths and cont
 
 ---
 
-## 0. CrispASR 0.6 parity sweep (May 2026) — landed
+## 0. CrispASR 0.6.x parity sweep (May 2026) — ✅ shipped in v0.4.1
 
-The May 2026 sweep brought the catalog, advanced-options surface, and
-post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
+Six rounds of work between May 2026 brought CrisperWeaver up to
+CrispASR 0.6.2 parity: 3 new screens (Translate, Voice Bake, Local
+HTTP server), 8 new backends in the catalog, runtime-tunable
+flash-attn / GPU layers / TTS sampling sliders, and 3 new export
+formats. Released as
+[v0.4.1](https://github.com/CrispStrobe/CrisperWeaver/releases/tag/v0.4.1)
+paired with
+[CrispASR v0.6.2](https://github.com/CrispStrobe/CrispASR/releases/tag/v0.6.2).
 
-* New ASR backends in the catalog + capability sets: **gemma4-e2b**,
-  **omniasr-llm-unlimited**, **granite-speech-4.1** (2B, 4.1+, 4.1-nar).
-* New TTS backends: **chatterbox / kartoffelbox** (T3 AR + S3Gen),
-  **indextts** (GPT-2 AR + BigVGAN), **qwen3-tts-voicedesign**
-  (natural-language voice instruct), **vibevoice-1.5b** (runtime WAV
-  cloning via `setVoice(wav, refText:)`).
-* New post-processors: **fullstop-punc multilang** (EN/DE/FR/IT)
-  alongside FireRedPunc (ZH+EN). Picker in Advanced Options.
-* Diarisation method picker — vadTurns / pyannote (downloadable
-  GGUF) / energy / xcorr. `DiarizationService` now auto-locates the
-  pyannote GGUF and falls back to vad-turns when missing.
-* LID method picker — whisper / silero. `LidService` honours the
-  picked method, resolves the file, and falls back when mismatched.
-* VAD picker — silero (bundled) / firered / marblenet / whisper-vad.
-  Threshold + min-speech-ms + min-silence-ms + speech-pad-ms exposed
-  as sliders, plumbed through `TranscribeOptions` /
-  `SessionVadOptions`.
-* Whisper-only knobs: tdrz (tinydiarize), token-level timestamps.
-* Three new export formats: **CSV** (RFC-4180 quoting), **LRC**
-  (lyrics, mm:ss.cs), **WTS** (Whisper Text Segments debug).
-* TTS knobs in Synthesize screen: trim-silence, speed slider
-  (0.25×–4×, nearest-neighbour resample), reference-transcript field,
-  voice-design instruct field.
-* `AdvancedTranscribeOptions` value class bundling the new knobs so
-  `transcribeFile`/`transcribeUrl` keep their signatures stable.
-
-**Round 6 (still May 2026)** — closes CrispASR PLAN #88 and #89:
-
-* ✅ **PLAN #89 — flash_attn fields on every backend** — 12 of 12
-  backends (parakeet, canary, qwen3, cohere, granite_speech,
-  voxtral, voxtral4b, vibevoice, qwen3_tts, orpheus, kokoro,
-  chatterbox) now have `flash_attn` (or pre-existing `use_flash`)
-  in their `*_context_params`. `crispasr_session_open_explicit`
-  threads `g_open_flash_attn_tls` through. Compute-graph wiring
-  (PLAN #86) lands per backend incrementally.
-* ✅ **PLAN #88 — kokoro length-scale + vibevoice diffusion-step
-  runtime knobs.** Kokoro: new `length_scale` field +
-  `kokoro_set_length_scale` setter, applied before banker's-
-  rounding in the duration predictor. VibeVoice: new
-  `vibevoice_set_tts_steps` setter mutates the pre-existing
-  `tts_steps` cparams field. Both routed through unified session
-  setters (`crispasr_session_set_length_scale`,
-  `crispasr_session_set_tts_steps`). CrisperWeaver: TtsService's
-  `synthesize` now drives `setLengthScale(1/speed)` so the speed
-  slider stretches/squeezes via the duration model on kokoro
-  (clean) AND the client-side resampler on backends without one
-  (fallback).
-
-**Round 5 (still May 2026)**:
-
-* ✅ **Flash-attention + n_gpu_layers plumbing** — open-params struct
-  bumped to v2 (additive — v1 callers keep working). Wired through
-  the Dart binding's `CrispasrSession.openWithParams()` and into
-  CrisperWeaver's Advanced Options Performance section. Whisper
-  honours flash_attn at the kernel level today; other backends
-  accept the toggle and will branch on it as per-backend kernel
-  refactors land.
-* ✅ **Qwen3-TTS sampling temperature** — was a hardcoded
-  `temperature=0.9f` in the code-predictor's top-k sampler; now
-  reads `c->params.temperature` so the existing Synthesize-screen
-  temperature slider works on it. New `qwen3_tts_set_temperature`
-  runtime setter wired into `crispasr_session_set_temperature`.
-* ✅ **Local HTTP server (OpenAI-compatible)** — `shelf`-based,
-  bound to 127.0.0.1 only. Three endpoints
-  (`/v1/audio/transcriptions`, `/v1/audio/speech`,
-  `/v1/translations`) plus `/health`. Spins up from
-  *Settings → Local HTTP server*; lets external scripts drive
-  CrisperWeaver locally without re-authoring against a different API.
-
-**Round 4 (still May 2026)**:
-
-* ✅ **ASR-side GPU + perf toggles** — extended the C-ABI with
-  `crispasr_session_open_with_params(path, backend, params_v1*)`.
-  Threads `use_gpu` / `verbosity` / `n_threads` through every
-  backend's `*_context_params` struct at session-open time. Surfaced
-  in the Advanced Options "Performance" section as the *ASR on GPU*
-  toggle. Takes effect on the next model load.
-* ✅ **TTS sampling knobs** — chatterbox runtime setters for
-  diffusion steps, top-p, min-p, repetition penalty, CFG weight,
-  exaggeration, max speech tokens. Orpheus temperature too. New
-  `crispasr_session_set_*` exports + Dart binding methods
-  (`setTtsSteps`, `setTopP`, …). Synthesize screen surfaces five
-  sliders in its Advanced section; setters silently no-op on
-  backends that don't honour each field, so no per-backend UI
-  branching needed.
-
-**Round 3 (still May 2026)**:
-
-* ✅ **Custom voice WAV picker** on the Synthesize screen — surfaces
-  the existing `voiceWavPath` parameter that the TtsService already
-  accepted. Pick a WAV, optionally pair with a Reference transcript
-  for runtime cloning.
-* ✅ **Streaming for non-Whisper backends** — new
-  `CrispasrSession.openStream()` Dart helper wrapping
-  `crispasr_session_stream_open`. Engine's `transcribeStream`
-  routes through it whenever a session is loaded. Live mic
-  transcription now works on kyutai-stt / moonshine-streaming /
-  voxtral4b in addition to whisper.
-* ✅ **Voice baking flow** — `VoiceBakingService` spawns the
-  CrispASR `bake-chatterbox-voice-from-wav.py` script via
-  `Process.start`, streams stdout/stderr live, drops the resulting
-  GGUF into the models directory. Bake screen launched from the
-  cake icon in the Synthesize app-bar. Desktop-only (mobile has no
-  Python runtime).
-
-**Round 2 (still May 2026)**:
-
-* ✅ **Text translation screen** — `TextTranslationService` +
-  `TranslateScreen` shipped. Catalogue covers M2M-100 (418M, 1.2B),
-  WMT21 Dense (en→X and X→en), MADLAD-400. New `translateText` method
-  added to `CrispasrSession` in the Dart binding.
-* ✅ **LID accelerator knobs** — `lidUseGpu` / `lidFlashAttn` /
-  `nThreads` exposed in `AdvancedTranscribeOptions` and the Advanced
-  Options "Performance" section, threaded through
-  `crispasr_detect_language_pcm`.
-* ✅ **`ModelKind.translate`** filter — Model Manager can now group
-  text-translation models separately from speech-translation
-  backends.
+Full per-round write-up: **[HISTORY.md → "May 2026 parity sweep"](HISTORY.md)**.
 
 **Still deferred** (each tracked upstream in `../CrispASR/PLAN.md`):
 
@@ -146,25 +35,20 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
   toggle ships in the open-params struct (round 5) and threads
   through to each backend's session via the per-backend `flash_attn`
   field on context_params (round 6, closing CrispASR #89). Only
-  whisper consumes it at the kernel level today. The other 11
-  backends need their per-graph attention path switched from
-  `ggml_soft_max_ext(KQ)` to `ggml_flash_attn_ext(...)` to actually
-  honour the flag. Tracked as **CrispASR PLAN.md #86** — full per-
-  backend status table, recipe, and recommended order (orpheus +
-  chatterbox-T3 first; ~2–3 focused days for the full sweep).
+  whisper consumes it at the kernel level today. Tracked as
+  **[CrispASR PLAN.md #86](https://github.com/CrispStrobe/CrispASR/blob/main/PLAN.md#86-per-backend-flash-attention-wiring-crisperweaver-driven)**
+  — full per-backend status table, recipe, and recommended order
+  (orpheus + chatterbox-T3 first; ~2–3 focused days for the full
+  sweep).
 * **`gpu_backend` selector** (metal / cuda / vulkan / cpu-only as a
-  runtime string) — needs a multi-backend ggml build (compile in
-  more than one ggml backend simultaneously) plus per-backend
-  dispatch refactor so each `*_init_from_file` consults the hint.
-  Tracked as **CrispASR PLAN.md #87** — needs ggml-side multi-
-  backend dispatch to land first; ~1 week of focused work when we
-  pick it up.
+  runtime string) — needs ggml-side multi-backend dispatch first.
+  Tracked as
+  **[CrispASR PLAN.md #87](https://github.com/CrispStrobe/CrispASR/blob/main/PLAN.md#87-gpu_backend-runtime-selector-multi-backend-ggml-build)**.
 
 The OpenAI-compatible server item that was previously deferred is
-now SHIPPED as a Dart-side `shelf` server (round 5, see CHANGELOG +
+SHIPPED as a Dart-side `shelf` server in round 5 (see HISTORY +
 the §7 note below). The CrispASR-side `crispasr --server` binary
-remains available as the desktop-only alternative for users who'd
-rather not run the GUI at all.
+remains available as the desktop-only alternative.
 
 ---
 
@@ -244,110 +128,19 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 ## 5. Open roadmap items
 
-### 5.1 Finish i18n — ✅ shipped
+### ~~5.1 Finish i18n~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-Substantively done. Two sweeps this session moved 40+ hardcoded
-strings from `lib/widgets/` and `lib/screens/` behind
-`AppLocalizations`: transcription share/save menu (TXT/SRT/VTT/JSON),
-snackbars (load/save/playback/synthesize/copy failures + success
-toasts), settings dialogs (Select Engine, HF Token + label),
-download-model prompt body, audio-recorder/diariser/log-viewer
-tooltips, log popup menu items, streaming error dialogs. Only the
-brand string "CrisperWeaver" on the about screen is intentionally
-left as a literal. EN+DE entries in lockstep, guarded by
-`test/arb_consistency_test.dart`.
+### ~~5.2 iOS build verification~~ — **DONE → [HISTORY.md](HISTORY.md)** (audit + xcframework wiring; on-device verification still pending — see 5.22 below)
 
-### 5.2 iOS build verification — ✅ DONE
+### ~~5.3 Android native-lib CI wiring~~ — **DONE → [HISTORY.md](HISTORY.md)** (real-ASR APK shipping in releases)
 
-* `cd ios && pod install` succeeds. 16 pods (DKImagePicker,
-  audio_session, file_picker, just_audio, permission_handler,
-  receive_sharing_intent, record_ios, share_plus,
-  shared_preferences_foundation, url_launcher_ios, etc.).
-* `ios/Flutter/Profile.xcconfig` added so CocoaPods stops warning
-  about an unwired Profile config.
-* `flutter build ios --debug --simulator` — green, 96.8 s, produces
-  `build/ios/iphonesimulator/Runner.app` with 17 embedded frameworks.
-* `flutter build ios --debug --no-codesign` (device) — green, 56.5 s,
-  produces `build/ios/iphoneos/Runner.app`.
-* `PrivacyInfo.xcprivacy` lands in the .app bundle root; Info.plist
-  in the bundle is clean (no NSPrivacy* keys, MinimumOSVersion 13.0,
-  microphone description present).
+### ~~5.4 Windows CI end-to-end validation~~ — **DONE → [HISTORY.md](HISTORY.md)** (release.yml green; install-on-real-Windows verification still pending)
 
-**Got there by:** `xcodebuild -downloadPlatform iOS` to pull
-the iOS 26.3.1 simulator runtime (16 GB on disk under
-`/Library/Developer/CoreSimulator/Volumes/`), after first freeing
-boot-disk space via the symlink-and-clean dance documented in this
-session (HF model dirs symlinked to `/Volumes/backups/ai/...`,
-`flutter clean` across five sibling Flutter projects).
+### ~~5.5 Real speaker diarization~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-**Bridging header — DON'T DROP IT.** The earlier note in this PLAN
-("the header is a 1-liner now and nothing Swift-side imports it")
-was wrong. `AppDelegate.swift` calls
-`GeneratedPluginRegistrant.register(with: self)`; that class is
-declared in the auto-generated `GeneratedPluginRegistrant.h`
-(Objective-C). The bridging header is the only thing exposing the
-class to Swift. Removing it breaks the Swift compile.
+### ~~5.6 Backend-specific UX~~ — **DONE → [HISTORY.md](HISTORY.md)** (Q&A / source+target lang pickers / beam search / best-of-N)
 
-### 5.3 Android native-lib CI wiring — ✅ shipped
-
-`release.yml`'s `build-android` job runs `CrispASR/build-android.sh
---vulkan` to cross-build `libcrispasr.so` + sibling backend `.so`'s
-for `arm64-v8a`, drops them into
-`android/app/src/main/jniLibs/arm64-v8a/`, then `flutter build apk
---release`. v0.4.0 produced a 31 MB `crisper_weaver-android-arm64.apk`
-with real ASR. Still pending: an emulator smoke test in the same job
-(currently no on-device verification step).
-
-### 5.4 Windows CI end-to-end validation — ✅ shipped
-
-`release.yml`'s `build-windows` job runs the CMake shared-DLL build of
-CrispASR on a Windows runner, drops DLLs next to `runner.exe` via
-`scripts/bundle_windows_dlls.ps1`, zips. v0.4.0 produced a 25 MB
-`crisper_weaver-windows-x64.zip`. Still pending: install on a real
-Windows box and transcribe end-to-end (the export-mismatch concern
-from the original PLAN didn't materialise — green for v0.3.0 onwards).
-
-### 5.5 Real speaker diarization — ✅ shipped
-
-CrispASR 0.4.5 `crispasr_diarize_segments_abi` is now wired through
-`DiarizationService` (`lib/services/diarization_service.dart`); the
-MFCC/k-means stopgap is gone. Default method is `vadTurns` (mono-
-friendly, no extra model file). Pyannote GGUF + a method picker in
-Advanced Options remain optional polish items.
-
-### 5.6 Backend-specific UX — ✅ shipped
-
-All four sub-items landed across earlier slices and this session:
-
-- ✅ **Voxtral / Granite `--ask` Q&A** — Advanced Options → "Ask
-  the audio" prompt field, gated on
-  `AdvancedOptions.askCapableBackends`.
-- ✅ **Canary / Voxtral source + target language pickers** —
-  paired Source/Target dropdowns in Advanced Options, both gated on
-  `translationCapableBackends`. Source override falls back to the
-  main language picker / autodetect when empty.
-- ✅ **Beam search toggle** — for every backend that honours it
-  (whisper + the per-backend `beamSearch:` pass-through in
-  `CrispASREngine.transcribe`).
-- ✅ **Parakeet / FastConformer-CTC best-of-N** — slider 1–10 in
-  Advanced Options, always visible. Whisper consumes via
-  `wparams.greedy.best_of`; other backends loop N decodes externally
-  per CrispASR's C-side implementation.
-
-### 5.7 Batch transcription ✅ shipped in v0.1.4
-
-Let the user drop/pick multiple files at once and process them in a queue. Results become separate history entries; overall progress + per-item progress both visible.
-
-**Design:**
-- File picker and `desktop_drop` already support multi-select / multi-drop. Change `_selectedFilePath` in `transcription_screen.dart` to a `List<String>` plus an active-index pointer.
-- Introduce `TranscriptionJob` (filePath, status = queued|running|done|error, progress, result). Queue lives in a Riverpod `StateNotifier` so the UI can watch and the engine worker can advance it.
-- Serialize: one transcription at a time to share the loaded model's context — concurrent FFI calls into the same whisper_context are unsafe. If we want parallelism, it'd be one isolate per file each holding its own context (memory-expensive for Whisper-large).
-- UI: a new `BatchQueueCard` above the current transcription output, showing a list with `[filename · progress · status · delete]` rows. Individual completion streams into the existing TranscriptionOutput widget; "Export all" emits one ZIP of SRT/TXT files.
-- Persistence: save `BatchJobState` to SharedPreferences so a user can close the app mid-batch and resume.
-
-**Where:** new `lib/services/batch_queue_service.dart`, new `lib/widgets/batch_queue_card.dart`, mods to `lib/screens/transcription_screen.dart`.
-
-**Risk:** medium. Handling large queues (100s of files at hours each) means we need to stream history writes, not buffer in RAM, plus clean error recovery (OOM on one file shouldn't kill the whole queue).
+### ~~5.7 Batch transcription~~ — **DONE in v0.1.4 → [HISTORY.md](HISTORY.md)**
 
 ### 5.8 Expose more CrispASR capabilities in Advanced Options
 
@@ -396,214 +189,42 @@ Shipped after this session's CrispASR best-of-N landed
 
 **Risk:** low-medium. Each knob is independently wired — incremental shipping works. The FFI is already in place for most of these; we're adding surface, not behaviour.
 
-### 5.11 LID + forced aligner wiring — ✅ shipped
+### ~~5.11 LID + forced aligner wiring~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-Both pieces are wired:
+### ~~5.12 Punctuation restoration (FireRedPunc)~~ — **DONE → [HISTORY.md](HISTORY.md)** (`fullstop-punc` multilang variant added in the May 2026 sweep)
 
-- **LID** — `LidService` (`lib/services/lid_service.dart`) reuses any
-  multilingual whisper GGUF the user has already downloaded (preferring
-  tiny → base → small) and runs it as a pre-step for session backends
-  when `language` is "auto". Confidence-gated so noisy buffers don't
-  flip the language unexpectedly.
-- **Forced aligner** — `AlignerService` (`lib/services/aligner_service.dart`)
-  searches for `canary-ctc-aligner-*.gguf` / `qwen3-forced-aligner-*.gguf`
-  and runs `alignWords` as a post-step when the user enabled word
-  timestamps and the active session backend didn't emit any.
+### ~~5.13 CrispASR registry discovery~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-Both services no-op silently when the required model isn't on disk —
-no surprise downloads, no bundled-asset bloat.
+### ~~5.14 TTS integration~~ — **DONE → [HISTORY.md](HISTORY.md)** (4 backends pre-sweep + 5 more added in May 2026)
 
-### 5.12 Punctuation restoration (FireRedPunc) — ✅ shipped
+### ~~5.15 mimo-asr session dispatch~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-CrispASR 0.5.x exposes `crispasr.PuncModel`, a BERT-based punctuation +
-capitalisation post-processor (~100 MB GGUF). CrisperWeaver wires it as:
+### ~~5.17 Quality gate + integration tests~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-- `PuncService` (`lib/services/punc_service.dart`) — lazy load,
-  per-segment `process()`, no-op when no `fireredpunc-*.gguf` is on disk.
-- "Restore punctuation" toggle in Advanced Options
-  (`lib/widgets/advanced_options_widget.dart`).
-- Catalogued in `model_service.dart` under the `firered-punc` backend so
-  users can fetch it from Model Management.
+### 5.18 Test-suite speed — in-app side ✅ DONE; CrispASR-side wins still open
 
-Useful for CTC backends (wav2vec2 / fastconformer-ctc / firered-asr)
-which emit unpunctuated lowercase text.
+In-app: vanilla `flutter test` holds sub-5 s by tagging slow e2e
+tests with `tags: ['slow']`; single-process sweep with `--tags slow`
+runs in ~25 min (down from ~46 min serial) by reusing Apple's
+intra-process MSL pipeline cache. Test fixtures cut to minimum
+(`test/jfk-2s.wav`, `"Hi."` TTS prompt). Full pre-sweep details →
+[HISTORY.md](HISTORY.md).
 
-### 5.13 CrispASR registry discovery — ✅ shipped
+**Still open** (CrispASR-side wins, deferred to upstream):
 
-`ModelService.refreshFromCrispasrRegistry()` queries the C-side model
-registry baked into libcrispasr via FFI. It iterates every backend
-that `CrispasrSession.availableBackends()` reports, calls
-`crispasr.registryLookup(backend)`, and merges the canonical entry
-into `_discoveredModels` — surfacing every backend the bundled libwhisper
-knows about without a CrisperWeaver code change. Runs on every Model
-Management screen open; offline-safe (no network).
-
-### 5.14 TTS integration — ✅ shipped
-
-`SynthesizeScreen` (drawer entry next to Transcribe / History / Models),
-`TtsService` wrapping `CrispasrSession.synthesize / setVoice /
-setCodecPath`, `ModelKind` discriminator on `ModelDefinition` + filter
-chips in Model Management. Four TTS backends reachable today:
-
-- **vibevoice-tts** — multilingual, voicepack via `setVoice`.
-- **qwen3-tts** — multilingual, codec via `setCodecPath` + voicepack
-  via `setVoice` (voicepack GGUF or `.wav` reference + ref text).
-- **kokoro** — multilingual, voicepack via `setVoice` (espeak-ng
-  phonemiser bundled). Wired in CrispASR `crispasr_c_api.cpp` 2026-05-01.
-- **orpheus** — Llama-3.2-3B + SNAC codec, codec via `setCodecPath`.
-  Wired in CrispASR `crispasr_c_api.cpp` 2026-05-01.
-
-### 5.15 mimo-asr session dispatch — ✅ shipped
-
-XiaomiMiMo MiMo-Audio ASR added to `crispasr_c_api.cpp` open + transcribe
-arms 2026-05-01. Two-file backend: the main model plus a separate
-`mimo_tokenizer` companion (PCM → 8-channel codes). The session API
-routes the tokenizer through `crispasr_session_set_codec_path` —
-same shape as qwen3-tts and orpheus's codec/tokenizer companions, so
-the existing `setCodecPath` Dart binding works without changes.
-
-CrisperWeaver catalogs both files (`mimo-asr-q4_k` + `mimo-tokenizer-q4_k`),
-with `companions: ['mimo-tokenizer-q4_k']` on the main entry so the
-Synthesize / Model Management UI surfaces the dependency.
-
-### 5.17 Quality gate + integration tests — ✅ shipped
-
-- `analysis_options.yaml` promotes the lint categories that catch real
-  defects to **errors** (`use_build_context_synchronously`, `avoid_print`,
-  `unused_*`, `inference_failure_*`, `deprecated_member_use`). A
-  regression now fails the build instead of silently piling up.
-- `flutter analyze` reports **0 issues**; `flutter test` is **green**.
-- `test/backend_dispatch_test.dart` validates the C-API dispatch arms:
-  - `availableBackends() exposes every wired backend` — asserts every
-    backend the catalog ships shows up in
-    `CrispasrSession.availableBackends()`. Catches regressions in
-    `crispasr_session_available_backends`.
-  - `open() with non-existent file fails cleanly per backend` — opens
-    each dispatched backend with a bogus path and asserts the per-backend
-    init path throws cleanly instead of crashing or hanging.
-  - End-to-end synth/transcribe roundtrips, opt-in via env vars
-    (kept out of the default `flutter test` pass so CI doesn't drag in
-    gigabyte fixtures). Roundtrips verified this session on M1 Metal:
-    - **whisper** (ggml-tiny.bin, 6 s) — `jfk.wav` transcribes the
-      "ask not" line.
-    - **kokoro** (1:39) — produces ~2 s of 24 kHz mono PCM from "Hello
-      world." after loading a `kokoro-voice-*.gguf` voicepack via
-      `setVoice`.
-    - **mimo-asr** (13:55) — produces non-empty transcript from
-      `test/jfk.wav` after loading `mimo-tokenizer-q4_k.gguf` via
-      `setCodecPath` (the C-API routes the tokenizer through that
-      setter, so existing Dart bindings work without changes).
-    - **qwen3-tts customvoice** (1:22) — uses one of the 9 baked
-      speakers via `setSpeakerName(speakers().first)`. The base 0.6b
-      variant needs an ICL voice prompt (WAV + ref text via
-      `set_voice_prompt_with_text`) which is a more involved path.
-    - **vibevoice-tts** (17:22, 4 GB f32+tokenizer GGUF) — produces
-      non-zero PCM after loading a `vibevoice-voice-*.gguf` voicepack.
-      The smaller `f16` and `q4_k` variants of the same name don't
-      include the Tekken tokenizer and fail at first synthesize with
-      "model lacks tokenizer" — only the `f32-tokenizer` filename is
-      shippable today.
-    - **orpheus** wired (`crispasr_session_set_codec_path` →
-      `orpheus_set_codec_path`, `crispasr_session_synthesize` →
-      `orpheus_synthesize`, gated on `orpheus_codec_loaded`); 3 GB
-      base + SNAC model is slow under Metal so the e2e test is opt-in.
-
-### 5.18 Test-suite speed — partial (see roadmap below)
-
-The opt-in end-to-end backend tests are slow because of three layered
-costs, in roughly this order:
-
-1. **Metal kernel JIT (~30-60 s per backend per process).** ggml-metal
-   compiles MSL pipelines lazily for each unique tensor shape on first
-   use. The cache is in-memory only — every fresh process starts cold.
-2. **Sequential LLM-style audio decode.** Orpheus / qwen3-tts /
-   mimo-asr generate one audio (or text) token at a time through a
-   0.6B–3B LLM. Per-second-of-audio cost scales with model size +
-   number of decode steps; f32 weights compound the bandwidth hit.
-3. **Cold-start per `flutter test` invocation.** Dart VM boot + dylib
-   load + GGUF mmap + Metal kernel JIT all repeat for every separate
-   test invocation we run.
-
-Speedup roadmap, ordered by ROI / effort:
-
-| Win | Measured speedup | Status |
+| Win | Projected speedup | Status |
 |---|---|---|
-| Per-test `tags: ['slow']` annotation so vanilla `flutter test` skips heavy roundtrips (env-var-gated `skip:` clauses already make them no-ops without GGUFs, but the tag also lets `--exclude-tags slow` actively suppress them) | Default suite holds sub-5 s (6 tests) | ✅ shipped — `test/backend_dispatch_test.dart`, `dart_test.yaml` |
-| Run all opt-in e2e backends in one `flutter test` invocation | **Serial sweep ~46 min → single-process ~25 min (1.8×)** — each Session opens its own ggml_metal_device but Apple's system-level driver caches compiled MSL within a process, so backends after the first reuse pipelines for shared op shapes | ✅ shipped — single test file with `--tags slow` |
-| Cap test inputs to the minimum that validates dispatch: `test/jfk-2s.wav` (2 s, vs the original 11 s), `"Hi."` TTS prompt (vs `"Hello world."`) | ~5× on whisper decode; ~3× on TTS decode loops | ✅ shipped |
-| Bump `n_threads` from default 4 → 8 on M1+ in CrispasrSession.open | 10-25 % faster prefill on CPU-heavy backends (mimo-asr) | ⚠️ deferred — most mid-decode time is Metal-bound (0 % CPU during sample), so the projected win shrinks. Revisit if we ever profile a CPU-bound backend. |
-| Re-download q4_k variants where we currently rely on f32/q8_0 (vibevoice-realtime-0.5b-tts-q4_k is 0 bytes locally; orpheus-3b q4_k pending HF publish) | vibevoice 17:22 → ~4 min projected; orpheus 11:50 → ~5 min projected | ⚠️ blocked on HF availability |
-| **Persistent Metal pipeline cache via `MTLBinaryArchive`** — patch `ggml/src/ggml-metal/ggml-metal-device.m` to write/read pipeline state objects to a per-device disk cache (Apple's first-party API). Set the cache path via a `GGML_METAL_PIPELINE_CACHE` env var; default to `~/Library/Caches/ggml-metal/<device-name>.archive`. Same pattern used by Apple's own MPS / MLX caches. Joins the existing `// CrispASR patch` set in ggml-metal. | 30-60 s saved on every cold start across all CrispASR consumers — CI sweep projected ~25 min → ~5 min | ⚠️ ~half-day source patch in upstream ggml-metal |
-| CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` build flag, ship paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2-3× | ⚠️ deferred to next CrispASR cycle; see PLAN §5.x in upstream |
+| Persistent Metal pipeline cache via `MTLBinaryArchive` (patch `ggml/src/ggml-metal/ggml-metal-device.m`) | 30–60 s per cold start; CI sweep ~25 min → ~5 min | ~½-day patch in upstream ggml-metal |
+| CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` build flag, ship paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2–3× | Deferred to a future CrispASR cycle |
+| Re-download q4_k variants for vibevoice / orpheus | vibevoice 17:22 → ~4 min projected; orpheus 11:50 → ~5 min | Blocked on HF availability |
 
-### 5.16 Build automation — ✅ shipped
+### ~~5.16 Build automation~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-`scripts/build_macos.sh` is the one-shot end-to-end macOS build:
-1. `cmake` configure into `build-flutter-bundle/` (won't fight other
-   build dirs in the upstream CrispASR checkout).
-2. Build all 30 backend STATIC archives + relink `libwhisper.dylib`
-   (the static archives only get pulled into the shared lib if their
-   targets exist, so they need an explicit build pass first).
-3. `flutter pub get` (regenerates l10n).
-4. `flutter build macos`.
-5. `scripts/bundle_macos_dylibs.sh` — copies libwhisper + ggml dylibs,
-   creates `libcrispasr.dylib` + `libcrispasr.1.dylib` aliases for the
-   SONAME self-reference, auto-bundles homebrew deps (espeak-ng for
-   kokoro) with `install_name_tool` rewrites to `@rpath/`.
-6. Reports linked backends parsed from `nm` output.
+### ~~5.19 Real-time partial display during file transcribe~~ — **DONE → [HISTORY.md](HISTORY.md)** (chunked-whisper `onSegment` streaming wired through `AppStateNotifier.addSegment`)
 
-### 5.19 Real-time partial display during file transcribe
+### ~~5.20 Speaker name labels~~ — **DONE → [HISTORY.md](HISTORY.md)** (tap-to-rename chip + history-schema `speakerNames: Map<String, String>` with backward-compat loader)
 
-**What:** the engine already calls `onSegment` for each finished
-segment via the existing `transcribeFile(..., onSegment: …)` hook,
-but `TranscriptionScreen` only renders the final result list. On a
-10-min file the user sees nothing for 30 s, then the whole transcript
-arrives in one paint. Wire the per-segment callback into
-`AppStateNotifier.addSegment` (which already exists and updates
-`currentTranscription` incrementally) so each finished segment shows
-up as it lands.
-
-**Where:** `lib/screens/transcription_screen.dart` —
-`onSegment: appStateNotifier.addSegment` is already passed, but the
-final `completeTranscription(segments)` call clobbers the incremental
-list. Either drop the final replace (segments are equivalent) or
-de-dupe by index. Half day.
-
-**Risk:** low. Existing tests cover `addSegment` shape.
-
-### 5.20 Speaker name labels
-
-**What:** diarisation labels speakers as "Speaker 1", "Speaker 2",
-… today. Tap a speaker chip → rename → name persists for the
-session and into history JSON. Optional: auto-suggest names from
-known voices (out of scope for v1).
-
-**Where:** `lib/services/history_service.dart` adds a per-session
-`speakerNames: Map<String, String>` field; `TranscriptionOutputWidget`
-header chip becomes editable (PopupMenu → Rename). Half day.
-
-**Risk:** low. Localised to UI + history schema bump (handled
-backward-compat by the loader treating absent map as empty).
-
-### 5.21 Background download manager + Storage tab — SHIPPED
-
-**What:** added `lib/screens/storage_screen.dart` (Settings →
-"Storage breakdown" → /storage) showing per-backend disk usage
-with a one-click "delete all of X" action. `(other)` bucket is
-read-only — those files come from manual drops or the
-`Use/Manage models` flow that already has its own per-row delete.
-Throttled `_downloadWithResume`'s progress callback from ~10 Hz
-to ~4 Hz (250ms) so multi-GB downloads no longer rebuild the UI
-hundreds of times per second. Skipped the worker-isolate move:
-the throttle alone fixed the stutter, and isolating Dio for the
-sake of one progress tick wasn't worth the message-passing
-plumbing.
-
-**Where:** `lib/services/model_service.dart` — added
-`getStorageByBackend()`, `deleteBackendModels(backend)`, the
-`BackendStorage` data class, and a `_BackendBytes` accumulator.
-Route registered in `lib/main.dart`. ARB strings under
-`storage*` and `settingsStorageBreakdown*` (en + de).
+### ~~5.21 Background download manager + Storage tab~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
 ### 5.22 iOS feature parity verification — AUDIT DONE; ON-DEVICE PASS PENDING
 
