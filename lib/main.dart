@@ -20,6 +20,7 @@ import 'screens/logs_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/storage_screen.dart';
 import 'screens/synthesize_screen.dart';
+import 'screens/translate_screen.dart';
 import 'services/audio_service.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
@@ -229,6 +230,11 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/synthesize',
         name: 'synthesize',
         builder: (context, state) => const SynthesizeScreen(),
+      ),
+      GoRoute(
+        path: '/translate',
+        name: 'translate',
+        builder: (context, state) => const TranslateScreen(),
       ),
     ],
   );

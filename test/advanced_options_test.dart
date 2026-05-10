@@ -158,6 +158,12 @@ void main() {
       expect(opts.tdrz, isFalse);
       expect(opts.tokenTimestamps, isFalse);
       expect(opts.puncFamily, 'firered');
+      // Perf defaults: GPU off (so first run on a Metal box doesn't
+      // surprise the user), flash-attn on (matches CrispASR CLI), 4
+      // threads (CrispASR's historical n_threads).
+      expect(opts.lidUseGpu, isFalse);
+      expect(opts.lidFlashAttn, isTrue);
+      expect(opts.nThreads, 4);
 
       final tuned = opts.copyWith(
         vadThreshold: 0.65,
@@ -165,12 +171,18 @@ void main() {
         tdrz: true,
         tokenTimestamps: true,
         puncFamily: 'fullstop',
+        lidUseGpu: true,
+        lidFlashAttn: false,
+        nThreads: 8,
       );
       expect(tuned.vadThreshold, 0.65);
       expect(tuned.vadMinSpeechMs, 400);
       expect(tuned.tdrz, isTrue);
       expect(tuned.tokenTimestamps, isTrue);
       expect(tuned.puncFamily, 'fullstop');
+      expect(tuned.lidUseGpu, isTrue);
+      expect(tuned.lidFlashAttn, isFalse);
+      expect(tuned.nThreads, 8);
       // Unrelated fields preserved.
       expect(tuned.vadMinSilenceMs, opts.vadMinSilenceMs);
       expect(tuned.bestOf, opts.bestOf);

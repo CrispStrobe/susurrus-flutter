@@ -831,6 +831,86 @@ class ModelService {
       backend: 'vad',
       kind: ModelKind.vad,
     ),
+    // ---------- Text translation (m2m100) ----------
+    // M2M-100 is CrispASR's primary text-to-text translator: 100
+    // languages, any-to-any. Loaded via CrispasrSession with backend
+    // = "m2m100"; consumed by TextTranslationService + the Translate
+    // screen.
+    'm2m100-418m-q4_k': ModelDefinition(
+      name: 'm2m100-418m-q4_k',
+      displayName: 'M2M-100 418M (q4_k)',
+      fileName: 'm2m100-418m-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/m2m100-418m-GGUF/resolve/main/m2m100-418m-q4_k.gguf',
+      sizeBytes: 480 * 1024 * 1024,
+      checksum: '',
+      description:
+          'M2M-100 418M text-to-text translation (100 languages, any-to-any) — ~480 MB',
+      quantization: 'q4_k',
+      backend: 'm2m100',
+      kind: ModelKind.translate,
+    ),
+    'm2m100-1.2b-q4_k': ModelDefinition(
+      name: 'm2m100-1.2b-q4_k',
+      displayName: 'M2M-100 1.2B (q4_k)',
+      fileName: 'm2m100-1.2b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/m2m100-1.2b-GGUF/resolve/main/m2m100-1.2b-q4_k.gguf',
+      sizeBytes: 1400 * 1024 * 1024,
+      checksum: '',
+      description:
+          'M2M-100 1.2B — higher fidelity translation (100 languages) — ~1.4 GB',
+      quantization: 'q4_k',
+      backend: 'm2m100',
+      kind: ModelKind.translate,
+    ),
+    // WMT21 — Facebook's News-competition winner. Two separate
+    // checkpoints, each 4.7B / ~2.5 GB Q4_K: en-x for English-source,
+    // x-en for English-target. Routes through the same m2m100 runtime
+    // (backend "m2m100-wmt21" on the C side).
+    'wmt21-dense-24-wide-en-x-q4_k': ModelDefinition(
+      name: 'wmt21-dense-24-wide-en-x-q4_k',
+      displayName: 'WMT21 Dense 24-wide en→X (q4_k)',
+      fileName: 'wmt21-dense-24-wide-en-x-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/wmt21-dense-24-wide-en-x-GGUF/resolve/main/wmt21-dense-24-wide-en-x-q4_k.gguf',
+      sizeBytes: 2500 * 1024 * 1024,
+      checksum: '',
+      description:
+          'WMT21 Dense (en→X direction) — English to 7 target languages, ~2.5 GB',
+      quantization: 'q4_k',
+      backend: 'm2m100-wmt21',
+      kind: ModelKind.translate,
+    ),
+    'wmt21-dense-24-wide-x-en-q4_k': ModelDefinition(
+      name: 'wmt21-dense-24-wide-x-en-q4_k',
+      displayName: 'WMT21 Dense 24-wide X→en (q4_k)',
+      fileName: 'wmt21-dense-24-wide-x-en-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/wmt21-dense-24-wide-x-en-GGUF/resolve/main/wmt21-dense-24-wide-x-en-q4_k.gguf',
+      sizeBytes: 2500 * 1024 * 1024,
+      checksum: '',
+      description:
+          'WMT21 Dense (X→en direction) — 7 source languages to English, ~2.5 GB',
+      quantization: 'q4_k',
+      backend: 'm2m100-wmt21',
+      kind: ModelKind.translate,
+    ),
+    // MADLAD-400 — Google's 419-language T5 translator.
+    'madlad400-3b-mt-q4_k': ModelDefinition(
+      name: 'madlad400-3b-mt-q4_k',
+      displayName: 'MADLAD-400 3B-MT (q4_k)',
+      fileName: 'madlad400-3b-mt-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/madlad400-3b-mt-GGUF/resolve/main/madlad400-3b-mt-q4_k.gguf',
+      sizeBytes: 1900 * 1024 * 1024,
+      checksum: '',
+      description:
+          'MADLAD-400 3B — 419 languages, T5 enc-dec, bit-token-identical to Python — ~1.9 GB',
+      quantization: 'q4_k',
+      backend: 'madlad',
+      kind: ModelKind.translate,
+    ),
     // ---------- Silero LID GGUF ----------
     // CrispASR exposes a Silero 95-language LID classifier; pair with
     // LidMethod.silero in the LID picker for a smaller / faster
@@ -1159,6 +1239,32 @@ class ModelService {
       displayPrefix: 'Pyannote v3 segmentation',
       description: 'Pyannote ML diarisation model',
     ),
+    // M2M-100 — text-to-text translation, 100 languages, any-to-any.
+    'm2m100': BackendRepo(
+      backend: 'm2m100',
+      repoId: 'cstr/m2m100-418m-GGUF',
+      baseName: 'm2m100-418m',
+      displayPrefix: 'M2M-100 418M',
+      description: 'Text-to-text translation (100 languages, any-to-any)',
+    ),
+    // WMT21 Dense — Facebook's News-competition winner. Two
+    // directional checkpoints; the HF probe surfaces quants from the
+    // en-x repo. The x-en variant is a separate hardcoded entry.
+    'm2m100-wmt21': BackendRepo(
+      backend: 'm2m100-wmt21',
+      repoId: 'cstr/wmt21-dense-24-wide-en-x-GGUF',
+      baseName: 'wmt21-dense-24-wide-en-x',
+      displayPrefix: 'WMT21 Dense 24-wide en→X',
+      description: 'WMT21 News winner — English to 7 target languages',
+    ),
+    // MADLAD-400 — Google's 419-language T5 translator.
+    'madlad': BackendRepo(
+      backend: 'madlad',
+      repoId: 'cstr/madlad400-3b-mt-GGUF',
+      baseName: 'madlad400-3b-mt',
+      displayPrefix: 'MADLAD-400 3B-MT',
+      description: 'T5 translator, 419 languages',
+    ),
   };
 
   // Live-probed quants, keyed by model name (same as the hardcoded maps).
@@ -1472,11 +1578,13 @@ class ModelService {
     const diarize = {'pyannote'};
     const vad = {'vad'};
     const lid = {'lid'};
+    const translate = {'m2m100', 'm2m100-wmt21', 'madlad'};
     if (tts.contains(backend)) return ModelKind.tts;
     if (punc.contains(backend)) return ModelKind.punc;
     if (diarize.contains(backend)) return ModelKind.diarize;
     if (vad.contains(backend)) return ModelKind.vad;
     if (lid.contains(backend)) return ModelKind.lid;
+    if (translate.contains(backend)) return ModelKind.translate;
     return ModelKind.asr;
   }
 
@@ -2186,6 +2294,11 @@ enum ModelKind {
   /// Diarisation GGUF — Pyannote v3 segmentation, paired with
   /// `DiarizeMethod.pyannote`.
   diarize,
+
+  /// Text-to-text translation model (m2m100, madlad). Distinct from
+  /// the speech-translation backends (canary, voxtral, …) — those are
+  /// `ModelKind.asr` because they consume audio.
+  translate,
 }
 
 class ModelDefinition {

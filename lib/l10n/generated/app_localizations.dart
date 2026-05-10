@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Synthesize speech'**
   String get menuSynthesize;
 
+  /// No description provided for @menuTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate text'**
+  String get menuTranslate;
+
   /// No description provided for @menuLogs.
   ///
   /// In en, this message translates to:
@@ -2167,6 +2173,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction.'**
   String get synthSpeedHelper;
+
+  /// No description provided for @translateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate text'**
+  String get translateTitle;
+
+  /// No description provided for @translateModelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation model'**
+  String get translateModelLabel;
+
+  /// No description provided for @translateSourceLang.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get translateSourceLang;
+
+  /// No description provided for @translateTargetLang.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get translateTargetLang;
+
+  /// No description provided for @translateSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap source and target'**
+  String get translateSwap;
+
+  /// No description provided for @translateInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Source text'**
+  String get translateInputLabel;
+
+  /// No description provided for @translateInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste text to translate…'**
+  String get translateInputHint;
+
+  /// No description provided for @translateOutputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get translateOutputLabel;
+
+  /// No description provided for @translateRunButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get translateRunButton;
+
+  /// No description provided for @translateNoModelsDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No translation models downloaded. Open Models, switch to the Translate filter, and fetch one of M2M-100, WMT21 (en→X / X→en), or MADLAD-400.'**
+  String get translateNoModelsDownloaded;
+
+  /// No description provided for @translateAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get translateAdvanced;
+
+  /// No description provided for @translateMaxTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Max output tokens: {n}'**
+  String translateMaxTokens(int n);
+
+  /// No description provided for @translateMaxTokensHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard cap on translated-text length. CrispASR\'s default is 200; raise for long passages, lower to keep generation snappy.'**
+  String get translateMaxTokensHelper;
+
+  /// No description provided for @advancedPerfHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance'**
+  String get advancedPerfHeader;
+
+  /// No description provided for @advancedLidUseGpu.
+  ///
+  /// In en, this message translates to:
+  /// **'LID on GPU'**
+  String get advancedLidUseGpu;
+
+  /// No description provided for @advancedLidUseGpuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route language detection to Metal / CUDA / Vulkan when supported. ASR backends honour their own per-session GPU setup at load time.'**
+  String get advancedLidUseGpuSubtitle;
+
+  /// No description provided for @advancedLidFlashAttn.
+  ///
+  /// In en, this message translates to:
+  /// **'LID flash-attention'**
+  String get advancedLidFlashAttn;
+
+  /// No description provided for @advancedLidFlashAttnSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster attention kernel during the LID encoder pass. Disable only if you suspect a flash-attn correctness bug on your build.'**
+  String get advancedLidFlashAttnSubtitle;
+
+  /// No description provided for @advancedNThreads.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU threads: {n}'**
+  String advancedNThreads(int n);
+
+  /// No description provided for @advancedNThreadsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads used for LID and other non-decoder passes. Defaults to 4.'**
+  String get advancedNThreadsHelper;
 }
 
 class _AppLocalizationsDelegate

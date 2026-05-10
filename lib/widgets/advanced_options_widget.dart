@@ -131,6 +131,21 @@ class AdvancedOptions {
   /// by PuncService when both are downloaded.
   final String puncFamily;
 
+  // -------------------------------------------------------------------
+  // LID accelerator + threading. CrispASR's `detect_language_pcm`
+  // exposes useGpu / flashAttn / nThreads directly; surface them so
+  // users on Metal/CUDA can offload the LID encoder pass.
+  // -------------------------------------------------------------------
+
+  /// Route LID inference to the GPU when supported.
+  final bool lidUseGpu;
+
+  /// Enable flash-attention on the LID encoder.
+  final bool lidFlashAttn;
+
+  /// CPU thread count for LID and other helper passes.
+  final int nThreads;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -152,6 +167,9 @@ class AdvancedOptions {
     this.tdrz = false,
     this.tokenTimestamps = false,
     this.puncFamily = 'firered',
+    this.lidUseGpu = false,
+    this.lidFlashAttn = true,
+    this.nThreads = 4,
   });
 
   AdvancedOptions copyWith({
@@ -175,6 +193,9 @@ class AdvancedOptions {
     bool? tdrz,
     bool? tokenTimestamps,
     String? puncFamily,
+    bool? lidUseGpu,
+    bool? lidFlashAttn,
+    int? nThreads,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -197,6 +218,9 @@ class AdvancedOptions {
         tdrz: tdrz ?? this.tdrz,
         tokenTimestamps: tokenTimestamps ?? this.tokenTimestamps,
         puncFamily: puncFamily ?? this.puncFamily,
+        lidUseGpu: lidUseGpu ?? this.lidUseGpu,
+        lidFlashAttn: lidFlashAttn ?? this.lidFlashAttn,
+        nThreads: nThreads ?? this.nThreads,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -409,6 +433,68 @@ class _AdvancedDecodingSectionState
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
         if (opts.restorePunctuation) _buildPuncFamilyRow(context, opts),
+        // Performance — LID accelerator + thread count. Honoured by
+        // crispasr_detect_language_pcm directly. ASR-side perf flags
+        // need to be set at session-open time and aren't runtime-
+        // tunable, so they aren't surfaced here.
+        _buildPerfRows(context, opts),
+      ],
+    );
+  }
+
+  Widget _buildPerfRows(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 24),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(l.advancedPerfHeader,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedLidUseGpu),
+          subtitle: Text(l.advancedLidUseGpuSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.lidUseGpu,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(lidUseGpu: v),
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedLidFlashAttn),
+          subtitle: Text(l.advancedLidFlashAttnSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.lidFlashAttn,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(lidFlashAttn: v),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.advancedNThreads(opts.nThreads),
+                  style: const TextStyle(fontWeight: FontWeight.w500)),
+              Slider(
+                value: opts.nThreads.toDouble(),
+                min: 1,
+                max: 16,
+                divisions: 15,
+                label: opts.nThreads.toString(),
+                onChanged: (v) =>
+                    ref.read(advancedOptionsProvider.notifier).state =
+                        opts.copyWith(nThreads: v.round()),
+              ),
+              Text(l.advancedNThreadsHelper,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+        ),
       ],
     );
   }

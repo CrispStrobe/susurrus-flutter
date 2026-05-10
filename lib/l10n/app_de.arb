@@ -8,6 +8,7 @@
   "menuSettings": "Einstellungen",
   "menuModels": "Modelle",
   "menuSynthesize": "Sprache erzeugen",
+  "menuTranslate": "Text übersetzen",
   "menuLogs": "Protokoll",
   "menuAbout": "Über",
 
@@ -520,5 +521,29 @@
   "synthTrimSilenceSubtitle": "Entfernt Stille unter -72 dBFS am Anfang und Ende der synthetisierten PCM.",
   "synthSpeed": "Geschwindigkeit: {value}×",
   "@synthSpeed": {"placeholders": {"value": {"type": "String"}}},
-  "synthSpeedHelper": "Wiedergabe-Geschwindigkeit (0,25× – 4,00×). Nearest-Neighbor-Resample, ohne Tonhöhenkorrektur."
+  "synthSpeedHelper": "Wiedergabe-Geschwindigkeit (0,25× – 4,00×). Nearest-Neighbor-Resample, ohne Tonhöhenkorrektur.",
+
+  "translateTitle": "Text übersetzen",
+  "translateModelLabel": "Übersetzungs-Modell",
+  "translateSourceLang": "Von",
+  "translateTargetLang": "Nach",
+  "translateSwap": "Quell- und Zielsprache tauschen",
+  "translateInputLabel": "Quelltext",
+  "translateInputHint": "Text zum Übersetzen eingeben oder einfügen…",
+  "translateOutputLabel": "Übersetzung",
+  "translateRunButton": "Übersetzen",
+  "translateNoModelsDownloaded": "Keine Übersetzungs-Modelle geladen. Öffne Modelle, wechsle auf den Filter „Übersetzen“ und lade M2M-100, WMT21 (en→X / X→en) oder MADLAD-400 herunter.",
+  "translateAdvanced": "Erweitert",
+  "translateMaxTokens": "Max. Ausgabetoken: {n}",
+  "@translateMaxTokens": {"placeholders": {"n": {"type": "int"}}},
+  "translateMaxTokensHelper": "Obergrenze für die Länge der Übersetzung. CrispASR-Standard ist 200; höher für lange Passagen, niedriger für schnellere Antworten.",
+
+  "advancedPerfHeader": "Leistung",
+  "advancedLidUseGpu": "Sprach-Erkennung auf der GPU",
+  "advancedLidUseGpuSubtitle": "Leitet die Spracherkennung an Metal / CUDA / Vulkan weiter, falls verfügbar. ASR-Backends nutzen ihre eigene GPU-Initialisierung beim Laden.",
+  "advancedLidFlashAttn": "Sprach-Erkennung mit Flash-Attention",
+  "advancedLidFlashAttnSubtitle": "Schnellerer Attention-Kernel im LID-Encoder. Nur abschalten, wenn ein Flash-Attention-Korrektheits-Bug auf deinem Build vermutet wird.",
+  "advancedNThreads": "CPU-Threads: {n}",
+  "@advancedNThreads": {"placeholders": {"n": {"type": "int"}}},
+  "advancedNThreadsHelper": "Thread-Anzahl für Spracherkennung und andere Helfer-Pässe. Standard ist 4."
 }

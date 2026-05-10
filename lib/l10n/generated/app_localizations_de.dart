@@ -27,6 +27,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get menuSynthesize => 'Sprache erzeugen';
 
   @override
+  String get menuTranslate => 'Text übersetzen';
+
+  @override
   String get menuLogs => 'Protokoll';
 
   @override
@@ -1210,4 +1213,74 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get synthSpeedHelper =>
       'Wiedergabe-Geschwindigkeit (0,25× – 4,00×). Nearest-Neighbor-Resample, ohne Tonhöhenkorrektur.';
+
+  @override
+  String get translateTitle => 'Text übersetzen';
+
+  @override
+  String get translateModelLabel => 'Übersetzungs-Modell';
+
+  @override
+  String get translateSourceLang => 'Von';
+
+  @override
+  String get translateTargetLang => 'Nach';
+
+  @override
+  String get translateSwap => 'Quell- und Zielsprache tauschen';
+
+  @override
+  String get translateInputLabel => 'Quelltext';
+
+  @override
+  String get translateInputHint =>
+      'Text zum Übersetzen eingeben oder einfügen…';
+
+  @override
+  String get translateOutputLabel => 'Übersetzung';
+
+  @override
+  String get translateRunButton => 'Übersetzen';
+
+  @override
+  String get translateNoModelsDownloaded =>
+      'Keine Übersetzungs-Modelle geladen. Öffne Modelle, wechsle auf den Filter „Übersetzen“ und lade M2M-100, WMT21 (en→X / X→en) oder MADLAD-400 herunter.';
+
+  @override
+  String get translateAdvanced => 'Erweitert';
+
+  @override
+  String translateMaxTokens(int n) {
+    return 'Max. Ausgabetoken: $n';
+  }
+
+  @override
+  String get translateMaxTokensHelper =>
+      'Obergrenze für die Länge der Übersetzung. CrispASR-Standard ist 200; höher für lange Passagen, niedriger für schnellere Antworten.';
+
+  @override
+  String get advancedPerfHeader => 'Leistung';
+
+  @override
+  String get advancedLidUseGpu => 'Sprach-Erkennung auf der GPU';
+
+  @override
+  String get advancedLidUseGpuSubtitle =>
+      'Leitet die Spracherkennung an Metal / CUDA / Vulkan weiter, falls verfügbar. ASR-Backends nutzen ihre eigene GPU-Initialisierung beim Laden.';
+
+  @override
+  String get advancedLidFlashAttn => 'Sprach-Erkennung mit Flash-Attention';
+
+  @override
+  String get advancedLidFlashAttnSubtitle =>
+      'Schnellerer Attention-Kernel im LID-Encoder. Nur abschalten, wenn ein Flash-Attention-Korrektheits-Bug auf deinem Build vermutet wird.';
+
+  @override
+  String advancedNThreads(int n) {
+    return 'CPU-Threads: $n';
+  }
+
+  @override
+  String get advancedNThreadsHelper =>
+      'Thread-Anzahl für Spracherkennung und andere Helfer-Pässe. Standard ist 4.';
 }

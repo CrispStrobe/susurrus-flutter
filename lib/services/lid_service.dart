@@ -34,6 +34,24 @@ class LidService {
   /// the next call picks up the new method's model.
   crispasr.LidMethod method = crispasr.LidMethod.whisper;
 
+  /// Whether to route the LID encoder pass to the GPU. CrispASR's
+  /// `crispasr_detect_language_pcm` accepts this directly; Whisper
+  /// LID benefits from Metal/CUDA on machines with an accelerator.
+  bool useGpu = false;
+
+  /// GPU device index when [useGpu] is true. Ignored on Metal (always
+  /// device 0). Honoured by CUDA / Vulkan / SYCL builds.
+  int gpuDevice = 0;
+
+  /// Whether to enable flash-attention on the LID encoder. CrispASR's
+  /// `crispasr_detect_language_pcm` honours this flag directly.
+  bool flashAttn = true;
+
+  /// Number of CPU threads to use when [useGpu] is false (or for the
+  /// non-GPU phases of LID). Defaults to 4 — matches CrispASR's
+  /// historical default.
+  int nThreads = 4;
+
   /// Drop any cached model path so the next call re-resolves. Call
   /// after the user switches `method` or downloads a new GGUF.
   void invalidate() {
@@ -151,6 +169,10 @@ class LidService {
         pcm: pcm,
         method: effectiveMethod,
         modelPath: modelPath,
+        nThreads: nThreads,
+        useGpu: useGpu,
+        gpuDevice: gpuDevice,
+        flashAttn: flashAttn,
       );
       if (r.isEmpty || r.confidence < minConfidence) {
         Log.instance.d('lid',

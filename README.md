@@ -44,6 +44,7 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 - **See where storage went** — Settings → Storage breakdown lists per-backend disk usage with a one-click "delete all of X" action.
 - **Diagnose with logs** — in-app viewer with filter / search / copy / export, optional file sink.
 - **Synthesize speech (TTS)** — pick a downloaded TTS model + voice + codec on the *Synthesize* screen, type text, hit *Synthesize*; output plays in-app and saves as WAV. Advanced section adds trim-silence, 0.25×–4× speed slider, reference-transcript field for runtime voice cloning, and natural-language voice-design prompts (qwen3-tts VoiceDesign).
+- **Translate text** — dedicated *Translate* screen wired to CrispASR's `crispasr_session_translate_text`. Pick from M2M-100 (100 langs, any-to-any), WMT21 Dense (en↔X, two separate checkpoints), or MADLAD-400 (419 langs); source/target language dropdowns with one-click swap, max-tokens slider, copy-to-clipboard.
 - **Restore punctuation** — FireRedPunc (ZH+EN) or fullstop-punc (EN/DE/FR/IT) toggle in Advanced Options; turns `wav2vec2 / fastconformer-ctc / firered-asr` lowercase output into properly punctuated text. Picker chooses which family runs when both are downloaded.
 - **Use CrisperWeaver in English or German** — full i18n scaffold via `flutter_localizations`, every user-facing string covered (guarded by an ARB-consistency test).
 

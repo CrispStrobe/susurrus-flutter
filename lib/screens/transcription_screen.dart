@@ -225,6 +225,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             tooltip: l.menuSynthesize,
             onPressed: () => context.push('/synthesize'),
           ),
+          IconButton(
+            icon: const Icon(Icons.translate),
+            tooltip: l.menuTranslate,
+            onPressed: () => context.push('/translate'),
+          ),
         ],
       ),
       body: DropTarget(
@@ -1011,6 +1016,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         tdrz: adv.tdrz,
         tokenTimestamps: adv.tokenTimestamps,
         puncFamily: adv.puncFamily,
+        lidUseGpu: adv.lidUseGpu,
+        lidFlashAttn: adv.lidFlashAttn,
+        nThreads: adv.nThreads,
       );
 
       if (filePath != null) {
@@ -1111,6 +1119,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       tdrz: adv.tdrz,
       tokenTimestamps: adv.tokenTimestamps,
       puncFamily: adv.puncFamily,
+      lidUseGpu: adv.lidUseGpu,
+      lidFlashAttn: adv.lidFlashAttn,
+      nThreads: adv.nThreads,
     );
 
     // Load the model once for the whole batch.

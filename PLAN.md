@@ -47,20 +47,31 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 * `AdvancedTranscribeOptions` value class bundling the new knobs so
   `transcribeFile`/`transcribeUrl` keep their signatures stable.
 
-**Still deferred** (out of scope this sweep, FFI gaps):
+**Round 2 (still May 2026)**:
 
-* **GPU + perf toggles in Settings** — `crispasr_session_open` doesn't
-  expose `gpu_backend`/`flash_attn`/`n_gpu_layers` as a runtime knob
-  (only the LID call accepts them). Picker would need an FFI change
-  upstream.
-* **TTS diffusion-steps slider** — `crispasr_session_synthesize` takes
-  only `(text, &n_out)`; no per-call steps argument.
+* ✅ **Text translation screen** — `TextTranslationService` +
+  `TranslateScreen` shipped. Catalogue covers M2M-100 (418M, 1.2B),
+  WMT21 Dense (en→X and X→en), MADLAD-400. New `translateText` method
+  added to `CrispasrSession` in the Dart binding.
+* ✅ **LID accelerator knobs** — `lidUseGpu` / `lidFlashAttn` /
+  `nThreads` exposed in `AdvancedTranscribeOptions` and the Advanced
+  Options "Performance" section, threaded through
+  `crispasr_detect_language_pcm`.
+* ✅ **`ModelKind.translate`** filter — Model Manager can now group
+  text-translation models separately from speech-translation
+  backends.
+
+**Still deferred** (out of scope, would need upstream FFI work):
+
+* **ASR-side GPU + perf toggles** — `crispasr_session_open` doesn't
+  expose `gpu_backend` / `flash_attn` / `n_gpu_layers` as runtime
+  knobs. ASR sessions pick the device at load time based on the
+  CMake build flags. Would need an FFI change upstream.
+* **TTS diffusion-steps slider** — `crispasr_session_synthesize`
+  takes only `(text, &n_out)`; no per-call steps argument.
 * **Voice baking flow** — would need to call
   `models/bake-chatterbox-voice-from-wav.py` from within the app or
   add a C-ABI for it. Deferred to a future sweep.
-* **Text-only translation screen** (m2m100 / madlad) — backend IDs
-  exist in CrispASR but `CrispasrSession.translateText` isn't exposed
-  via the Dart FFI binding yet.
 * **Server / OpenAI-compatible mode** — the CLI ships an HTTP server
   (`crispasr --server`). Out of scope for a GUI app.
 

@@ -109,5 +109,41 @@ void main() {
       expect(def, isNotNull);
       expect(def!.companions, contains('qwen3-tts-tokenizer-12hz'));
     });
+
+    test('text-to-text translation models in catalog with kind=translate', () {
+      // M2M-100 + WMT21 (both directions) + MADLAD-400 — the four
+      // text translation entries the new Translate screen consumes.
+      const expected = [
+        'm2m100-418m-q4_k',
+        'm2m100-1.2b-q4_k',
+        'wmt21-dense-24-wide-en-x-q4_k',
+        'wmt21-dense-24-wide-x-en-q4_k',
+        'madlad400-3b-mt-q4_k',
+      ];
+      for (final id in expected) {
+        final def = ModelService.crispasrBackendModels[id];
+        expect(def, isNotNull, reason: '$id missing from catalog');
+        expect(def!.kind, ModelKind.translate,
+            reason: '$id should be ModelKind.translate');
+      }
+      // WMT21 uses the dedicated `m2m100-wmt21` backend on the C side
+      // — picks the right runtime path inside crispasr_session_open.
+      expect(
+          ModelService.crispasrBackendModels['wmt21-dense-24-wide-en-x-q4_k']
+              ?.backend,
+          'm2m100-wmt21');
+      expect(
+          ModelService.crispasrBackendModels['wmt21-dense-24-wide-x-en-q4_k']
+              ?.backend,
+          'm2m100-wmt21');
+      expect(
+          ModelService.crispasrBackendModels['madlad400-3b-mt-q4_k']?.backend,
+          'madlad');
+      // Each translation backend has a HF probe entry too.
+      for (final b in ['m2m100', 'm2m100-wmt21', 'madlad']) {
+        expect(ModelService.backendRepos.containsKey(b), isTrue,
+            reason: 'BackendRepo "$b" missing — HF probe will skip it');
+      }
+    });
   });
 }

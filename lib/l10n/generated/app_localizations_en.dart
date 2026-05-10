@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuSynthesize => 'Synthesize speech';
 
   @override
+  String get menuTranslate => 'Translate text';
+
+  @override
   String get menuLogs => 'Logs';
 
   @override
@@ -1202,4 +1205,73 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get synthSpeedHelper =>
       'Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction.';
+
+  @override
+  String get translateTitle => 'Translate text';
+
+  @override
+  String get translateModelLabel => 'Translation model';
+
+  @override
+  String get translateSourceLang => 'From';
+
+  @override
+  String get translateTargetLang => 'To';
+
+  @override
+  String get translateSwap => 'Swap source and target';
+
+  @override
+  String get translateInputLabel => 'Source text';
+
+  @override
+  String get translateInputHint => 'Type or paste text to translate…';
+
+  @override
+  String get translateOutputLabel => 'Translation';
+
+  @override
+  String get translateRunButton => 'Translate';
+
+  @override
+  String get translateNoModelsDownloaded =>
+      'No translation models downloaded. Open Models, switch to the Translate filter, and fetch one of M2M-100, WMT21 (en→X / X→en), or MADLAD-400.';
+
+  @override
+  String get translateAdvanced => 'Advanced';
+
+  @override
+  String translateMaxTokens(int n) {
+    return 'Max output tokens: $n';
+  }
+
+  @override
+  String get translateMaxTokensHelper =>
+      'Hard cap on translated-text length. CrispASR\'s default is 200; raise for long passages, lower to keep generation snappy.';
+
+  @override
+  String get advancedPerfHeader => 'Performance';
+
+  @override
+  String get advancedLidUseGpu => 'LID on GPU';
+
+  @override
+  String get advancedLidUseGpuSubtitle =>
+      'Route language detection to Metal / CUDA / Vulkan when supported. ASR backends honour their own per-session GPU setup at load time.';
+
+  @override
+  String get advancedLidFlashAttn => 'LID flash-attention';
+
+  @override
+  String get advancedLidFlashAttnSubtitle =>
+      'Faster attention kernel during the LID encoder pass. Disable only if you suspect a flash-attn correctness bug on your build.';
+
+  @override
+  String advancedNThreads(int n) {
+    return 'CPU threads: $n';
+  }
+
+  @override
+  String get advancedNThreadsHelper =>
+      'Threads used for LID and other non-decoder passes. Defaults to 4.';
 }

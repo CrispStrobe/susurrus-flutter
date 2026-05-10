@@ -60,6 +60,17 @@ class AdvancedTranscribeOptions {
   /// `"fullstop"` for fullstop-punc.
   final String puncFamily;
 
+  /// Route LID inference to the GPU when supported (Metal/CUDA/Vulkan).
+  /// `crispasr_detect_language_pcm` accepts this flag directly.
+  final bool lidUseGpu;
+
+  /// Enable flash-attention on the LID encoder pass.
+  final bool lidFlashAttn;
+
+  /// CPU thread count for LID and any other non-blocking helper passes.
+  /// Defaults to 4 — matches CrispASR's historical n_threads.
+  final int nThreads;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -71,6 +82,9 @@ class AdvancedTranscribeOptions {
     this.tdrz = false,
     this.tokenTimestamps = false,
     this.puncFamily = 'firered',
+    this.lidUseGpu = false,
+    this.lidFlashAttn = true,
+    this.nThreads = 4,
   });
 }
 

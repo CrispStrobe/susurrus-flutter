@@ -447,6 +447,9 @@ class CrispASREngine implements TranscriptionEngine {
     final lid = _lidService;
     if (lid != null) {
       lid.method = advanced.lidMethod;
+      lid.useGpu = advanced.lidUseGpu;
+      lid.flashAttn = advanced.lidFlashAttn;
+      lid.nThreads = advanced.nThreads;
       lid.invalidate();
     }
 

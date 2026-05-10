@@ -8,6 +8,7 @@
   "menuSettings": "Settings",
   "menuModels": "Models",
   "menuSynthesize": "Synthesize speech",
+  "menuTranslate": "Translate text",
   "menuLogs": "Logs",
   "menuAbout": "About",
 
@@ -520,5 +521,29 @@
   "synthTrimSilenceSubtitle": "Strip leading and trailing silence below -72 dBFS from the synthesised PCM.",
   "synthSpeed": "Speed: {value}×",
   "@synthSpeed": {"placeholders": {"value": {"type": "String"}}},
-  "synthSpeedHelper": "Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction."
+  "synthSpeedHelper": "Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction.",
+
+  "translateTitle": "Translate text",
+  "translateModelLabel": "Translation model",
+  "translateSourceLang": "From",
+  "translateTargetLang": "To",
+  "translateSwap": "Swap source and target",
+  "translateInputLabel": "Source text",
+  "translateInputHint": "Type or paste text to translate…",
+  "translateOutputLabel": "Translation",
+  "translateRunButton": "Translate",
+  "translateNoModelsDownloaded": "No translation models downloaded. Open Models, switch to the Translate filter, and fetch one of M2M-100, WMT21 (en→X / X→en), or MADLAD-400.",
+  "translateAdvanced": "Advanced",
+  "translateMaxTokens": "Max output tokens: {n}",
+  "@translateMaxTokens": {"placeholders": {"n": {"type": "int"}}},
+  "translateMaxTokensHelper": "Hard cap on translated-text length. CrispASR's default is 200; raise for long passages, lower to keep generation snappy.",
+
+  "advancedPerfHeader": "Performance",
+  "advancedLidUseGpu": "LID on GPU",
+  "advancedLidUseGpuSubtitle": "Route language detection to Metal / CUDA / Vulkan when supported. ASR backends honour their own per-session GPU setup at load time.",
+  "advancedLidFlashAttn": "LID flash-attention",
+  "advancedLidFlashAttnSubtitle": "Faster attention kernel during the LID encoder pass. Disable only if you suspect a flash-attn correctness bug on your build.",
+  "advancedNThreads": "CPU threads: {n}",
+  "@advancedNThreads": {"placeholders": {"n": {"type": "int"}}},
+  "advancedNThreadsHelper": "Threads used for LID and other non-decoder passes. Defaults to 4."
 }

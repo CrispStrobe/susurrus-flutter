@@ -5,6 +5,23 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep — round 2 (May 2026)**
+- New **Translate** screen — text-to-text translation via M2M-100,
+  WMT21 Dense (en→X **and** X→en, both checkpoints catalogued), and
+  MADLAD-400 (419 languages). Source/target dropdowns with a swap
+  button, max-tokens slider, copy-to-clipboard. New
+  `TextTranslationService` + `translateText()` exposed on
+  `CrispasrSession` in the Dart binding.
+- LID accelerator knobs in Advanced Options — toggle GPU offload,
+  flash-attention, and CPU thread count for the
+  `crispasr_detect_language_pcm` call. Threaded through
+  `LidService` + `AdvancedTranscribeOptions`.
+- New `ModelKind.translate` filter so the Model Manager can group
+  text translation models away from the speech-translation backends
+  (canary, voxtral, …).
+- CrispASR README + cli docs corrected — WMT21 ships **two** Dense
+  24-wide checkpoints (`en-x` and `x-en`), not one en→X-only.
+
 **CrispASR 0.6 parity sweep (May 2026)**
 - 4 new ASR backends in the catalog: **gemma4-e2b** (USM Conformer +
   Gemma-4, 140+ languages), **omniasr-llm-unlimited** (streaming, 15 s
