@@ -47,6 +47,23 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 * `AdvancedTranscribeOptions` value class bundling the new knobs so
   `transcribeFile`/`transcribeUrl` keep their signatures stable.
 
+**Round 4 (still May 2026)**:
+
+* ✅ **ASR-side GPU + perf toggles** — extended the C-ABI with
+  `crispasr_session_open_with_params(path, backend, params_v1*)`.
+  Threads `use_gpu` / `verbosity` / `n_threads` through every
+  backend's `*_context_params` struct at session-open time. Surfaced
+  in the Advanced Options "Performance" section as the *ASR on GPU*
+  toggle. Takes effect on the next model load.
+* ✅ **TTS sampling knobs** — chatterbox runtime setters for
+  diffusion steps, top-p, min-p, repetition penalty, CFG weight,
+  exaggeration, max speech tokens. Orpheus temperature too. New
+  `crispasr_session_set_*` exports + Dart binding methods
+  (`setTtsSteps`, `setTopP`, …). Synthesize screen surfaces five
+  sliders in its Advanced section; setters silently no-op on
+  backends that don't honour each field, so no per-backend UI
+  branching needed.
+
 **Round 3 (still May 2026)**:
 
 * ✅ **Custom voice WAV picker** on the Synthesize screen — surfaces
@@ -80,17 +97,22 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
   text-translation models separately from speech-translation
   backends.
 
-**Still deferred** (out of scope, would need upstream FFI work):
+**Still deferred**:
 
-* **ASR-side GPU + perf toggles** — `crispasr_session_open` doesn't
-  expose `gpu_backend` / `flash_attn` / `n_gpu_layers` as runtime
-  knobs. ASR sessions pick the device at load time based on the
-  CMake build flags. Would need an FFI change upstream.
-* **TTS diffusion-steps slider** — `crispasr_session_synthesize`
-  takes only `(text, &n_out)`; no per-call steps argument.
-* **Voice baking flow** — would need to call
-  `models/bake-chatterbox-voice-from-wav.py` from within the app or
-  add a C-ABI for it. Deferred to a future sweep.
+* **`flash_attn` + `n_gpu_layers` for ASR** — those fields aren't in
+  any per-backend `*_context_params` struct today. Adding them would
+  mean a per-backend refactor (touching parakeet, canary, qwen3,
+  voxtral, granite, etc.) plus their internal init paths. Doable in
+  a future sweep but bigger surface than the parity work warranted.
+* **`gpu_backend` selector** (metal / cuda / vulkan / cpu-only as a
+  string) — same shape as above. The compile-time flag governs which
+  ggml backend is built into libcrispasr; runtime selection between
+  multiple backends in one binary needs ggml-side support.
+* **Per-backend TTS sampling knobs beyond chatterbox** — qwen3-tts
+  hardcodes `temperature=0.9` inside its top-k sampler (not pulled
+  from cparams), kokoro has only `use_gpu`, vibevoice's diffusion
+  steps live in its session config not a runtime field. Each is its
+  own small refactor.
 * **Server / OpenAI-compatible mode** — the CLI ships an HTTP server
   (`crispasr --server`). Out of scope for a GUI app.
 

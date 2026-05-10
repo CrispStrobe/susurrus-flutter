@@ -324,8 +324,24 @@ class CrispASREngine implements TranscriptionEngine {
       if (def.backend == 'whisper') {
         _model = crispasr.CrispASR(modelPath);
       } else {
-        _session =
-            crispasr.CrispasrSession.open(modelPath, backend: def.backend);
+        // CrispASR 0.6.1+: prefer the params-aware open so the
+        // user-controlled asrUseGpu toggle takes effect at session-
+        // open time. Fall back to plain open() on older dylibs.
+        // The flag is stashed in `_config['asrUseGpu']` by the
+        // engine factory at load time; default to true.
+        final useGpu = (_config['asrUseGpu'] as bool?) ?? true;
+        try {
+          _session = crispasr.CrispasrSession.openWithParams(
+            modelPath,
+            backend: def.backend,
+            nThreads: 4,
+            useGpu: useGpu,
+          );
+        } on UnsupportedError {
+          // libcrispasr < 0.6.1 — historical default (GPU on, n_threads 4).
+          _session =
+              crispasr.CrispasrSession.open(modelPath, backend: def.backend);
+        }
         // Some backends need a companion file before they can run:
         //   * qwen3-tts → tokenizer GGUF via setCodecPath
         //   * orpheus    → SNAC codec GGUF via setCodecPath
@@ -452,6 +468,12 @@ class CrispASREngine implements TranscriptionEngine {
       lid.nThreads = advanced.nThreads;
       lid.invalidate();
     }
+    // Persist the ASR-GPU toggle into _config so the next loadModel
+    // call (= the next time the user picks a different model) honours
+    // it. The flag is consumed by the params-aware open path; flipping
+    // it does NOT reload the current session — that's intentional, the
+    // session-open path is too heavy to redo on every transcribe().
+    _config['asrUseGpu'] = advanced.asrUseGpu;
 
     // Apply sticky session-state setters before dispatching transcribe.
     // Per-call args win when supplied, otherwise these are the fallback.

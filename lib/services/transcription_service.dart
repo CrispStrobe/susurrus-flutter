@@ -71,6 +71,15 @@ class AdvancedTranscribeOptions {
   /// Defaults to 4 — matches CrispASR's historical n_threads.
   final int nThreads;
 
+  /// Route the ASR session itself to the GPU at session-open time.
+  /// True = use whichever GGML backend was compiled in (Metal / CUDA /
+  /// Vulkan). False = force CPU, useful for debugging or low-memory
+  /// laptops where keeping the GPU free for video / Slack matters
+  /// more than ASR throughput. Threaded through CrispASR 0.6.1's
+  /// `crispasr_session_open_with_params`; backends without a runtime
+  /// `use_gpu` field keep their compile-time default.
+  final bool asrUseGpu;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -85,6 +94,7 @@ class AdvancedTranscribeOptions {
     this.lidUseGpu = false,
     this.lidFlashAttn = true,
     this.nThreads = 4,
+    this.asrUseGpu = true,
   });
 }
 

@@ -1019,6 +1019,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         lidUseGpu: adv.lidUseGpu,
         lidFlashAttn: adv.lidFlashAttn,
         nThreads: adv.nThreads,
+        asrUseGpu: adv.asrUseGpu,
       );
 
       if (filePath != null) {
@@ -1122,6 +1123,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       lidUseGpu: adv.lidUseGpu,
       lidFlashAttn: adv.lidFlashAttn,
       nThreads: adv.nThreads,
+      asrUseGpu: adv.asrUseGpu,
     );
 
     // Load the model once for the whole batch.

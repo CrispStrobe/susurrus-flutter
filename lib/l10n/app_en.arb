@@ -578,5 +578,24 @@
   "@voiceBakeSuccess": {"placeholders": {"path": {"type": "String"}}},
   "voiceBakeFailure": "Bake failed: {error}",
   "@voiceBakeFailure": {"placeholders": {"error": {"type": "String"}}},
-  "voiceBakeMissingInputs": "Pick a reference WAV and an output filename first."
+  "voiceBakeMissingInputs": "Pick a reference WAV and an output filename first.",
+
+  "advancedAsrUseGpu": "ASR on GPU",
+  "advancedAsrUseGpuSubtitle": "Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.",
+
+  "synthTemperature": "Temperature: {value}",
+  "@synthTemperature": {"placeholders": {"value": {"type": "String"}}},
+  "synthTemperatureHelper": "Sampling temperature shared across orpheus / chatterbox / canary. 0.0 = greedy / reproducible. Higher = more variety.",
+  "synthTtsSteps": "Diffusion steps: {n}",
+  "@synthTtsSteps": {"placeholders": {"n": {"type": "int"}}},
+  "synthTtsStepsHelper": "Number of CFM Euler steps in the chatterbox mel decoder (default 10). Higher = smoother audio at the cost of latency.",
+  "synthCfgWeight": "CFG weight: {value}",
+  "@synthCfgWeight": {"placeholders": {"value": {"type": "String"}}},
+  "synthCfgWeightHelper": "Classifier-free-guidance weight (chatterbox). 0 disables CFG; 0.5 is the upstream default; 1+ amplifies the conditional path.",
+  "synthExaggeration": "Exaggeration: {value}",
+  "@synthExaggeration": {"placeholders": {"value": {"type": "String"}}},
+  "synthExaggerationHelper": "Emotion-exaggeration scalar (chatterbox). 0.5 is the upstream default; raise for dramatic delivery, lower for monotone.",
+  "synthTopP": "Top-p: {value}",
+  "@synthTopP": {"placeholders": {"value": {"type": "String"}}},
+  "synthTopPHelper": "Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens."
 }

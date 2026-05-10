@@ -2449,6 +2449,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a reference WAV and an output filename first.'**
   String get voiceBakeMissingInputs;
+
+  /// No description provided for @advancedAsrUseGpu.
+  ///
+  /// In en, this message translates to:
+  /// **'ASR on GPU'**
+  String get advancedAsrUseGpu;
+
+  /// No description provided for @advancedAsrUseGpuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.'**
+  String get advancedAsrUseGpuSubtitle;
+
+  /// No description provided for @synthTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature: {value}'**
+  String synthTemperature(String value);
+
+  /// No description provided for @synthTemperatureHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Sampling temperature shared across orpheus / chatterbox / canary. 0.0 = greedy / reproducible. Higher = more variety.'**
+  String get synthTemperatureHelper;
+
+  /// No description provided for @synthTtsSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Diffusion steps: {n}'**
+  String synthTtsSteps(int n);
+
+  /// No description provided for @synthTtsStepsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of CFM Euler steps in the chatterbox mel decoder (default 10). Higher = smoother audio at the cost of latency.'**
+  String get synthTtsStepsHelper;
+
+  /// No description provided for @synthCfgWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'CFG weight: {value}'**
+  String synthCfgWeight(String value);
+
+  /// No description provided for @synthCfgWeightHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Classifier-free-guidance weight (chatterbox). 0 disables CFG; 0.5 is the upstream default; 1+ amplifies the conditional path.'**
+  String get synthCfgWeightHelper;
+
+  /// No description provided for @synthExaggeration.
+  ///
+  /// In en, this message translates to:
+  /// **'Exaggeration: {value}'**
+  String synthExaggeration(String value);
+
+  /// No description provided for @synthExaggerationHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Emotion-exaggeration scalar (chatterbox). 0.5 is the upstream default; raise for dramatic delivery, lower for monotone.'**
+  String get synthExaggerationHelper;
+
+  /// No description provided for @synthTopP.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-p: {value}'**
+  String synthTopP(String value);
+
+  /// No description provided for @synthTopPHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens.'**
+  String get synthTopPHelper;
 }
 
 class _AppLocalizationsDelegate

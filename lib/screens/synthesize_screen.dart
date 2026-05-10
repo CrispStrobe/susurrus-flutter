@@ -52,6 +52,14 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   bool _trimSilence = false;
   double _speed = 1.0;
   bool _showAdvanced = false;
+  // CrispASR 0.6.1 sampling knobs. Defaults that mirror the upstream
+  // C-side defaults so untouched sliders behave like the historical
+  // synthesize() call.
+  double _temperature = 0.8;
+  double _topP = 1.0;
+  double _cfgWeight = 0.5;
+  double _exaggeration = 0.5;
+  int _ttsSteps = 10;
 
   @override
   void initState() {
@@ -143,10 +151,18 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
         return;
       }
 
+      // Pass the chatterbox-specific knobs unconditionally; the
+      // session setters no-op on backends that don't honour each
+      // field, so no per-backend branching needed.
       final audio = await tts.synthesize(
         text,
         trimSilence: _trimSilence,
         speed: _speed,
+        ttsSteps: _ttsSteps,
+        temperature: _temperature,
+        topP: _topP,
+        cfgWeight: _cfgWeight,
+        exaggeration: _exaggeration,
       );
       if (audio == null) return;
       final wav = await tts.writeWav(audio);
@@ -171,6 +187,39 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// One labeled slider row — shared shape for the TTS sampling knobs
+  /// in the Advanced section. Helper text below; padded so consecutive
+  /// sliders don't visually collide.
+  Widget _buildSampleSlider({
+    required String label,
+    required String helper,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: value.toStringAsFixed(2),
+            onChanged: onChanged,
+          ),
+          Text(helper,
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
+    );
   }
 
   /// Show the OS file picker for a WAV reference. Limits to
@@ -451,6 +500,58 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                                     fontSize: 11, color: Colors.grey)),
                           ],
                         ),
+                      ),
+                      // CrispASR 0.6.1 sampling knobs. Most are
+                      // chatterbox-specific (cfg_weight, exaggeration,
+                      // top_p); other backends silently no-op when
+                      // the setter doesn't apply, so we always show
+                      // the sliders rather than gating by backend.
+                      _buildSampleSlider(
+                        label: l.synthTemperature(_temperature.toStringAsFixed(2)),
+                        helper: l.synthTemperatureHelper,
+                        value: _temperature,
+                        min: 0.0,
+                        max: 1.5,
+                        divisions: 30,
+                        onChanged: (v) => setState(() => _temperature = v),
+                      ),
+                      _buildSampleSlider(
+                        label: l.synthTtsSteps(_ttsSteps),
+                        helper: l.synthTtsStepsHelper,
+                        value: _ttsSteps.toDouble(),
+                        min: 1,
+                        max: 50,
+                        divisions: 49,
+                        onChanged: (v) =>
+                            setState(() => _ttsSteps = v.round()),
+                      ),
+                      _buildSampleSlider(
+                        label: l.synthCfgWeight(_cfgWeight.toStringAsFixed(2)),
+                        helper: l.synthCfgWeightHelper,
+                        value: _cfgWeight,
+                        min: 0.0,
+                        max: 2.0,
+                        divisions: 20,
+                        onChanged: (v) => setState(() => _cfgWeight = v),
+                      ),
+                      _buildSampleSlider(
+                        label:
+                            l.synthExaggeration(_exaggeration.toStringAsFixed(2)),
+                        helper: l.synthExaggerationHelper,
+                        value: _exaggeration,
+                        min: 0.0,
+                        max: 1.5,
+                        divisions: 15,
+                        onChanged: (v) => setState(() => _exaggeration = v),
+                      ),
+                      _buildSampleSlider(
+                        label: l.synthTopP(_topP.toStringAsFixed(2)),
+                        helper: l.synthTopPHelper,
+                        value: _topP,
+                        min: 0.05,
+                        max: 1.0,
+                        divisions: 19,
+                        onChanged: (v) => setState(() => _topP = v),
                       ),
                     ],
                   ),

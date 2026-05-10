@@ -1369,4 +1369,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get voiceBakeMissingInputs =>
       'Pick a reference WAV and an output filename first.';
+
+  @override
+  String get advancedAsrUseGpu => 'ASR on GPU';
+
+  @override
+  String get advancedAsrUseGpuSubtitle =>
+      'Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.';
+
+  @override
+  String synthTemperature(String value) {
+    return 'Temperature: $value';
+  }
+
+  @override
+  String get synthTemperatureHelper =>
+      'Sampling temperature shared across orpheus / chatterbox / canary. 0.0 = greedy / reproducible. Higher = more variety.';
+
+  @override
+  String synthTtsSteps(int n) {
+    return 'Diffusion steps: $n';
+  }
+
+  @override
+  String get synthTtsStepsHelper =>
+      'Number of CFM Euler steps in the chatterbox mel decoder (default 10). Higher = smoother audio at the cost of latency.';
+
+  @override
+  String synthCfgWeight(String value) {
+    return 'CFG weight: $value';
+  }
+
+  @override
+  String get synthCfgWeightHelper =>
+      'Classifier-free-guidance weight (chatterbox). 0 disables CFG; 0.5 is the upstream default; 1+ amplifies the conditional path.';
+
+  @override
+  String synthExaggeration(String value) {
+    return 'Exaggeration: $value';
+  }
+
+  @override
+  String get synthExaggerationHelper =>
+      'Emotion-exaggeration scalar (chatterbox). 0.5 is the upstream default; raise for dramatic delivery, lower for monotone.';
+
+  @override
+  String synthTopP(String value) {
+    return 'Top-p: $value';
+  }
+
+  @override
+  String get synthTopPHelper =>
+      'Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens.';
 }

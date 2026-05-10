@@ -146,6 +146,12 @@ class AdvancedOptions {
   /// CPU thread count for LID and other helper passes.
   final int nThreads;
 
+  /// Route the ASR session to the GPU at session-open time. Threaded
+  /// through CrispASR 0.6.1's `crispasr_session_open_with_params`.
+  /// Backends without a runtime `use_gpu` field keep their compile-
+  /// time default; see `AdvancedTranscribeOptions.asrUseGpu`.
+  final bool asrUseGpu;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -170,6 +176,7 @@ class AdvancedOptions {
     this.lidUseGpu = false,
     this.lidFlashAttn = true,
     this.nThreads = 4,
+    this.asrUseGpu = true,
   });
 
   AdvancedOptions copyWith({
@@ -196,6 +203,7 @@ class AdvancedOptions {
     bool? lidUseGpu,
     bool? lidFlashAttn,
     int? nThreads,
+    bool? asrUseGpu,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -221,6 +229,7 @@ class AdvancedOptions {
         lidUseGpu: lidUseGpu ?? this.lidUseGpu,
         lidFlashAttn: lidFlashAttn ?? this.lidFlashAttn,
         nThreads: nThreads ?? this.nThreads,
+        asrUseGpu: asrUseGpu ?? this.asrUseGpu,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -452,6 +461,16 @@ class _AdvancedDecodingSectionState
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(l.advancedPerfHeader,
               style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedAsrUseGpu),
+          subtitle: Text(l.advancedAsrUseGpuSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.asrUseGpu,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(asrUseGpu: v),
         ),
         SwitchListTile(
           dense: true,

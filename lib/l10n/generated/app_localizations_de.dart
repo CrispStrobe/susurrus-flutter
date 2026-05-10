@@ -1378,4 +1378,56 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get voiceBakeMissingInputs =>
       'Wähle erst eine Referenz-WAV und einen Ausgabe-Dateinamen.';
+
+  @override
+  String get advancedAsrUseGpu => 'ASR auf der GPU';
+
+  @override
+  String get advancedAsrUseGpuSubtitle =>
+      'Leitet die ASR-Initialisierung an Metal / CUDA / Vulkan weiter, sofern unterstützt. Wird beim nächsten Modell-Laden aktiv. Backends ohne Laufzeit-GPU-Steuerung behalten ihre Compile-Time-Vorgabe.';
+
+  @override
+  String synthTemperature(String value) {
+    return 'Temperatur: $value';
+  }
+
+  @override
+  String get synthTemperatureHelper =>
+      'Sampling-Temperatur (gemeinsam für Orpheus / Chatterbox / Canary). 0,0 = greedy / reproduzierbar. Höher = mehr Variation.';
+
+  @override
+  String synthTtsSteps(int n) {
+    return 'Diffusionsschritte: $n';
+  }
+
+  @override
+  String get synthTtsStepsHelper =>
+      'Anzahl der CFM-Euler-Schritte im Chatterbox-Mel-Decoder (Standard 10). Höher = glatterer Klang, aber höhere Latenz.';
+
+  @override
+  String synthCfgWeight(String value) {
+    return 'CFG-Gewicht: $value';
+  }
+
+  @override
+  String get synthCfgWeightHelper =>
+      'Classifier-Free-Guidance-Gewicht (Chatterbox). 0 deaktiviert CFG; 0,5 ist die Standardvorgabe; ≥1 verstärkt den konditionalen Pfad.';
+
+  @override
+  String synthExaggeration(String value) {
+    return 'Übertreibung: $value';
+  }
+
+  @override
+  String get synthExaggerationHelper =>
+      'Emotionswert (Chatterbox). 0,5 ist die Standardvorgabe; höher für dramatischere Ausführung, niedriger für monoton.';
+
+  @override
+  String synthTopP(String value) {
+    return 'Top-p: $value';
+  }
+
+  @override
+  String get synthTopPHelper =>
+      'Top-p-Nucleus-Sampling-Schwelle (Chatterbox). 1,0 deaktiviert Top-p; kleinere Werte schneiden den unwahrscheinlichen Schwanz ab.';
 }

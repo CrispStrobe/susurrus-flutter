@@ -178,10 +178,77 @@ class TtsService {
     String text, {
     bool trimSilence = false,
     double speed = 1.0,
+    /// CFM diffusion-step count for chatterbox (default 10). Higher
+    /// is slower but smoother. Other backends silently ignore.
+    int? ttsSteps,
+    /// Sampling temperature shared across orpheus / chatterbox /
+    /// canary-temperature-capable backends. Null = leave the C-side
+    /// default (chatterbox 0.8, orpheus 0.6).
+    double? temperature,
+    /// Top-p nucleus threshold (chatterbox). Null = backend default.
+    double? topP,
+    /// Min-p threshold (chatterbox). Null = backend default.
+    double? minP,
+    /// CFG weight (chatterbox). Null = backend default 0.5.
+    double? cfgWeight,
+    /// Emotion-exaggeration scalar (chatterbox). Null = backend default.
+    double? exaggeration,
+    /// Repetition penalty (chatterbox). Null = backend default 1.0.
+    double? repetitionPenalty,
+    /// Upper bound on AR speech tokens (chatterbox). Null = default.
+    int? maxSpeechTokens,
   }) async {
     final session = _session;
     if (session == null || text.trim().isEmpty) return null;
     try {
+      // Apply per-call sampling overrides before synthesise. The
+      // session-level setters silently no-op on backends that don't
+      // honour the field, so we don't gate by backend here. Each
+      // wrapper catches UnsupportedError on pre-0.6.1 dylibs.
+      void applyTtsKnobs() {
+        if (ttsSteps != null) {
+          try {
+            session.setTtsSteps(ttsSteps);
+          } catch (_) {/* old dylib */}
+        }
+        if (temperature != null) {
+          try {
+            session.setTemperature(temperature);
+          } catch (_) {/* old dylib or unsupported */}
+        }
+        if (topP != null) {
+          try {
+            session.setTopP(topP);
+          } catch (_) {}
+        }
+        if (minP != null) {
+          try {
+            session.setMinP(minP);
+          } catch (_) {}
+        }
+        if (cfgWeight != null) {
+          try {
+            session.setCfgWeight(cfgWeight);
+          } catch (_) {}
+        }
+        if (exaggeration != null) {
+          try {
+            session.setExaggeration(exaggeration);
+          } catch (_) {}
+        }
+        if (repetitionPenalty != null) {
+          try {
+            session.setRepetitionPenalty(repetitionPenalty);
+          } catch (_) {}
+        }
+        if (maxSpeechTokens != null) {
+          try {
+            session.setMaxSpeechTokens(maxSpeechTokens);
+          } catch (_) {}
+        }
+      }
+
+      applyTtsKnobs();
       Float32List pcm = session.synthesize(text);
       // CrispASR's TTS backends all output 24 kHz mono float32.
       final int beforeSamples = pcm.length;

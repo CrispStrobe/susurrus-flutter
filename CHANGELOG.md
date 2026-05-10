@@ -5,6 +5,32 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep — round 4 (May 2026)**
+- **ASR-side GPU toggle is now a runtime knob.** New
+  `crispasr_session_open_with_params` C-ABI on the CrispASR side
+  takes a versioned struct (`abi_version`, `n_threads`, `use_gpu`,
+  `verbosity`) and threads `use_gpu` into every backend whose
+  context_params accepts it (parakeet, canary, qwen3, cohere,
+  granite, voxtral, vibevoice, qwen3-tts, orpheus, kokoro,
+  chatterbox). Surfaced as the *ASR on GPU* toggle in the
+  Performance section of Advanced Options. Takes effect on the
+  next model load (not retroactive to the currently-open session).
+* **Chatterbox sampling knobs** — diffusion-step count, top-p,
+  min-p, repetition penalty, CFG weight, exaggeration, max speech
+  tokens. New runtime setters in `chatterbox.cpp` mutate the
+  context's `params` struct between synth calls. Exposed via new
+  per-knob session setters (`crispasr_session_set_tts_steps`,
+  `_set_top_p`, `_set_min_p`, `_set_repetition_penalty`,
+  `_set_cfg_weight`, `_set_exaggeration`,
+  `_set_max_speech_tokens`) on the C-ABI, mapped through the Dart
+  binding (`setTtsSteps`, `setTopP`, …) and surfaced on the
+  Synthesize screen as labelled sliders.
+* **Orpheus runtime temperature** — new `orpheus_set_temperature`
+  C export; `crispasr_session_set_temperature` now routes to
+  orpheus and chatterbox in addition to canary / cohere /
+  parakeet / moonshine, so the existing temperature slider works
+  on those TTS backends too without UI changes.
+
 **CrispASR 0.6 parity sweep — round 3 (May 2026)**
 - **Custom voice (WAV reference)** card on the *Synthesize* screen.
   Pick a WAV from disk for runtime cloning on backends that take a
