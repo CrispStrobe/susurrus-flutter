@@ -118,27 +118,43 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
   text-translation models separately from speech-translation
   backends.
 
-**Still deferred**:
+**Still deferred** (each tracked upstream in `../CrispASR/PLAN.md`):
 
 * **Wiring `flash_attn` into every backend's compute graph** — the
   toggle ships in the open-params struct (round 5) and threads
   through to each backend's session, but only whisper consumes it
   at the kernel level today. The other backends need their per-graph
   attention path switched from `ggml_soft_max_ext(KQ)` to
-  `ggml_flash_attn_ext(...)` to actually honour the flag. That's
-  per-backend work that lands incrementally.
+  `ggml_flash_attn_ext(...)` to actually honour the flag.
+  Tracked as **CrispASR PLAN.md #86** — full per-backend status
+  table, recipe, and recommended order (orpheus + chatterbox-T3
+  first; ~2–3 focused days for the full sweep). Prerequisite struct-
+  field migration is **CrispASR PLAN.md #89** (~2 hours, mechanical
+  across 12 backends).
 * **`gpu_backend` selector** (metal / cuda / vulkan / cpu-only as a
   runtime string) — needs a multi-backend ggml build (compile in
   more than one ggml backend simultaneously) plus per-backend
   dispatch refactor so each `*_init_from_file` consults the hint.
-  Doable but requires the ggml-side support to land first.
-* **Kokoro length-scale / speaking rate** — kokoro's
-  `kokoro_context_params` has only `use_gpu`; the duration model is
-  applied inside the StyleTTS2 forward pass without a runtime
-  scalar. Adding one is a kokoro-internal refactor.
-* **Vibevoice diffusion-steps slider** — vibevoice's diffusion
-  step count is locked into its session config; making it
-  runtime-tunable needs a vibevoice-internal change.
+  Tracked as **CrispASR PLAN.md #87** — needs ggml-side multi-
+  backend dispatch to land first; ~1 week of focused work when we
+  pick it up.
+* **Kokoro length-scale / speaking rate** — `kokoro_context_params`
+  has only `use_gpu`; the duration model runs inside the StyleTTS2
+  forward pass without a runtime scalar. Adding one is a kokoro-
+  internal refactor (half a day). Tracked as **CrispASR PLAN.md #88
+  (Kokoro section)**. CrisperWeaver's Synthesize screen already has
+  a client-side resample-based "speed" slider as a fallback.
+* **Vibevoice diffusion-steps slider** — vibevoice's diffusion step
+  count is baked into the GGUF's schedule tensor; runtime tuning
+  means sub-sampling that schedule at synth time. Half-day fix
+  inside vibevoice. Tracked as **CrispASR PLAN.md #88 (VibeVoice
+  section)**.
+
+The OpenAI-compatible server item that was previously deferred is
+now SHIPPED as a Dart-side `shelf` server (round 5, see CHANGELOG +
+the §7 note below). The CrispASR-side `crispasr --server` binary
+remains available as the desktop-only alternative for users who'd
+rather not run the GUI at all.
 
 ---
 
@@ -718,6 +734,28 @@ Three-step recipe:
 
 CrisperWeaver picks up new backends automatically through `CrispasrSession.availableBackends()` — no Dart changes needed. If the user picks a backend the bundled libwhisper wasn't linked with, the load error names exactly which backends ARE available.
 
-## 7. Server alternative (not used)
+## 7. Server modes — built-in vs CrispASR-CLI
 
-CrispASR also ships an HTTP server (`examples/cli/crispasr_server.cpp`) with `POST /inference`, `POST /v1/audio/transcriptions` (OpenAI-compatible), `POST /load`, `GET /backends`. Desktop builds *could* bundle the `crispasr` binary and spawn it in server mode. We don't — iOS can't spawn subprocesses, and FFI is the parity path for mobile. Leaving the note here in case a future desktop-only variant wants fewer dylibs and more process isolation.
+**Built-in** (round 5, May 2026): CrisperWeaver ships its own
+Dart-side `shelf` HTTP server, toggleable from *Settings → Local
+HTTP server*. Bound to `127.0.0.1:8765` by default. Exposes:
+
+- `POST /v1/audio/transcriptions` (multipart upload, OpenAI-shaped
+  json/text/srt/vtt response) — routes through the loaded ASR.
+- `POST /v1/audio/speech` (JSON in, 24 kHz mono WAV out) — routes
+  through `TtsService`.
+- `POST /v1/translations` (JSON in, JSON out) — routes through
+  `TextTranslationService`.
+- `GET /health` (liveness check).
+
+This is the parity path for both desktop and mobile (iOS can't
+spawn subprocesses), and avoids loading two copies of every backend
+into RAM.
+
+**CLI alternative** (still available for advanced users): CrispASR
+ships an HTTP server binary (`examples/cli/crispasr_server.cpp`)
+with `POST /inference`, `POST /v1/audio/transcriptions` (OpenAI-
+compatible), `POST /load`, `GET /backends`. Desktop builds *could*
+bundle the `crispasr` binary and spawn it in server mode for users
+who want process isolation or fewer dylibs. We don't bundle it —
+the in-app server already covers the use case end-to-end.
