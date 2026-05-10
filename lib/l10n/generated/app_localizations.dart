@@ -2293,6 +2293,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Threads used for LID and other non-decoder passes. Defaults to 4.'**
   String get advancedNThreadsHelper;
+
+  /// No description provided for @synthCustomVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom voice (WAV reference)'**
+  String get synthCustomVoice;
+
+  /// No description provided for @synthCustomVoiceHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a WAV from disk for runtime cloning. Pair with the Reference transcript on qwen3-tts Base / vibevoice-1.5b. Overrides the voicepack dropdown when set.'**
+  String get synthCustomVoiceHelper;
+
+  /// No description provided for @synthCustomVoicePick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick reference WAV…'**
+  String get synthCustomVoicePick;
+
+  /// No description provided for @synthCustomVoiceReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace reference WAV…'**
+  String get synthCustomVoiceReplace;
+
+  /// No description provided for @synthCustomVoiceClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear custom voice'**
+  String get synthCustomVoiceClear;
+
+  /// No description provided for @recorderStreamSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Stream (session)'**
+  String get recorderStreamSession;
+
+  /// No description provided for @recorderStreamSessionTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Live mic transcribe through the active backend\'s streaming arm (kyutai-stt / moonshine-streaming / voxtral4b). Falls back to Whisper sliding-window when the backend has no native stream API.'**
+  String get recorderStreamSessionTooltip;
+
+  /// No description provided for @streamingNotAvailableForBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'The active backend ({backend}) has no streaming arm. Switch to whisper, kyutai-stt, moonshine-streaming, or voxtral4b.'**
+  String streamingNotAvailableForBackend(String backend);
+
+  /// No description provided for @voiceBakeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bake voice (WAV → GGUF)'**
+  String get voiceBakeTitle;
+
+  /// No description provided for @voiceBakeOpenTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Bake a Chatterbox voice from a WAV reference'**
+  String get voiceBakeOpenTooltip;
+
+  /// No description provided for @voiceBakeIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Run CrispASR\'s bake-chatterbox-voice-from-wav.py to convert a WAV reference into a baked voicepack GGUF. Requires Python 3 + chatterbox-tts + gguf installed on the system.'**
+  String get voiceBakeIntro;
+
+  /// No description provided for @voiceBakeWavLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference WAV'**
+  String get voiceBakeWavLabel;
+
+  /// No description provided for @voiceBakeWavPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick WAV…'**
+  String get voiceBakeWavPick;
+
+  /// No description provided for @voiceBakeOutputName.
+  ///
+  /// In en, this message translates to:
+  /// **'Output filename'**
+  String get voiceBakeOutputName;
+
+  /// No description provided for @voiceBakeOutputNameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved into your models directory next to other voicepacks. Use the .gguf extension.'**
+  String get voiceBakeOutputNameHelper;
+
+  /// No description provided for @voiceBakeExaggeration.
+  ///
+  /// In en, this message translates to:
+  /// **'Exaggeration: {value}'**
+  String voiceBakeExaggeration(String value);
+
+  /// No description provided for @voiceBakeExaggerationHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Default emotion-advance scalar (0.0 – 1.0). 0.5 is the upstream default.'**
+  String get voiceBakeExaggerationHelper;
+
+  /// No description provided for @voiceBakePythonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Python interpreter'**
+  String get voiceBakePythonLabel;
+
+  /// No description provided for @voiceBakePythonHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults to `python3` on PATH. Override if your chatterbox-tts / gguf install lives in a venv.'**
+  String get voiceBakePythonHelper;
+
+  /// No description provided for @voiceBakeScriptLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bake script path'**
+  String get voiceBakeScriptLabel;
+
+  /// No description provided for @voiceBakeScriptHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults to ../CrispASR/models/bake-chatterbox-voice-from-wav.py. Adjust if your CrispASR checkout is elsewhere.'**
+  String get voiceBakeScriptHelper;
+
+  /// No description provided for @voiceBakeRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Bake voice'**
+  String get voiceBakeRun;
+
+  /// No description provided for @voiceBakeRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Baking…'**
+  String get voiceBakeRunning;
+
+  /// No description provided for @voiceBakeSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice baked → {path}'**
+  String voiceBakeSuccess(String path);
+
+  /// No description provided for @voiceBakeFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Bake failed: {error}'**
+  String voiceBakeFailure(String error);
+
+  /// No description provided for @voiceBakeMissingInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a reference WAV and an output filename first.'**
+  String get voiceBakeMissingInputs;
 }
 
 class _AppLocalizationsDelegate

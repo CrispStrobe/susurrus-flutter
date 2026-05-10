@@ -21,6 +21,7 @@ import 'screens/about_screen.dart';
 import 'screens/storage_screen.dart';
 import 'screens/synthesize_screen.dart';
 import 'screens/translate_screen.dart';
+import 'screens/voice_bake_screen.dart';
 import 'services/audio_service.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
@@ -235,6 +236,11 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/translate',
         name: 'translate',
         builder: (context, state) => const TranslateScreen(),
+      ),
+      GoRoute(
+        path: '/voice-bake',
+        name: 'voice-bake',
+        builder: (context, state) => const VoiceBakeScreen(),
       ),
     ],
   );

@@ -47,6 +47,25 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 * `AdvancedTranscribeOptions` value class bundling the new knobs so
   `transcribeFile`/`transcribeUrl` keep their signatures stable.
 
+**Round 3 (still May 2026)**:
+
+* ✅ **Custom voice WAV picker** on the Synthesize screen — surfaces
+  the existing `voiceWavPath` parameter that the TtsService already
+  accepted. Pick a WAV, optionally pair with a Reference transcript
+  for runtime cloning.
+* ✅ **Streaming for non-Whisper backends** — new
+  `CrispasrSession.openStream()` Dart helper wrapping
+  `crispasr_session_stream_open`. Engine's `transcribeStream`
+  routes through it whenever a session is loaded. Live mic
+  transcription now works on kyutai-stt / moonshine-streaming /
+  voxtral4b in addition to whisper.
+* ✅ **Voice baking flow** — `VoiceBakingService` spawns the
+  CrispASR `bake-chatterbox-voice-from-wav.py` script via
+  `Process.start`, streams stdout/stderr live, drops the resulting
+  GGUF into the models directory. Bake screen launched from the
+  cake icon in the Synthesize app-bar. Desktop-only (mobile has no
+  Python runtime).
+
 **Round 2 (still May 2026)**:
 
 * ✅ **Text translation screen** — `TextTranslationService` +

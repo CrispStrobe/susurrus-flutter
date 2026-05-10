@@ -352,8 +352,15 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     if (segStream == null) {
       await _stopStreamRecording();
       if (mounted) {
-        _showErrorDialog(
-            AppLocalizations.of(context).streamingEngineNoSession);
+        // CrispASR 0.6 added the unified session-stream path, so this
+        // error now means "the active backend has no streaming arm" —
+        // not "you need Whisper". Surface the backend id so the user
+        // knows what to swap to (whisper / kyutai-stt /
+        // moonshine-streaming / voxtral4b).
+        final backend =
+            transcriptionService.getEngineStatus().currentModelId ?? 'unknown';
+        _showErrorDialog(AppLocalizations.of(context)
+            .streamingNotAvailableForBackend(backend));
       }
       return;
     }

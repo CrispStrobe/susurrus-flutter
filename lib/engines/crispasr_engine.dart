@@ -1020,16 +1020,43 @@ class CrispASREngine implements TranscriptionEngine {
     String? language,
     bool enableWordTimestamps = false,
   }) {
-    if (_model == null || !_model!.supportsStreaming) return null;
-
-    final session = _model!.openStream(
-      language: (language == null || language == 'auto') ? null : language,
-      stepMs: 3000,
-      lengthMs: 10000,
-      keepMs: 200,
-      nThreads: 4,
-    );
-    Log.instance.i('crispasr', 'Streaming session opened');
+    // Two routes: (a) Whisper class with its native streaming API,
+    // or (b) the unified `CrispasrSession.openStream()` added in
+    // CrispASR 0.6 which dispatches to whichever backend the session
+    // loaded (kyutai-stt / moonshine-streaming / voxtral4b — and
+    // whisper too via its session arm). Falls back to null when
+    // neither has anything streamable.
+    final crispasr.StreamingSession session;
+    final String streamRouteLabel;
+    if (_model != null && _model!.supportsStreaming) {
+      session = _model!.openStream(
+        language: (language == null || language == 'auto') ? null : language,
+        stepMs: 3000,
+        lengthMs: 10000,
+        keepMs: 200,
+        nThreads: 4,
+      );
+      streamRouteLabel = 'whisper';
+    } else if (_session != null) {
+      try {
+        session = _session!.openStream(
+          language: (language == null || language == 'auto') ? null : language,
+          stepMs: 3000,
+          lengthMs: 10000,
+          keepMs: 200,
+          nThreads: 4,
+        );
+      } catch (e, st) {
+        Log.instance.w('crispasr', 'session.openStream failed',
+            error: e, stack: st, fields: {'backend': _session?.backend});
+        return null;
+      }
+      streamRouteLabel = _session!.backend;
+    } else {
+      return null;
+    }
+    Log.instance.i('crispasr', 'Streaming session opened',
+        fields: {'route': streamRouteLabel});
 
     final controller = StreamController<TranscriptionSegment>(
       onCancel: () {

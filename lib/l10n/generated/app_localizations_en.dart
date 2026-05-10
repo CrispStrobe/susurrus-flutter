@@ -1274,4 +1274,99 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get advancedNThreadsHelper =>
       'Threads used for LID and other non-decoder passes. Defaults to 4.';
+
+  @override
+  String get synthCustomVoice => 'Custom voice (WAV reference)';
+
+  @override
+  String get synthCustomVoiceHelper =>
+      'Pick a WAV from disk for runtime cloning. Pair with the Reference transcript on qwen3-tts Base / vibevoice-1.5b. Overrides the voicepack dropdown when set.';
+
+  @override
+  String get synthCustomVoicePick => 'Pick reference WAV…';
+
+  @override
+  String get synthCustomVoiceReplace => 'Replace reference WAV…';
+
+  @override
+  String get synthCustomVoiceClear => 'Clear custom voice';
+
+  @override
+  String get recorderStreamSession => 'Stream (session)';
+
+  @override
+  String get recorderStreamSessionTooltip =>
+      'Live mic transcribe through the active backend\'s streaming arm (kyutai-stt / moonshine-streaming / voxtral4b). Falls back to Whisper sliding-window when the backend has no native stream API.';
+
+  @override
+  String streamingNotAvailableForBackend(String backend) {
+    return 'The active backend ($backend) has no streaming arm. Switch to whisper, kyutai-stt, moonshine-streaming, or voxtral4b.';
+  }
+
+  @override
+  String get voiceBakeTitle => 'Bake voice (WAV → GGUF)';
+
+  @override
+  String get voiceBakeOpenTooltip =>
+      'Bake a Chatterbox voice from a WAV reference';
+
+  @override
+  String get voiceBakeIntro =>
+      'Run CrispASR\'s bake-chatterbox-voice-from-wav.py to convert a WAV reference into a baked voicepack GGUF. Requires Python 3 + chatterbox-tts + gguf installed on the system.';
+
+  @override
+  String get voiceBakeWavLabel => 'Reference WAV';
+
+  @override
+  String get voiceBakeWavPick => 'Pick WAV…';
+
+  @override
+  String get voiceBakeOutputName => 'Output filename';
+
+  @override
+  String get voiceBakeOutputNameHelper =>
+      'Saved into your models directory next to other voicepacks. Use the .gguf extension.';
+
+  @override
+  String voiceBakeExaggeration(String value) {
+    return 'Exaggeration: $value';
+  }
+
+  @override
+  String get voiceBakeExaggerationHelper =>
+      'Default emotion-advance scalar (0.0 – 1.0). 0.5 is the upstream default.';
+
+  @override
+  String get voiceBakePythonLabel => 'Python interpreter';
+
+  @override
+  String get voiceBakePythonHelper =>
+      'Defaults to `python3` on PATH. Override if your chatterbox-tts / gguf install lives in a venv.';
+
+  @override
+  String get voiceBakeScriptLabel => 'Bake script path';
+
+  @override
+  String get voiceBakeScriptHelper =>
+      'Defaults to ../CrispASR/models/bake-chatterbox-voice-from-wav.py. Adjust if your CrispASR checkout is elsewhere.';
+
+  @override
+  String get voiceBakeRun => 'Bake voice';
+
+  @override
+  String get voiceBakeRunning => 'Baking…';
+
+  @override
+  String voiceBakeSuccess(String path) {
+    return 'Voice baked → $path';
+  }
+
+  @override
+  String voiceBakeFailure(String error) {
+    return 'Bake failed: $error';
+  }
+
+  @override
+  String get voiceBakeMissingInputs =>
+      'Pick a reference WAV and an output filename first.';
 }

@@ -5,6 +5,31 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep — round 3 (May 2026)**
+- **Custom voice (WAV reference)** card on the *Synthesize* screen.
+  Pick a WAV from disk for runtime cloning on backends that take a
+  reference (qwen3-tts Base, vibevoice-1.5b, indextts, chatterbox).
+  Pairs with the Reference transcript field; overrides the catalog
+  voicepack dropdown when set.
+- **Streaming for non-Whisper backends.** New `openStream()` on
+  `CrispasrSession` in the Dart binding wraps
+  `crispasr_session_stream_open`; the engine's `transcribeStream`
+  now picks the right path automatically. Live mic transcription
+  works end-to-end on whisper / kyutai-stt / moonshine-streaming /
+  voxtral4b. The "Stream" toggle on the recorder surfaces a
+  backend-specific error when the active model has no streaming
+  arm.
+- **Voice baking flow.** New *Bake voice (WAV → GGUF)* screen
+  (launched from the cake icon in the *Synthesize* app-bar) drives
+  CrispASR's `models/bake-chatterbox-voice-from-wav.py` via
+  `Process.start`. Pick a WAV, set output filename, optional
+  Python interpreter / script-path overrides, run. Stdout + stderr
+  stream into a live tail panel + the in-app log viewer; the
+  resulting GGUF is dropped into the user's models dir so it
+  shows up in the voicepack picker on the next open.
+- Desktop-only — mobile sandboxes have no Python runtime, so the
+  Bake button hides itself on iOS / Android.
+
 **CrispASR 0.6 parity sweep — round 2 (May 2026)**
 - New **Translate** screen — text-to-text translation via M2M-100,
   WMT21 Dense (en→X **and** X→en, both checkpoints catalogued), and

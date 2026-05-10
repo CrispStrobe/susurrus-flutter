@@ -1,10 +1,14 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
+
+import '../services/voice_baking_service.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show modelServiceProvider;
@@ -37,6 +41,11 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   String? _selectedVoice;
   String? _selectedCodec;
   String? _selectedSpeaker;
+  /// User-supplied reference WAV for runtime cloning (qwen3-tts Base,
+  /// vibevoice-1.5b, indextts). Takes priority over the catalog-voice
+  /// dropdown; pair with `_refTextController` for backends that need a
+  /// transcript of the reference.
+  String? _customVoiceWavPath;
   File? _lastWav;
 
   // CrispASR 0.6 TTS knobs.
@@ -119,6 +128,7 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
         refText: refText.isEmpty ? null : refText,
         speakerName: _selectedSpeaker,
         instructPrompt: instructPrompt.isEmpty ? null : instructPrompt,
+        voiceWavPath: _customVoiceWavPath,
       );
       if (!status.ready) {
         if (!mounted) return;
@@ -163,6 +173,31 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
     }
   }
 
+  /// Show the OS file picker for a WAV reference. Limits to
+  /// audio extensions so the iOS picker filters cleanly.
+  Future<void> _pickCustomVoice() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['wav', 'flac', 'mp3'],
+      );
+      final file = result?.files.firstOrNull;
+      final path = file?.path;
+      if (path == null) return;
+      setState(() => _customVoiceWavPath = path);
+      Log.instance.i('synth', 'custom voice picked',
+          fields: {'path': path, 'bytes': file?.size ?? -1});
+    } catch (e, st) {
+      Log.instance.w('synth', 'custom voice picker failed',
+          error: e, stack: st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
   Future<void> _shareWav() async {
     final wav = _lastWav;
     if (wav == null) return;
@@ -197,7 +232,17 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
         .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.synthTitle)),
+      appBar: AppBar(
+        title: Text(l.synthTitle),
+        actions: [
+          if (VoiceBakingService.isSupported)
+            IconButton(
+              tooltip: l.voiceBakeOpenTooltip,
+              icon: const Icon(Icons.cake),
+              onPressed: () => context.push('/voice-bake'),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -286,6 +331,65 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                     tilePadding: EdgeInsets.zero,
                     title: Text(l.synthAdvancedSection),
                     children: [
+                      // Custom WAV picker — overrides the catalog voicepack
+                      // dropdown for backends that support runtime cloning
+                      // (qwen3-tts Base, vibevoice-1.5b, indextts,
+                      // chatterbox without a baked GGUF).
+                      Card(
+                        elevation: 0,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.graphic_eq, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(l.synthCustomVoice,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                  ),
+                                  if (_customVoiceWavPath != null)
+                                    IconButton(
+                                      tooltip: l.synthCustomVoiceClear,
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () => setState(
+                                          () => _customVoiceWavPath = null),
+                                    ),
+                                ],
+                              ),
+                              if (_customVoiceWavPath != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    p.basename(_customVoiceWavPath!),
+                                    style: const TextStyle(fontSize: 11),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )
+                              else
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(l.synthCustomVoiceHelper,
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey)),
+                                ),
+                              const SizedBox(height: 4),
+                              OutlinedButton.icon(
+                                onPressed: _pickCustomVoice,
+                                icon: const Icon(Icons.audio_file),
+                                label: Text(_customVoiceWavPath == null
+                                    ? l.synthCustomVoicePick
+                                    : l.synthCustomVoiceReplace),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       // Reference transcript — paired with a WAV voice on
                       // qwen3-tts Base / vibevoice-1.5b for runtime cloning.
                       TextField(
