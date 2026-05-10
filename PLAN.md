@@ -201,20 +201,28 @@ Shipped after this session's CrispASR best-of-N landed
 
 ### ~~5.17 Quality gate + integration tests~~ — **DONE → [HISTORY.md](HISTORY.md)**
 
-### 5.18 Test-suite speed — in-app side ✅ DONE; CrispASR-side wins still open
+### ~~5.18 Test-suite speed~~ — **MTLBinaryArchive done → [HISTORY.md](HISTORY.md)**; CoreML for whisper still open
 
-In-app: vanilla `flutter test` holds sub-5 s by tagging slow e2e
-tests with `tags: ['slow']`; single-process sweep with `--tags slow`
-runs in ~25 min (down from ~46 min serial) by reusing Apple's
-intra-process MSL pipeline cache. Test fixtures cut to minimum
-(`test/jfk-2s.wav`, `"Hi."` TTS prompt). Full pre-sweep details →
+In-app side and the persistent Metal pipeline cache are both
+shipped now. **Persistent `MTLBinaryArchive` pipeline cache** landed
+in CrispASR commit `2665b1e5` (PLAN #88 / CrisperWeaver §5.18):
+
+* Cold start: 5888 ms whisper, 22.5 s wall (M1 Max,
+  whisper-tiny + jfk.mp3)
+* Warm start (cache complete): 370 ms whisper, 0.6 s wall — **38×
+  speedup**
+
+Auto-managed at `~/Library/Caches/ggml-metal/<device>.archive`
+(~683 KB per device); env vars `GGML_METAL_PIPELINE_CACHE` (path
+override) + `GGML_METAL_PIPELINE_CACHE_DISABLE=1` (opt out). Every
+CrispASR consumer benefits — CLI, CrisperWeaver, the test sweep,
+the OpenAI server. Full pre-sweep + benchmark detail in
 [HISTORY.md](HISTORY.md).
 
-**Still open** (CrispASR-side wins, deferred to upstream):
+**Still open**:
 
 | Win | Projected speedup | Status |
 |---|---|---|
-| Persistent Metal pipeline cache via `MTLBinaryArchive` (patch `ggml/src/ggml-metal/ggml-metal-device.m`) | 30–60 s per cold start; CI sweep ~25 min → ~5 min | ~½-day patch in upstream ggml-metal |
 | CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` build flag, ship paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2–3× | Deferred to a future CrispASR cycle |
 | Re-download q4_k variants for vibevoice / orpheus | vibevoice 17:22 → ~4 min projected; orpheus 11:50 → ~5 min | Blocked on HF availability |
 

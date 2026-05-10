@@ -5,7 +5,17 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
-(Nothing yet — round 7 will land here as it ships.)
+* **38× faster ASR / TTS cold starts** via the persistent
+  `MTLBinaryArchive` pipeline cache (CrispASR commit
+  [`2665b1e5`](https://github.com/CrispStrobe/CrispASR/commit/2665b1e5)).
+  Compiled Metal compute pipeline state objects (PSOs) now serialise
+  to `~/Library/Caches/ggml-metal/<device>.archive` (~683 KB per
+  device) on shutdown and reload on the next launch. Real-machine
+  benchmark (M1 Max, whisper-tiny + jfk.mp3): cold 22.5 s → second
+  warm run 0.6 s. Every CrispASR consumer benefits: CLI,
+  CrisperWeaver, test sweep, OpenAI server. Override path via
+  `GGML_METAL_PIPELINE_CACHE`; opt out via
+  `GGML_METAL_PIPELINE_CACHE_DISABLE=1`.
 
 ## v0.4.1 — 2026-05-10
 

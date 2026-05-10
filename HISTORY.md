@@ -349,14 +349,60 @@ manual drops or the per-row delete in Use/Manage Models. Throttled
 of times per second. ARB strings under `storage*` and
 `settingsStorageBreakdown*` (en + de).
 
-### 5.18 Test-suite speed (partial)
+### 5.18 Test-suite speed — in-app side + MTLBinaryArchive
 
-Default `flutter test` holds sub-5 s by tagging slow e2e tests
-with `tags: ['slow']` (env-var-gated; vanilla CI skips them).
-Single-process `--tags slow` sweep: ~46 min serial → ~25 min in
-one process (1.8× via Apple's intra-process MSL pipeline cache).
-Test fixtures cut to minimum: `test/jfk-2s.wav` instead of 11 s,
-`"Hi."` TTS prompt instead of `"Hello world."`. Full speedup
-roadmap (persistent `MTLBinaryArchive` cache, CoreML for whisper,
-n_threads bump) tracked in CrispASR's PLAN; the in-app side is
-done.
+**In-app side**: default `flutter test` holds sub-5 s by tagging
+slow e2e tests with `tags: ['slow']` (env-var-gated; vanilla CI
+skips them). Single-process `--tags slow` sweep: ~46 min serial →
+~25 min in one process (1.8× via Apple's intra-process MSL
+pipeline cache). Test fixtures cut to minimum: `test/jfk-2s.wav`
+instead of 11 s, `"Hi."` TTS prompt instead of `"Hello world."`.
+
+**Persistent `MTLBinaryArchive` pipeline cache** (CrispASR commit
+[`2665b1e5`](https://github.com/CrispStrobe/CrispASR/commit/2665b1e5)):
+serialises compiled `MTLComputePipelineState` objects to disk and
+reloads them on subsequent process spawns, eliminating the
+~30–60 s shader-compile tax visible on every cold start.
+
+Real-machine benchmark (M1 Max, whisper-tiny + samples/jfk.mp3):
+
+| Run | Whisper time | Wall time |
+|---|---:|---:|
+| Cold start (cache empty) | 5888 ms | 22.5 s |
+| Warm start 1 (cache present) | 4349 ms | 4.6 s |
+| Warm start 2 (cache complete) | **370 ms** | **0.6 s** |
+
+That's a 38× wall-clock speedup over the cold path. Storage is
+~683 KB per device, auto-managed at
+`~/Library/Caches/ggml-metal/<device>.archive`. Override path via
+`GGML_METAL_PIPELINE_CACHE`; opt out via
+`GGML_METAL_PIPELINE_CACHE_DISABLE=1`.
+
+Implementation in `ggml/src/ggml-metal/ggml-metal-device.m`:
+- New file-static helpers (`crispasr_metal_pipeline_cache_url /
+  _open / _flush`) own the archive lifecycle.
+- `ggml_metal_device_init` opens the archive BEFORE any PSO gets
+  compiled, so even the tensor-API-probe `dummy_kernel` benefits.
+- `ggml_metal_library_compile_pipeline` switches from
+  `newComputePipelineStateWithFunction:error:` to the descriptor-
+  based form so `binaryArchives:@[archive]` can be attached. Metal
+  consults the archive first; cache hits skip the shader compiler.
+  Cache misses fall through to JIT and call
+  `addComputePipelineFunctionsWithDescriptor` to push the new PSO
+  back into the archive.
+- `ggml_metal_device_free` serialises the archive to disk via
+  `serializeToURL`. No-op when nothing was added since the last
+  serialise (typical for warm-only runs).
+- Stale cache from a different ggml-metal build auto-recovers by
+  deleting the file and starting fresh. `add-to-archive` failures
+  are non-fatal — pipeline already compiled successfully.
+
+Every CrispASR consumer benefits: the CLI, CrisperWeaver, the test
+sweep, the OpenAI-compatible local server. CI sweep projected
+~25 min → ~5 min after the cache warms on the first run of any
+runner.
+
+**Still open** (deferred): CoreML for whisper on Apple Silicon
+(`WHISPER_USE_COREML=1` build flag + paired `.mlmodelc`) — next
+CrispASR cycle. Re-download q4_k variants for vibevoice / orpheus
+— blocked on HF availability.
