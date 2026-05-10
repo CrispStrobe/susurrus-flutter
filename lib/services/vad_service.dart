@@ -5,29 +5,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../main.dart' show modelServiceProvider;
 import 'log_service.dart';
+import 'model_service.dart';
 
-/// Extracts the bundled Silero VAD model to the app's documents
-/// directory on first use and returns the on-disk path. The actual VAD
-/// pipeline runs inside whisper.cpp via
-/// `TranscribeOptions.vad = true` + `TranscribeOptions.vadModelPath` —
-/// this service just makes sure the file is reachable on disk.
+/// Which VAD GGUF the user has selected. Silero is bundled as a Flutter
+/// asset (no download needed); the other three live in Model Management
+/// and the picker falls back to silero if the chosen GGUF isn't on disk.
+enum VadBackend {
+  /// Bundled Silero v6.2.0 — default, always available, ~885 KB.
+  silero,
+
+  /// FireRedVAD — best F1 (97.57%), ~3 MB. Recommended over silero
+  /// when downloaded.
+  firered,
+
+  /// MarbleNet — small (~500 KB), strict EN/DE/FR/ES/RU/ZH.
+  marblenet,
+
+  /// Whisper-VAD-EncDec — experimental, English-only, ~22 MB.
+  whisperEncDec,
+}
+
+/// Locates the on-disk VAD GGUF for the requested [VadBackend]. Silero
+/// is bundled as a Flutter asset and extracted to the app docs dir on
+/// first use; the others live in the model catalog and the user must
+/// download them through Model Management.
 class VadService {
-  static const String _assetPath = 'assets/vad/silero-v6.2.0-ggml.bin';
-  String? _extractedPath;
+  static const String _sileroAssetPath = 'assets/vad/silero-v6.2.0-ggml.bin';
+
+  /// Optional ModelService — used to resolve the non-silero VAD GGUFs
+  /// from the user's models dir. Null in tests / fixtures (only silero
+  /// will be reachable in that case).
+  final ModelService? modelService;
+  VadService({this.modelService});
+
+  String? _sileroPath;
 
   /// Path to the Silero VAD model, extracting the bundled asset on the
-  /// first call. Returns null on extraction failure — the caller should
-  /// treat that as "VAD unavailable" and fall back to silent-passthrough.
-  Future<String?> ensureModel() async {
-    if (_extractedPath != null) return _extractedPath;
+  /// first call. Returns null on extraction failure.
+  Future<String?> _ensureSilero() async {
+    if (_sileroPath != null) return _sileroPath;
     try {
       final docs = await getApplicationDocumentsDirectory();
       final dir = Directory(p.join(docs.path, 'vad'));
       if (!await dir.exists()) await dir.create(recursive: true);
       final dest = File(p.join(dir.path, 'silero-v6.2.0-ggml.bin'));
       if (!await dest.exists()) {
-        final data = await rootBundle.load(_assetPath);
+        final data = await rootBundle.load(_sileroAssetPath);
         await dest.writeAsBytes(
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
           flush: true,
@@ -35,14 +60,71 @@ class VadService {
         Log.instance.i('vad', 'extracted silero model',
             fields: {'path': dest.path, 'bytes': await dest.length()});
       }
-      _extractedPath = dest.path;
-      return _extractedPath;
+      _sileroPath = dest.path;
+      return _sileroPath;
     } catch (e, st) {
       Log.instance
           .w('vad', 'failed to extract silero model', error: e, stack: st);
       return null;
     }
   }
+
+  /// Locate a VAD GGUF the user downloaded through Model Management.
+  /// Matches by basename prefix (case-insensitive). Returns null when
+  /// neither the file nor a fallback is available.
+  Future<String?> _findCatalogVad(String prefix) async {
+    final svc = modelService;
+    if (svc == null) return null;
+    try {
+      final dir = Directory(svc.whisperCppDir());
+      if (!await dir.exists()) return null;
+      await for (final ent in dir.list()) {
+        if (ent is! File) continue;
+        final base = p.basename(ent.path).toLowerCase();
+        if (base.startsWith(prefix.toLowerCase()) && base.endsWith('.gguf')) {
+          return ent.path;
+        }
+      }
+    } catch (e, st) {
+      Log.instance.w('vad', 'failed to locate VAD GGUF',
+          error: e, stack: st, fields: {'prefix': prefix});
+    }
+    return null;
+  }
+
+  /// Resolve the on-disk path for the chosen VAD backend. Falls back to
+  /// silero (bundled) when the requested GGUF isn't on disk yet.
+  Future<String?> ensureModel({VadBackend backend = VadBackend.silero}) async {
+    String? path;
+    switch (backend) {
+      case VadBackend.silero:
+        path = await _ensureSilero();
+        break;
+      case VadBackend.firered:
+        path = await _findCatalogVad('firered-vad');
+        break;
+      case VadBackend.marblenet:
+        path = await _findCatalogVad('marblenet-vad');
+        break;
+      case VadBackend.whisperEncDec:
+        path = await _findCatalogVad('whisper-vad-encdec');
+        break;
+    }
+    if (path == null && backend != VadBackend.silero) {
+      Log.instance.w(
+          'vad',
+          '${backend.name} VAD GGUF not downloaded — '
+              'falling back to bundled silero');
+      path = await _ensureSilero();
+    }
+    return path;
+  }
+
+  /// Legacy single-arg API — kept so unchanged call sites work. Always
+  /// resolves to silero.
+  Future<String?> ensureSileroModel() =>
+      ensureModel(backend: VadBackend.silero);
 }
 
-final vadServiceProvider = Provider<VadService>((_) => VadService());
+final vadServiceProvider = Provider<VadService>(
+    (ref) => VadService(modelService: ref.watch(modelServiceProvider)));

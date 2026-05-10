@@ -1903,6 +1903,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Missing required companion file: {name}'**
   String synthMissingDependency(String name);
+
+  /// No description provided for @advancedVadBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'VAD backend'**
+  String get advancedVadBackend;
+
+  /// No description provided for @advancedVadBackendHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Silero is bundled (~885 KB). FireRed / MarbleNet / Whisper-VAD need a Model Management download; missing files fall back to Silero.'**
+  String get advancedVadBackendHelper;
+
+  /// No description provided for @advancedVadBackendSilero.
+  ///
+  /// In en, this message translates to:
+  /// **'Silero (bundled, default)'**
+  String get advancedVadBackendSilero;
+
+  /// No description provided for @advancedVadBackendFirered.
+  ///
+  /// In en, this message translates to:
+  /// **'FireRedVAD (F1 97.57%, ~3 MB)'**
+  String get advancedVadBackendFirered;
+
+  /// No description provided for @advancedVadBackendMarblenet.
+  ///
+  /// In en, this message translates to:
+  /// **'MarbleNet (small, multilingual)'**
+  String get advancedVadBackendMarblenet;
+
+  /// No description provided for @advancedVadBackendWhisperEncDec.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper-VAD-EncDec (experimental EN)'**
+  String get advancedVadBackendWhisperEncDec;
+
+  /// No description provided for @advancedVadThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'VAD threshold: {value}'**
+  String advancedVadThreshold(String value);
+
+  /// No description provided for @advancedVadThresholdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher = fewer / shorter speech regions detected. CrispASR default is 0.50.'**
+  String get advancedVadThresholdHelper;
+
+  /// No description provided for @advancedVadMinSpeech.
+  ///
+  /// In en, this message translates to:
+  /// **'Min. speech duration: {ms} ms'**
+  String advancedVadMinSpeech(int ms);
+
+  /// No description provided for @advancedVadMinSpeechHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest voiced run kept as a speech segment.'**
+  String get advancedVadMinSpeechHelper;
+
+  /// No description provided for @advancedVadMinSilence.
+  ///
+  /// In en, this message translates to:
+  /// **'Min. silence duration: {ms} ms'**
+  String advancedVadMinSilence(int ms);
+
+  /// No description provided for @advancedVadMinSilenceHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest silence that splits one segment from the next.'**
+  String get advancedVadMinSilenceHelper;
+
+  /// No description provided for @advancedVadSpeechPad.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech padding: {ms} ms'**
+  String advancedVadSpeechPad(int ms);
+
+  /// No description provided for @advancedVadSpeechPadHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra context added on each side of every speech segment.'**
+  String get advancedVadSpeechPadHelper;
+
+  /// No description provided for @advancedLidMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Language detection method'**
+  String get advancedLidMethod;
+
+  /// No description provided for @advancedLidMethodHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero needs its own GGUF (16 MB, 95 langs).'**
+  String get advancedLidMethodHelper;
+
+  /// No description provided for @advancedLidMethodWhisper.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper encoder (reuses an existing model)'**
+  String get advancedLidMethodWhisper;
+
+  /// No description provided for @advancedLidMethodSilero.
+  ///
+  /// In en, this message translates to:
+  /// **'Silero (95 languages, ~16 MB GGUF)'**
+  String get advancedLidMethodSilero;
+
+  /// No description provided for @advancedDiarizeMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Diarisation method'**
+  String get advancedDiarizeMethod;
+
+  /// No description provided for @advancedDiarizeMethodHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Only takes effect when diarisation is enabled. vad-turns is mono-friendly; pyannote requires its segmentation GGUF; energy / xcorr need stereo audio.'**
+  String get advancedDiarizeMethodHelper;
+
+  /// No description provided for @advancedDiarizeVadTurns.
+  ///
+  /// In en, this message translates to:
+  /// **'VAD turns (mono, no extra model)'**
+  String get advancedDiarizeVadTurns;
+
+  /// No description provided for @advancedDiarizePyannote.
+  ///
+  /// In en, this message translates to:
+  /// **'Pyannote v3 (ML, needs GGUF)'**
+  String get advancedDiarizePyannote;
+
+  /// No description provided for @advancedDiarizeEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Stereo L/R energy'**
+  String get advancedDiarizeEnergy;
+
+  /// No description provided for @advancedDiarizeXcorr.
+  ///
+  /// In en, this message translates to:
+  /// **'Stereo cross-correlation'**
+  String get advancedDiarizeXcorr;
+
+  /// No description provided for @advancedTdrz.
+  ///
+  /// In en, this message translates to:
+  /// **'Tinydiarize speaker turns (Whisper only)'**
+  String get advancedTdrz;
+
+  /// No description provided for @advancedTdrzSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert [SPEAKER_TURN] markers via a Whisper .en.tdrz finetune. No-op on session backends.'**
+  String get advancedTdrzSubtitle;
+
+  /// No description provided for @advancedTokenTimestamps.
+  ///
+  /// In en, this message translates to:
+  /// **'Token-level timestamps'**
+  String get advancedTokenTimestamps;
+
+  /// No description provided for @advancedTokenTimestampsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'DTW-aligned per-token timing. Slower than word timestamps; useful for fine-grained subtitle tooling.'**
+  String get advancedTokenTimestampsSubtitle;
+
+  /// No description provided for @advancedPuncFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Punctuation model'**
+  String get advancedPuncFamily;
+
+  /// No description provided for @advancedPuncFamilyHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible only when Restore punctuation is on. Switch between FireRedPunc (ZH+EN) and fullstop-punc (EN/DE/FR/IT). Auto-fallback to whichever is downloaded.'**
+  String get advancedPuncFamilyHelper;
+
+  /// No description provided for @advancedPuncFamilyFirered.
+  ///
+  /// In en, this message translates to:
+  /// **'FireRedPunc (Chinese + English)'**
+  String get advancedPuncFamilyFirered;
+
+  /// No description provided for @advancedPuncFamilyFullstop.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullstop-punc multilang (EN/DE/FR/IT)'**
+  String get advancedPuncFamilyFullstop;
+
+  /// No description provided for @transcriptionSaveAsCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as CSV'**
+  String get transcriptionSaveAsCsv;
+
+  /// No description provided for @transcriptionSaveAsLrc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as LRC (lyrics)'**
+  String get transcriptionSaveAsLrc;
+
+  /// No description provided for @transcriptionSaveAsWts.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as WTS (debug)'**
+  String get transcriptionSaveAsWts;
+
+  /// No description provided for @synthAdvancedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced synthesis'**
+  String get synthAdvancedSection;
+
+  /// No description provided for @synthRefText.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference transcript (voice cloning)'**
+  String get synthRefText;
+
+  /// No description provided for @synthRefTextHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Required when pairing a WAV voice with qwen3-tts Base or vibevoice-1.5b for runtime cloning. Empty for baked GGUF voices.'**
+  String get synthRefTextHelper;
+
+  /// No description provided for @synthInstruct.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice description (qwen3-tts VoiceDesign only)'**
+  String get synthInstruct;
+
+  /// No description provided for @synthInstructHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural-language description of the desired voice (\"warm female narrator, slight British accent\"). Silently ignored on every other backend.'**
+  String get synthInstructHelper;
+
+  /// No description provided for @synthTrimSilence.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim silence'**
+  String get synthTrimSilence;
+
+  /// No description provided for @synthTrimSilenceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Strip leading and trailing silence below -72 dBFS from the synthesised PCM.'**
+  String get synthTrimSilenceSubtitle;
+
+  /// No description provided for @synthSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed: {value}×'**
+  String synthSpeed(String value);
+
+  /// No description provided for @synthSpeedHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction.'**
+  String get synthSpeedHelper;
 }
 
 class _AppLocalizationsDelegate

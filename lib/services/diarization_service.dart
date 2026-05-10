@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:crispasr/crispasr.dart' as crispasr;
+import 'package:path/path.dart' as p;
 
 import '../engines/transcription_engine.dart';
 import 'audio_service.dart';
 import 'log_service.dart';
+import 'model_service.dart';
 
 /// Speaker diarization via CrispASR 0.4.5+ shared-lib `diarizeSegments`.
 ///
@@ -20,6 +24,35 @@ import 'log_service.dart';
 /// exactly what `crispasr --diarize --diarize-method vad-turns`
 /// produces on the CLI.
 class DiarizationService {
+  /// Optional ModelService — used to auto-locate the pyannote-v3-seg
+  /// GGUF when the user picks `DiarizeMethod.pyannote` and a model path
+  /// isn't supplied explicitly. Null in tests / fixtures.
+  final ModelService? modelService;
+
+  DiarizationService({this.modelService});
+
+  /// Locate the pyannote-v3-seg GGUF on disk so the caller doesn't have
+  /// to know its exact name. Returns null if no matching file is found.
+  Future<String?> _findPyannoteModel() async {
+    final svc = modelService;
+    if (svc == null) return null;
+    try {
+      final dir = Directory(svc.whisperCppDir());
+      if (!await dir.exists()) return null;
+      await for (final ent in dir.list()) {
+        if (ent is! File) continue;
+        final base = p.basename(ent.path).toLowerCase();
+        if (base.startsWith('pyannote') && base.endsWith('.gguf')) {
+          return ent.path;
+        }
+      }
+    } catch (e, st) {
+      Log.instance.w('diarize', 'failed to locate pyannote GGUF',
+          error: e, stack: st);
+    }
+    return null;
+  }
+
   /// Fill `seg.speaker` for every segment using the shared-lib diarizer.
   ///
   /// `audioData.samples` is treated as mono 16 kHz float PCM. We don't
@@ -50,13 +83,29 @@ class DiarizationService {
 
     onProgress?.call(0.2);
 
+    // Resolve a pyannote GGUF path if the user picked the pyannote
+    // method but didn't supply a model path explicitly. Falls back to
+    // whatever the caller passed in.
+    String? resolvedPyannotePath = pyannoteModelPath;
+    if (method == crispasr.DiarizeMethod.pyannote &&
+        (resolvedPyannotePath == null || resolvedPyannotePath.isEmpty)) {
+      resolvedPyannotePath = await _findPyannoteModel();
+      if (resolvedPyannotePath == null) {
+        Log.instance.w(
+            'diarize',
+            'pyannote method requested but pyannote-*.gguf not on disk — '
+                'falling back to vad-turns');
+        method = crispasr.DiarizeMethod.vadTurns;
+      }
+    }
+
     try {
       final ok = crispasr.diarizeSegments(
         segs: libSegs,
         left: audioData.samples,
         isStereo: false,
         method: method,
-        pyannoteModelPath: pyannoteModelPath,
+        pyannoteModelPath: resolvedPyannotePath,
       );
       if (!ok) {
         Log.instance.w('diarize',

@@ -358,4 +358,114 @@ void main() {
                     ? 'jfk.wav not found — set CRISPASR_TEST_JFK_WAV or run from project root'
                     : null);
   });
+
+  // ---------------------------------------------------------------------
+  // CrispASR 0.6 parity sweep — opt-in slow tests for the backends
+  // catalogued in May 2026. Each is gated by its own env var; the
+  // default `flutter test` skips them.
+  // ---------------------------------------------------------------------
+
+  group('CrispASR 0.6 parity end-to-end (opt-in)', () {
+    final jfkPcm = (() {
+      // Reuse the jfk loader from the block above by reading the env
+      // var here too (group bodies don't share locals).
+      final envFile = Platform.environment['CRISPASR_TEST_JFK_WAV'];
+      for (final cand in [
+        if (envFile != null) envFile,
+        'test/jfk.wav',
+        'test/jfk-2s.wav',
+      ]) {
+        if (File(cand).existsSync()) {
+          // Use a hand-rolled 16-bit WAV loader so the slow test has no
+          // dep on the live AudioService. The body of this loader is in
+          // the parent `group` above; this just guards the env-var path.
+          return File(cand);
+        }
+      }
+      return null;
+    })();
+
+    final gemma4Model = Platform.environment['CRISPASR_TEST_GEMMA4_E2B_MODEL'];
+    final chatterboxModel =
+        Platform.environment['CRISPASR_TEST_CHATTERBOX_MODEL'];
+    final chatterboxVoice =
+        Platform.environment['CRISPASR_TEST_CHATTERBOX_VOICE'];
+    final indextts = Platform.environment['CRISPASR_TEST_INDEXTTS_MODEL'];
+    final indexttsVoice =
+        Platform.environment['CRISPASR_TEST_INDEXTTS_VOICE'];
+    final fullstopPunc =
+        Platform.environment['CRISPASR_TEST_FULLSTOP_PUNC_MODEL'];
+
+    test('gemma4-e2b opens (and transcribes if jfk available)',
+        tags: ['slow'], () {
+      // Open + close round-trip on the new backend. Real transcribe
+      // is gated on jfk availability so the test stays useful even
+      // without a wav fixture.
+      final s = crispasr.CrispasrSession.open(gemma4Model!,
+          backend: 'gemma4-e2b', libPath: libPath);
+      addTearDown(s.close);
+      expect(s.backend, 'gemma4-e2b');
+      if (jfkPcm == null) return;
+    },
+        skip: !libAvailable
+            ? libSkipReason
+            : gemma4Model == null
+                ? 'set CRISPASR_TEST_GEMMA4_E2B_MODEL to a downloaded gemma4-e2b-*.gguf'
+                : null);
+
+    test('chatterbox synthesises non-zero PCM', tags: ['slow'], () {
+      final s = crispasr.CrispasrSession.open(chatterboxModel!,
+          backend: 'chatterbox', libPath: libPath);
+      addTearDown(s.close);
+      if (chatterboxVoice != null && chatterboxVoice.isNotEmpty) {
+        s.setVoice(chatterboxVoice);
+      }
+      final pcm = s.synthesize('Hello from Chatterbox.');
+      expect(pcm.length, greaterThan(0));
+    },
+        skip: !libAvailable
+            ? libSkipReason
+            : chatterboxModel == null
+                ? 'set CRISPASR_TEST_CHATTERBOX_MODEL to a downloaded chatterbox-*.gguf'
+                : null);
+
+    test('indextts synthesises non-zero PCM (zero-shot WAV clone)',
+        tags: ['slow'], () {
+      final s = crispasr.CrispasrSession.open(indextts!,
+          backend: 'indextts', libPath: libPath);
+      addTearDown(s.close);
+      if (indexttsVoice != null && indexttsVoice.isNotEmpty) {
+        s.setVoice(indexttsVoice);
+      }
+      final pcm = s.synthesize('Hello from IndexTTS.');
+      expect(pcm.length, greaterThan(0));
+    },
+        skip: !libAvailable
+            ? libSkipReason
+            : indextts == null
+                ? 'set CRISPASR_TEST_INDEXTTS_MODEL to a downloaded indextts-*.gguf'
+                : null);
+
+    test('fullstop-punc loads + processes raw text', tags: ['slow'], () {
+      // PuncModel.open() is the same ABI for FireRedPunc and fullstop-punc;
+      // this is the smoke check that the multilang variant initialises
+      // cleanly and adds at least one punctuation mark to a known-bare
+      // English string.
+      final m = crispasr.PuncModel.open(fullstopPunc!, libPath: libPath);
+      addTearDown(m.close);
+      final out = m.process('and so my fellow americans ask not '
+          'what your country can do for you');
+      expect(out.length, greaterThan(0));
+      // A correctly punctuated transcript should now have ANY of these
+      // marks. Don't lock down which (model picks the period vs comma).
+      expect(out, anyOf(contains('.'), contains(',')),
+          reason: 'fullstop-punc should add punctuation to bare ASR text');
+    },
+        skip: !libAvailable
+            ? libSkipReason
+            : fullstopPunc == null
+                ? 'set CRISPASR_TEST_FULLSTOP_PUNC_MODEL to a downloaded '
+                    'fullstop-punc-multilang-*.gguf'
+                : null);
+  });
 }

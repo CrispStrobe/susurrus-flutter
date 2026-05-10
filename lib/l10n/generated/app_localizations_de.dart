@@ -1051,4 +1051,163 @@ class AppLocalizationsDe extends AppLocalizations {
   String synthMissingDependency(String name) {
     return 'Fehlende Begleitdatei: $name';
   }
+
+  @override
+  String get advancedVadBackend => 'VAD-Backend';
+
+  @override
+  String get advancedVadBackendHelper =>
+      'Silero ist eingebettet (~885 KB). FireRed / MarbleNet / Whisper-VAD müssen über die Modellverwaltung geladen werden; fehlt die Datei, fällt CrisperWeaver auf Silero zurück.';
+
+  @override
+  String get advancedVadBackendSilero => 'Silero (eingebettet, Standard)';
+
+  @override
+  String get advancedVadBackendFirered => 'FireRedVAD (F1 97,57 %, ~3 MB)';
+
+  @override
+  String get advancedVadBackendMarblenet => 'MarbleNet (klein, mehrsprachig)';
+
+  @override
+  String get advancedVadBackendWhisperEncDec =>
+      'Whisper-VAD-EncDec (experimentell, EN)';
+
+  @override
+  String advancedVadThreshold(String value) {
+    return 'VAD-Schwelle: $value';
+  }
+
+  @override
+  String get advancedVadThresholdHelper =>
+      'Höher = weniger / kürzere erkannte Sprechabschnitte. CrispASR-Standard: 0,50.';
+
+  @override
+  String advancedVadMinSpeech(int ms) {
+    return 'Mindest-Sprechdauer: $ms ms';
+  }
+
+  @override
+  String get advancedVadMinSpeechHelper =>
+      'Kürzester gesprochener Abschnitt, der als Sprachsegment erhalten bleibt.';
+
+  @override
+  String advancedVadMinSilence(int ms) {
+    return 'Mindest-Stilledauer: $ms ms';
+  }
+
+  @override
+  String get advancedVadMinSilenceHelper =>
+      'Kürzeste Stille, die ein Segment vom nächsten trennt.';
+
+  @override
+  String advancedVadSpeechPad(int ms) {
+    return 'Sprachpolsterung: $ms ms';
+  }
+
+  @override
+  String get advancedVadSpeechPadHelper =>
+      'Zusätzlicher Kontext links und rechts jedes Sprachsegments.';
+
+  @override
+  String get advancedLidMethod => 'Sprach-Erkennungsmethode';
+
+  @override
+  String get advancedLidMethodHelper =>
+      'Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero benötigt eine eigene GGUF (16 MB, 95 Sprachen).';
+
+  @override
+  String get advancedLidMethodWhisper =>
+      'Whisper-Encoder (nutzt vorhandenes Modell)';
+
+  @override
+  String get advancedLidMethodSilero => 'Silero (95 Sprachen, ~16 MB GGUF)';
+
+  @override
+  String get advancedDiarizeMethod => 'Diarisierungs-Methode';
+
+  @override
+  String get advancedDiarizeMethodHelper =>
+      'Nur wirksam bei aktiver Diarisierung. VAD-Turns ist mono-freundlich; Pyannote benötigt eine eigene GGUF; Energie / Kreuzkorrelation benötigen Stereo.';
+
+  @override
+  String get advancedDiarizeVadTurns => 'VAD-Turns (Mono, ohne Zusatzmodell)';
+
+  @override
+  String get advancedDiarizePyannote => 'Pyannote v3 (ML, GGUF nötig)';
+
+  @override
+  String get advancedDiarizeEnergy => 'Stereo L/R-Energie';
+
+  @override
+  String get advancedDiarizeXcorr => 'Stereo-Kreuzkorrelation';
+
+  @override
+  String get advancedTdrz => 'Tinydiarize-Sprecherwechsel (nur Whisper)';
+
+  @override
+  String get advancedTdrzSubtitle =>
+      'Fügt [SPEAKER_TURN]-Marker per Whisper .en.tdrz-Finetune ein. Keine Wirkung auf Session-Backends.';
+
+  @override
+  String get advancedTokenTimestamps => 'Token-genaue Zeitstempel';
+
+  @override
+  String get advancedTokenTimestampsSubtitle =>
+      'DTW-ausgerichtete Pro-Token-Zeiten. Langsamer als Wortzeitstempel; nützlich für feinkörnige Untertitel-Tools.';
+
+  @override
+  String get advancedPuncFamily => 'Interpunktionsmodell';
+
+  @override
+  String get advancedPuncFamilyHelper =>
+      'Nur sichtbar, wenn Interpunktion wiederherstellen aktiviert ist. Wahl zwischen FireRedPunc (ZH+EN) und fullstop-punc (EN/DE/FR/IT). Fällt automatisch auf das vorhandene Modell zurück.';
+
+  @override
+  String get advancedPuncFamilyFirered => 'FireRedPunc (Chinesisch + Englisch)';
+
+  @override
+  String get advancedPuncFamilyFullstop =>
+      'Fullstop-punc multilingual (EN/DE/FR/IT)';
+
+  @override
+  String get transcriptionSaveAsCsv => 'Als CSV speichern';
+
+  @override
+  String get transcriptionSaveAsLrc => 'Als LRC speichern (Lyrics)';
+
+  @override
+  String get transcriptionSaveAsWts => 'Als WTS speichern (Debug)';
+
+  @override
+  String get synthAdvancedSection => 'Erweiterte Synthese';
+
+  @override
+  String get synthRefText => 'Referenz-Transkript (Stimmen-Klonen)';
+
+  @override
+  String get synthRefTextHelper =>
+      'Erforderlich, wenn eine WAV-Stimme mit qwen3-tts Base oder vibevoice-1.5b für Laufzeit-Klonen kombiniert wird. Leer lassen bei vorgebackenen GGUF-Stimmen.';
+
+  @override
+  String get synthInstruct => 'Stimm-Beschreibung (nur qwen3-tts VoiceDesign)';
+
+  @override
+  String get synthInstructHelper =>
+      'Natursprachliche Beschreibung der gewünschten Stimme („warmer weiblicher Erzähler, leichter britischer Akzent“). Wird bei anderen Backends ignoriert.';
+
+  @override
+  String get synthTrimSilence => 'Stille beschneiden';
+
+  @override
+  String get synthTrimSilenceSubtitle =>
+      'Entfernt Stille unter -72 dBFS am Anfang und Ende der synthetisierten PCM.';
+
+  @override
+  String synthSpeed(String value) {
+    return 'Geschwindigkeit: $value×';
+  }
+
+  @override
+  String get synthSpeedHelper =>
+      'Wiedergabe-Geschwindigkeit (0,25× – 4,00×). Nearest-Neighbor-Resample, ohne Tonhöhenkorrektur.';
 }

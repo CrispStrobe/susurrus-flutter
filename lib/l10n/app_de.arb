@@ -463,5 +463,62 @@
   "synthShareButton": "WAV speichern / teilen",
   "synthNoTtsModelsDownloaded": "Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.",
   "synthMissingDependency": "Fehlende Begleitdatei: {name}",
-  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}}
+  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}},
+
+  "advancedVadBackend": "VAD-Backend",
+  "advancedVadBackendHelper": "Silero ist eingebettet (~885 KB). FireRed / MarbleNet / Whisper-VAD müssen über die Modellverwaltung geladen werden; fehlt die Datei, fällt CrisperWeaver auf Silero zurück.",
+  "advancedVadBackendSilero": "Silero (eingebettet, Standard)",
+  "advancedVadBackendFirered": "FireRedVAD (F1 97,57 %, ~3 MB)",
+  "advancedVadBackendMarblenet": "MarbleNet (klein, mehrsprachig)",
+  "advancedVadBackendWhisperEncDec": "Whisper-VAD-EncDec (experimentell, EN)",
+  "advancedVadThreshold": "VAD-Schwelle: {value}",
+  "@advancedVadThreshold": {"placeholders": {"value": {"type": "String"}}},
+  "advancedVadThresholdHelper": "Höher = weniger / kürzere erkannte Sprechabschnitte. CrispASR-Standard: 0,50.",
+  "advancedVadMinSpeech": "Mindest-Sprechdauer: {ms} ms",
+  "@advancedVadMinSpeech": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadMinSpeechHelper": "Kürzester gesprochener Abschnitt, der als Sprachsegment erhalten bleibt.",
+  "advancedVadMinSilence": "Mindest-Stilledauer: {ms} ms",
+  "@advancedVadMinSilence": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadMinSilenceHelper": "Kürzeste Stille, die ein Segment vom nächsten trennt.",
+  "advancedVadSpeechPad": "Sprachpolsterung: {ms} ms",
+  "@advancedVadSpeechPad": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadSpeechPadHelper": "Zusätzlicher Kontext links und rechts jedes Sprachsegments.",
+
+  "advancedLidMethod": "Sprach-Erkennungsmethode",
+  "advancedLidMethodHelper": "Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero benötigt eine eigene GGUF (16 MB, 95 Sprachen).",
+  "advancedLidMethodWhisper": "Whisper-Encoder (nutzt vorhandenes Modell)",
+  "advancedLidMethodSilero": "Silero (95 Sprachen, ~16 MB GGUF)",
+
+  "advancedDiarizeMethod": "Diarisierungs-Methode",
+  "advancedDiarizeMethodHelper": "Nur wirksam bei aktiver Diarisierung. VAD-Turns ist mono-freundlich; Pyannote benötigt eine eigene GGUF; Energie / Kreuzkorrelation benötigen Stereo.",
+  "advancedDiarizeVadTurns": "VAD-Turns (Mono, ohne Zusatzmodell)",
+  "advancedDiarizePyannote": "Pyannote v3 (ML, GGUF nötig)",
+  "advancedDiarizeEnergy": "Stereo L/R-Energie",
+  "advancedDiarizeXcorr": "Stereo-Kreuzkorrelation",
+
+  "advancedTdrz": "Tinydiarize-Sprecherwechsel (nur Whisper)",
+  "advancedTdrzSubtitle": "Fügt [SPEAKER_TURN]-Marker per Whisper .en.tdrz-Finetune ein. Keine Wirkung auf Session-Backends.",
+
+  "advancedTokenTimestamps": "Token-genaue Zeitstempel",
+  "advancedTokenTimestampsSubtitle": "DTW-ausgerichtete Pro-Token-Zeiten. Langsamer als Wortzeitstempel; nützlich für feinkörnige Untertitel-Tools.",
+
+  "advancedPuncFamily": "Interpunktionsmodell",
+  "advancedPuncFamilyHelper": "Nur sichtbar, wenn Interpunktion wiederherstellen aktiviert ist. Wahl zwischen FireRedPunc (ZH+EN) und fullstop-punc (EN/DE/FR/IT). Fällt automatisch auf das vorhandene Modell zurück.",
+  "advancedPuncFamilyFirered": "FireRedPunc (Chinesisch + Englisch)",
+  "advancedPuncFamilyFullstop": "Fullstop-punc multilingual (EN/DE/FR/IT)",
+
+  "transcriptionSaveAsCsv": "Als CSV speichern",
+  "transcriptionSaveAsLrc": "Als LRC speichern (Lyrics)",
+  "transcriptionSaveAsWts": "Als WTS speichern (Debug)",
+
+  "synthAdvancedSection": "Erweiterte Synthese",
+  "synthRefText": "Referenz-Transkript (Stimmen-Klonen)",
+  "synthRefTextHelper": "Erforderlich, wenn eine WAV-Stimme mit qwen3-tts Base oder vibevoice-1.5b für Laufzeit-Klonen kombiniert wird. Leer lassen bei vorgebackenen GGUF-Stimmen.",
+  "synthInstruct": "Stimm-Beschreibung (nur qwen3-tts VoiceDesign)",
+  "synthInstructHelper": "Natursprachliche Beschreibung der gewünschten Stimme („warmer weiblicher Erzähler, leichter britischer Akzent“). Wird bei anderen Backends ignoriert.",
+  "synthTrimSilence": "Stille beschneiden",
+  "synthTrimSilenceSubtitle": "Entfernt Stille unter -72 dBFS am Anfang und Ende der synthetisierten PCM.",
+  "synthSpeed": "Geschwindigkeit: {value}×",
+  "@synthSpeed": {"placeholders": {"value": {"type": "String"}}},
+  "synthSpeedHelper": "Wiedergabe-Geschwindigkeit (0,25× – 4,00×). Nearest-Neighbor-Resample, ohne Tonhöhenkorrektur."
 }

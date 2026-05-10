@@ -16,6 +16,56 @@ What's done, what's partial, and what's next — with enough file paths and cont
 
 ---
 
+## 0. CrispASR 0.6 parity sweep (May 2026) — landed
+
+The May 2026 sweep brought the catalog, advanced-options surface, and
+post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
+
+* New ASR backends in the catalog + capability sets: **gemma4-e2b**,
+  **omniasr-llm-unlimited**, **granite-speech-4.1** (2B, 4.1+, 4.1-nar).
+* New TTS backends: **chatterbox / kartoffelbox** (T3 AR + S3Gen),
+  **indextts** (GPT-2 AR + BigVGAN), **qwen3-tts-voicedesign**
+  (natural-language voice instruct), **vibevoice-1.5b** (runtime WAV
+  cloning via `setVoice(wav, refText:)`).
+* New post-processors: **fullstop-punc multilang** (EN/DE/FR/IT)
+  alongside FireRedPunc (ZH+EN). Picker in Advanced Options.
+* Diarisation method picker — vadTurns / pyannote (downloadable
+  GGUF) / energy / xcorr. `DiarizationService` now auto-locates the
+  pyannote GGUF and falls back to vad-turns when missing.
+* LID method picker — whisper / silero. `LidService` honours the
+  picked method, resolves the file, and falls back when mismatched.
+* VAD picker — silero (bundled) / firered / marblenet / whisper-vad.
+  Threshold + min-speech-ms + min-silence-ms + speech-pad-ms exposed
+  as sliders, plumbed through `TranscribeOptions` /
+  `SessionVadOptions`.
+* Whisper-only knobs: tdrz (tinydiarize), token-level timestamps.
+* Three new export formats: **CSV** (RFC-4180 quoting), **LRC**
+  (lyrics, mm:ss.cs), **WTS** (Whisper Text Segments debug).
+* TTS knobs in Synthesize screen: trim-silence, speed slider
+  (0.25×–4×, nearest-neighbour resample), reference-transcript field,
+  voice-design instruct field.
+* `AdvancedTranscribeOptions` value class bundling the new knobs so
+  `transcribeFile`/`transcribeUrl` keep their signatures stable.
+
+**Still deferred** (out of scope this sweep, FFI gaps):
+
+* **GPU + perf toggles in Settings** — `crispasr_session_open` doesn't
+  expose `gpu_backend`/`flash_attn`/`n_gpu_layers` as a runtime knob
+  (only the LID call accepts them). Picker would need an FFI change
+  upstream.
+* **TTS diffusion-steps slider** — `crispasr_session_synthesize` takes
+  only `(text, &n_out)`; no per-call steps argument.
+* **Voice baking flow** — would need to call
+  `models/bake-chatterbox-voice-from-wav.py` from within the app or
+  add a C-ABI for it. Deferred to a future sweep.
+* **Text-only translation screen** (m2m100 / madlad) — backend IDs
+  exist in CrispASR but `CrispasrSession.translateText` isn't exposed
+  via the Dart FFI binding yet.
+* **Server / OpenAI-compatible mode** — the CLI ships an HTTP server
+  (`crispasr --server`). Out of scope for a GUI app.
+
+---
+
 ## 1. Engine status
 
 Two engines behind the `TranscriptionEngine` interface (`lib/engines/transcription_engine.dart`):

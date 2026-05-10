@@ -605,6 +605,250 @@ class ModelService {
       backend: 'orpheus',
       kind: ModelKind.codec,
     ),
+    // ============================================================
+    // CrispASR 0.6.x parity additions (May 2026)
+    // ============================================================
+    //
+    // gemma4-e2b — USM Conformer + Gemma-4 35L; 140+ languages.
+    // Newest top-tier multilingual ASR; works with `lang=auto` + LID.
+    'gemma4-e2b-q4_k': ModelDefinition(
+      name: 'gemma4-e2b-q4_k',
+      displayName: 'Gemma4-E2B (q4_k)',
+      fileName: 'gemma4-e2b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/gemma4-e2b-GGUF/resolve/main/gemma4-e2b-q4_k.gguf',
+      sizeBytes: 1900 * 1024 * 1024,
+      checksum: '',
+      description: 'Multilingual ASR (140+ languages) — ~1.9 GB',
+      quantization: 'q4_k',
+      backend: 'gemma4-e2b',
+    ),
+    // OmniASR LLM unlimited — streaming variant, 15 s protocol.
+    'omniasr-llm-unlimited-q4_k': ModelDefinition(
+      name: 'omniasr-llm-unlimited-q4_k',
+      displayName: 'OmniASR LLM unlimited (q4_k)',
+      fileName: 'omniasr-llm-unlimited-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/omniasr-llm-unlimited-GGUF/resolve/main/omniasr-llm-unlimited-q4_k.gguf',
+      sizeBytes: 600 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Streaming OmniASR LLM (unlimited audio, 1600+ langs) — ~600 MB',
+      quantization: 'q4_k',
+      backend: 'omniasr-llm-unlimited',
+    ),
+    // ---------- Granite Speech variants ----------
+    // Granite 4.1 2B — newer NAR-capable Granite.
+    'granite-speech-4.1-2b-q4_k': ModelDefinition(
+      name: 'granite-speech-4.1-2b-q4_k',
+      displayName: 'Granite Speech 4.1 2B (q4_k)',
+      fileName: 'granite-speech-4.1-2b-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/granite-speech-4.1-2b-GGUF/resolve/main/granite-speech-4.1-2b-q4_k.gguf',
+      sizeBytes: 1400 * 1024 * 1024,
+      checksum: '',
+      description: 'IBM Granite Speech 4.1 (2B) — ~1.4 GB',
+      quantization: 'q4_k',
+      backend: 'granite-4.1',
+    ),
+    // Granite 4.1 plus — instruction-tuned 4.1 variant.
+    'granite-speech-4.1-plus-q4_k': ModelDefinition(
+      name: 'granite-speech-4.1-plus-q4_k',
+      displayName: 'Granite Speech 4.1+ (q4_k)',
+      fileName: 'granite-speech-4.1-plus-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/granite-speech-4.1-plus-GGUF/resolve/main/granite-speech-4.1-plus-q4_k.gguf',
+      sizeBytes: 1700 * 1024 * 1024,
+      checksum: '',
+      description: 'IBM Granite Speech 4.1+ (instruction-tuned) — ~1.7 GB',
+      quantization: 'q4_k',
+      backend: 'granite-4.1-plus',
+    ),
+    // Granite 4.1 NAR — non-autoregressive variant.
+    'granite-speech-4.1-nar-q4_k': ModelDefinition(
+      name: 'granite-speech-4.1-nar-q4_k',
+      displayName: 'Granite Speech 4.1 NAR (q4_k)',
+      fileName: 'granite-speech-4.1-nar-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/granite-speech-4.1-nar-GGUF/resolve/main/granite-speech-4.1-nar-q4_k.gguf',
+      sizeBytes: 1400 * 1024 * 1024,
+      checksum: '',
+      description: 'Granite Speech 4.1 NAR (parallel-decode) — ~1.4 GB',
+      quantization: 'q4_k',
+      backend: 'granite-4.1-nar',
+    ),
+    // ---------- Additional TTS families (Chatterbox, IndexTTS, etc.) ----------
+    // Chatterbox EN — T3 AR + S3Gen flow-matching, voice cloning via baked GGUF.
+    'chatterbox-en-q8_0': ModelDefinition(
+      name: 'chatterbox-en-q8_0',
+      displayName: 'Chatterbox EN (q8_0)',
+      fileName: 'chatterbox-en-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/chatterbox-en-GGUF/resolve/main/chatterbox-en-q8_0.gguf',
+      sizeBytes: 850 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Chatterbox English TTS (T3 + S3Gen flow-matching) — voice cloning via baked GGUF',
+      quantization: 'q8_0',
+      backend: 'chatterbox',
+      kind: ModelKind.tts,
+    ),
+    // Kartoffelbox DE — Chatterbox German finetune.
+    'kartoffelbox-de-q8_0': ModelDefinition(
+      name: 'kartoffelbox-de-q8_0',
+      displayName: 'Kartoffelbox DE (q8_0)',
+      fileName: 'kartoffelbox-de-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/kartoffelbox-de-GGUF/resolve/main/kartoffelbox-de-q8_0.gguf',
+      sizeBytes: 850 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Kartoffelbox German TTS (Chatterbox finetune) — voice cloning via baked GGUF',
+      quantization: 'q8_0',
+      backend: 'chatterbox',
+      kind: ModelKind.tts,
+    ),
+    // IndexTTS — GPT-2 AR (24L/1280d) + BigVGAN; designed for ZH+EN.
+    'indextts-q8_0': ModelDefinition(
+      name: 'indextts-q8_0',
+      displayName: 'IndexTTS (q8_0)',
+      fileName: 'indextts-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/indextts-GGUF/resolve/main/indextts-q8_0.gguf',
+      sizeBytes: 1600 * 1024 * 1024,
+      checksum: '',
+      description:
+          'IndexTTS (GPT-2 AR + BigVGAN, ZH+EN) — zero-shot voice cloning from WAV reference',
+      quantization: 'q8_0',
+      backend: 'indextts',
+      kind: ModelKind.tts,
+    ),
+    // Qwen3-TTS VoiceDesign — natural-language voice description.
+    'qwen3-tts-12hz-1.7b-voicedesign-q8_0': ModelDefinition(
+      name: 'qwen3-tts-12hz-1.7b-voicedesign-q8_0',
+      displayName: 'Qwen3-TTS VoiceDesign 1.7B (q8_0)',
+      fileName: 'qwen3-tts-12hz-1.7b-voicedesign-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/qwen3-tts-1.7b-voicedesign-GGUF/resolve/main/qwen3-tts-12hz-1.7b-voicedesign-q8_0.gguf',
+      sizeBytes: 1900 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Qwen3-TTS VoiceDesign — describe the voice in natural language via --instruct',
+      quantization: 'q8_0',
+      backend: 'qwen3-tts',
+      kind: ModelKind.tts,
+      companions: ['qwen3-tts-tokenizer-12hz'],
+    ),
+    // VibeVoice 1.5B — base model with runtime WAV cloning (no GGUF voicepack).
+    'vibevoice-1.5b-tts-f32-tokenizer': ModelDefinition(
+      name: 'vibevoice-1.5b-tts-f32-tokenizer',
+      displayName: 'VibeVoice 1.5B TTS (f32 + tokenizer)',
+      fileName: 'vibevoice-1.5b-tts-f32-tokenizer.gguf',
+      url:
+          'https://huggingface.co/cstr/vibevoice-1.5b-GGUF/resolve/main/vibevoice-1.5b-tts-f32-tokenizer.gguf',
+      sizeBytes: 6800 * 1024 * 1024,
+      checksum: '',
+      description:
+          'VibeVoice 1.5B base — runtime WAV cloning via setVoice(wav, refText: …)',
+      quantization: 'f32',
+      backend: 'vibevoice-tts',
+      kind: ModelKind.tts,
+    ),
+    // ---------- Multilingual punctuation (fullstop-punc) ----------
+    // CrispASR's text-only punctuation restorer for EN/DE/FR/IT.
+    'fullstop-punc-multilang-q8_0': ModelDefinition(
+      name: 'fullstop-punc-multilang-q8_0',
+      displayName: 'Fullstop-punc multilang (q8_0)',
+      fileName: 'fullstop-punc-multilang-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/fullstop-punc-multilang-GGUF/resolve/main/fullstop-punc-multilang-q8_0.gguf',
+      sizeBytes: 130 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Multilingual punctuation + casing restoration (EN/DE/FR/IT). Pair with CTC backends.',
+      quantization: 'q8_0',
+      backend: 'fullstop-punc',
+      kind: ModelKind.punc,
+    ),
+    // ---------- Pyannote diarisation ----------
+    // ML-based diarization GGUF; up to 3 speakers per slice. Pairs with
+    // DiarizeMethod.pyannote — enabled in the diarisation method picker.
+    'pyannote-v3-seg-q8_0': ModelDefinition(
+      name: 'pyannote-v3-seg-q8_0',
+      displayName: 'Pyannote v3 segmentation (q8_0)',
+      fileName: 'pyannote-v3-seg-q8_0.gguf',
+      url:
+          'https://huggingface.co/cstr/pyannote-v3-seg-GGUF/resolve/main/pyannote-v3-seg-q8_0.gguf',
+      sizeBytes: 90 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Pyannote v3 segmentation for diarisation (up to 3 speakers per slice)',
+      quantization: 'q8_0',
+      backend: 'pyannote',
+      kind: ModelKind.diarize,
+    ),
+    // ---------- Alternative VAD backends ----------
+    // CrispASR ships four VAD options; silero is bundled as a Flutter
+    // asset (no download needed). The other three live in the catalog
+    // so the VAD method picker can offer them.
+    'firered-vad-q4_k': ModelDefinition(
+      name: 'firered-vad-q4_k',
+      displayName: 'FireRed VAD (q4_k)',
+      fileName: 'firered-vad-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/firered-vad-GGUF/resolve/main/firered-vad-q4_k.gguf',
+      sizeBytes: 3 * 1024 * 1024,
+      checksum: '',
+      description: 'FireRed VAD (F1 97.57%, recommended) — ~3 MB',
+      quantization: 'q4_k',
+      backend: 'vad',
+      kind: ModelKind.vad,
+    ),
+    'marblenet-vad': ModelDefinition(
+      name: 'marblenet-vad',
+      displayName: 'MarbleNet VAD (f16)',
+      fileName: 'marblenet-vad-f16.gguf',
+      url:
+          'https://huggingface.co/cstr/marblenet-vad-GGUF/resolve/main/marblenet-vad-f16.gguf',
+      sizeBytes: 500 * 1024,
+      checksum: '',
+      description: 'MarbleNet VAD (EN/DE/FR/ES/RU/ZH) — ~500 KB',
+      quantization: 'f16',
+      backend: 'vad',
+      kind: ModelKind.vad,
+    ),
+    'whisper-vad-encdec-q4_k': ModelDefinition(
+      name: 'whisper-vad-encdec-q4_k',
+      displayName: 'Whisper-VAD-EncDec (q4_k, experimental)',
+      fileName: 'whisper-vad-encdec-q4_k.gguf',
+      url:
+          'https://huggingface.co/cstr/whisper-vad-encdec-GGUF/resolve/main/whisper-vad-encdec-q4_k.gguf',
+      sizeBytes: 22 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Whisper-VAD-EncDec (English ASMR-trained, experimental) — ~22 MB',
+      quantization: 'q4_k',
+      backend: 'vad',
+      kind: ModelKind.vad,
+    ),
+    // ---------- Silero LID GGUF ----------
+    // CrispASR exposes a Silero 95-language LID classifier; pair with
+    // LidMethod.silero in the LID picker for a smaller / faster
+    // alternative to the whisper encoder LID path.
+    'silero-lang95-v1-f16': ModelDefinition(
+      name: 'silero-lang95-v1-f16',
+      displayName: 'Silero LID 95-langs (f16)',
+      fileName: 'silero-lang95-v1-f16.gguf',
+      url:
+          'https://huggingface.co/cstr/silero-lang95-GGUF/resolve/main/silero-lang95-v1-f16.gguf',
+      sizeBytes: 16 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Silero language identification (95 languages) — faster + smaller than the Whisper-encoder LID',
+      quantization: 'f16',
+      backend: 'lid',
+      kind: ModelKind.lid,
+    ),
   };
 
   /// Multilingual TTS voicepack catalog. Generated from the HF repos
@@ -843,6 +1087,77 @@ class ModelService {
       baseName: 'fireredpunc',
       displayPrefix: 'FireRedPunc (post-processor)',
       description: 'Punctuation restoration for CTC ASR output',
+    ),
+    // ----------------- CrispASR 0.6.x parity additions -----------------
+    // Gemma4-E2B — Conformer + Gemma-4 LLM, 140+ languages.
+    'gemma4-e2b': BackendRepo(
+      backend: 'gemma4-e2b',
+      repoId: 'cstr/gemma4-e2b-GGUF',
+      baseName: 'gemma4-e2b',
+      displayPrefix: 'Gemma4-E2B',
+      description: 'Multilingual ASR (140+ languages)',
+    ),
+    // OmniASR LLM unlimited streaming variant.
+    'omniasr-llm-unlimited': BackendRepo(
+      backend: 'omniasr-llm-unlimited',
+      repoId: 'cstr/omniasr-llm-unlimited-GGUF',
+      baseName: 'omniasr-llm-unlimited',
+      displayPrefix: 'OmniASR LLM unlimited',
+      description: 'Streaming OmniASR (unlimited audio)',
+    ),
+    // Granite Speech 4.1 family.
+    'granite-4.1': BackendRepo(
+      backend: 'granite-4.1',
+      repoId: 'cstr/granite-speech-4.1-2b-GGUF',
+      baseName: 'granite-speech-4.1-2b',
+      displayPrefix: 'Granite Speech 4.1 2B',
+      description: 'IBM Granite Speech 4.1 (2B)',
+    ),
+    'granite-4.1-plus': BackendRepo(
+      backend: 'granite-4.1-plus',
+      repoId: 'cstr/granite-speech-4.1-plus-GGUF',
+      baseName: 'granite-speech-4.1-plus',
+      displayPrefix: 'Granite Speech 4.1+',
+      description: 'Granite Speech 4.1+ (instruction-tuned)',
+    ),
+    'granite-4.1-nar': BackendRepo(
+      backend: 'granite-4.1-nar',
+      repoId: 'cstr/granite-speech-4.1-nar-GGUF',
+      baseName: 'granite-speech-4.1-nar',
+      displayPrefix: 'Granite Speech 4.1 NAR',
+      description: 'Granite Speech 4.1 NAR (parallel-decode)',
+    ),
+    // Chatterbox / Kartoffelbox TTS family.
+    'chatterbox': BackendRepo(
+      backend: 'chatterbox',
+      repoId: 'cstr/chatterbox-en-GGUF',
+      baseName: 'chatterbox-en',
+      displayPrefix: 'Chatterbox EN',
+      description: 'Chatterbox TTS (T3 + S3Gen flow-matching)',
+    ),
+    // IndexTTS — TTS GPT-2 AR + BigVGAN.
+    'indextts': BackendRepo(
+      backend: 'indextts',
+      repoId: 'cstr/indextts-GGUF',
+      baseName: 'indextts',
+      displayPrefix: 'IndexTTS',
+      description: 'IndexTTS (GPT-2 AR + BigVGAN, ZH+EN)',
+    ),
+    // Fullstop-punc — multilingual punctuation post-processor.
+    'fullstop-punc': BackendRepo(
+      backend: 'fullstop-punc',
+      repoId: 'cstr/fullstop-punc-multilang-GGUF',
+      baseName: 'fullstop-punc-multilang',
+      displayPrefix: 'Fullstop-punc multilang',
+      description: 'Punctuation restoration (EN/DE/FR/IT)',
+    ),
+    // Pyannote v3 segmentation — ML diarisation.
+    'pyannote': BackendRepo(
+      backend: 'pyannote',
+      repoId: 'cstr/pyannote-v3-seg-GGUF',
+      baseName: 'pyannote-v3-seg',
+      displayPrefix: 'Pyannote v3 segmentation',
+      description: 'Pyannote ML diarisation model',
     ),
   };
 
@@ -1145,10 +1460,23 @@ class ModelService {
   /// Falls back to ASR for unknown backends so they still show up in the
   /// default Model Management view.
   ModelKind _kindForBackend(String backend) {
-    const tts = {'vibevoice-tts', 'qwen3-tts', 'kokoro', 'orpheus'};
-    const punc = {'firered-punc'};
+    const tts = {
+      'vibevoice-tts',
+      'qwen3-tts',
+      'kokoro',
+      'orpheus',
+      'chatterbox',
+      'indextts',
+    };
+    const punc = {'firered-punc', 'fullstop-punc'};
+    const diarize = {'pyannote'};
+    const vad = {'vad'};
+    const lid = {'lid'};
     if (tts.contains(backend)) return ModelKind.tts;
     if (punc.contains(backend)) return ModelKind.punc;
+    if (diarize.contains(backend)) return ModelKind.diarize;
+    if (vad.contains(backend)) return ModelKind.vad;
+    if (lid.contains(backend)) return ModelKind.lid;
     return ModelKind.asr;
   }
 
@@ -1840,8 +2168,24 @@ enum ModelKind {
   /// `CrispasrSession.setCodecPath` (qwen3-tts only).
   codec,
 
-  /// Post-processor — currently FireRedPunc punctuation restoration.
+  /// Post-processor — punctuation restoration (FireRedPunc, fullstop-punc).
   punc,
+
+  /// VAD GGUF — paired with `TranscribeOptions.vadModelPath` /
+  /// `transcribeVad`. Silero is bundled as a Flutter asset; FireRed /
+  /// MarbleNet / Whisper-VAD-EncDec live in the model catalog so users
+  /// can opt into the higher-accuracy variants.
+  vad,
+
+  /// Language identification GGUF — paired with
+  /// `crispasr.detectLanguagePcm(method: LidMethod.silero)`. The Whisper
+  /// encoder LID path doesn't need a dedicated GGUF (it reuses any
+  /// multilingual ggml-*.bin already on disk).
+  lid,
+
+  /// Diarisation GGUF — Pyannote v3 segmentation, paired with
+  /// `DiarizeMethod.pyannote`.
+  diarize,
 }
 
 class ModelDefinition {

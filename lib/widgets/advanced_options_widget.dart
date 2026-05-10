@@ -1,9 +1,11 @@
+import 'package:crispasr/crispasr.dart' as crispasr;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show transcriptionServiceProvider;
 import '../services/model_service.dart';
+import '../services/vad_service.dart';
 
 /// Per-run state for the "Advanced decoding" block — translate flag,
 /// beam-search strategy, initial prompt. Held as a Riverpod state
@@ -68,6 +70,67 @@ class AdvancedOptions {
   /// Cost: N× the per-call decode time.
   final int bestOf;
 
+  // -------------------------------------------------------------------
+  // VAD tunables (CrispASR 0.6 parity — exposed via SessionVadOptions
+  // and whisper's TranscribeOptions).
+  // -------------------------------------------------------------------
+
+  /// Which VAD GGUF to run when [vad] is on. Silero is bundled (always
+  /// available); FireRed / MarbleNet / Whisper-VAD-EncDec require an
+  /// explicit download via Model Management.
+  final VadBackend vadBackend;
+
+  /// Silero VAD decision threshold (0..1). Higher = fewer / shorter
+  /// speech regions. CrispASR ships 0.5.
+  final double vadThreshold;
+
+  /// Shortest run of voiced frames (ms) kept as a speech segment.
+  final int vadMinSpeechMs;
+
+  /// Shortest silence (ms) needed to split one segment from the next.
+  final int vadMinSilenceMs;
+
+  /// Extra context padding (ms) added on each side of every segment.
+  final int vadSpeechPadMs;
+
+  // -------------------------------------------------------------------
+  // Diarisation method (CrispASR 0.4.5+ shared-lib `diarizeSegments`).
+  // -------------------------------------------------------------------
+
+  /// Which diarisation algorithm to run when the user enables
+  /// diarisation. Defaults to `vadTurns` because it's mono-friendly
+  /// and needs no extra model. Pyannote requires the
+  /// `pyannote-v3-seg-*.gguf` GGUF to be on disk.
+  final crispasr.DiarizeMethod diarizeMethod;
+
+  // -------------------------------------------------------------------
+  // LID method (CrispASR 0.4.6+ `crispasr_detect_language_pcm`).
+  // -------------------------------------------------------------------
+
+  /// Which LID classifier to run when the user picks Auto-detect on a
+  /// session backend that doesn't have native language identification.
+  /// Whisper reuses any multilingual ggml-*.bin already downloaded;
+  /// Silero needs its own ~16 MB GGUF.
+  final crispasr.LidMethod lidMethod;
+
+  // -------------------------------------------------------------------
+  // Whisper-only extras.
+  // -------------------------------------------------------------------
+
+  /// tinydiarize speaker-turn markers. Requires a whisper `.en.tdrz`
+  /// finetune; output contains `[SPEAKER_TURN]` tokens callers can
+  /// split segments on.
+  final bool tdrz;
+
+  /// Token-level timestamps (DTW-aligned). Adds per-token timing on
+  /// top of per-segment timing; pairs well with `maxLen`.
+  final bool tokenTimestamps;
+
+  /// Punctuation post-processor preference: `"firered"` for FireRedPunc
+  /// (ZH+EN), `"fullstop"` for fullstop-punc (EN/DE/FR/IT). Honoured
+  /// by PuncService when both are downloaded.
+  final String puncFamily;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -79,6 +142,16 @@ class AdvancedOptions {
     this.temperature = 0.0,
     this.sourceLanguage = '',
     this.bestOf = 1,
+    this.vadBackend = VadBackend.silero,
+    this.vadThreshold = 0.5,
+    this.vadMinSpeechMs = 250,
+    this.vadMinSilenceMs = 100,
+    this.vadSpeechPadMs = 30,
+    this.diarizeMethod = crispasr.DiarizeMethod.vadTurns,
+    this.lidMethod = crispasr.LidMethod.whisper,
+    this.tdrz = false,
+    this.tokenTimestamps = false,
+    this.puncFamily = 'firered',
   });
 
   AdvancedOptions copyWith({
@@ -92,6 +165,16 @@ class AdvancedOptions {
     double? temperature,
     String? sourceLanguage,
     int? bestOf,
+    VadBackend? vadBackend,
+    double? vadThreshold,
+    int? vadMinSpeechMs,
+    int? vadMinSilenceMs,
+    int? vadSpeechPadMs,
+    crispasr.DiarizeMethod? diarizeMethod,
+    crispasr.LidMethod? lidMethod,
+    bool? tdrz,
+    bool? tokenTimestamps,
+    String? puncFamily,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -104,19 +187,46 @@ class AdvancedOptions {
         temperature: temperature ?? this.temperature,
         sourceLanguage: sourceLanguage ?? this.sourceLanguage,
         bestOf: bestOf ?? this.bestOf,
+        vadBackend: vadBackend ?? this.vadBackend,
+        vadThreshold: vadThreshold ?? this.vadThreshold,
+        vadMinSpeechMs: vadMinSpeechMs ?? this.vadMinSpeechMs,
+        vadMinSilenceMs: vadMinSilenceMs ?? this.vadMinSilenceMs,
+        vadSpeechPadMs: vadSpeechPadMs ?? this.vadSpeechPadMs,
+        diarizeMethod: diarizeMethod ?? this.diarizeMethod,
+        lidMethod: lidMethod ?? this.lidMethod,
+        tdrz: tdrz ?? this.tdrz,
+        tokenTimestamps: tokenTimestamps ?? this.tokenTimestamps,
+        puncFamily: puncFamily ?? this.puncFamily,
       );
 
   /// Backends that accept a target-language hint different from the
   /// source — i.e. true speech-translation. Used by the UI to show /
   /// hide the target-lang dropdown.
   static const Set<String> translationCapableBackends = {
-    'canary', 'cohere', 'voxtral', 'voxtral4b', 'qwen3', 'whisper',
+    'canary',
+    'cohere',
+    'voxtral',
+    'voxtral4b',
+    'qwen3',
+    'whisper',
+    // Granite Speech 4.1 family supports speech-translation too.
+    'granite',
+    'granite-4.1',
+    'granite-4.1-plus',
+    'granite-4.1-nar',
   };
 
   /// Backends that accept a free-form Q&A prompt (instruct-tuned
   /// audio-LLM). Used by the UI to show / hide the ask field.
   static const Set<String> askCapableBackends = {
-    'voxtral', 'voxtral4b', 'qwen3',
+    'voxtral',
+    'voxtral4b',
+    'qwen3',
+    // Granite + GLM-ASR also expose --ask in the CrispASR CLI.
+    'granite',
+    'granite-4.1',
+    'granite-4.1-plus',
+    'glm-asr',
   };
 
   /// Backends that honour `crispasr_session_set_temperature` per the
@@ -125,7 +235,23 @@ class AdvancedOptions {
   /// Whisper isn't in the list — it has its own temperature fallback
   /// inside whisper.cpp's TranscribeOptions.
   static const Set<String> temperatureCapableBackends = {
-    'canary', 'cohere', 'parakeet', 'moonshine',
+    'canary',
+    'cohere',
+    'parakeet',
+    'moonshine',
+    'kyutai-stt',
+    // Granite + Voxtral + Qwen3 + GLM-ASR + Gemma4 all expose
+    // `--temperature` in the CrispASR CLI.
+    'granite',
+    'granite-4.1',
+    'granite-4.1-plus',
+    'voxtral',
+    'voxtral4b',
+    'qwen3',
+    'glm-asr',
+    'gemma4-e2b',
+    'omniasr-llm',
+    'omniasr-llm-unlimited',
   };
 }
 
@@ -192,6 +318,9 @@ class _AdvancedDecodingSectionState
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(vad: v),
         ),
+        // VAD backend + threshold + duration sliders. Only meaningful
+        // when VAD is enabled; collapse otherwise.
+        if (opts.vad) _buildVadTuneRows(context, opts),
         SwitchListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
@@ -260,7 +389,270 @@ class _AdvancedDecodingSectionState
                 opts.copyWith(initialPrompt: v),
           ),
         ),
+        // LID method picker — visible only when the global language
+        // dropdown is "auto" + active backend lacks native LID. We
+        // can't see those preconditions here, so always show it; the
+        // engine ignores it on backends that already auto-detect.
+        _buildLidMethodRow(context, opts),
+        // Diarisation method picker — only meaningful when diarisation
+        // is enabled (separate toggle on the screen above). Show it
+        // unconditionally; the screen-level diarize flag gates whether
+        // anything happens.
+        _buildDiarizationMethodRow(context, opts),
+        // Whisper-only tdrz toggle (tinydiarize). Hidden on session
+        // backends because the model file format differs.
+        _buildTdrzRow(context, opts),
+        // Token-level timestamps (whisper DTW). Useful when subtitle
+        // tooling consumes per-token timing instead of segments.
+        _buildTokenTimestampsRow(context, opts),
+        // Punctuation family picker — only visible when "Restore
+        // punctuation" is on AND the user has more than one family on
+        // disk. Otherwise PuncService auto-picks whatever it finds.
+        if (opts.restorePunctuation) _buildPuncFamilyRow(context, opts),
       ],
+    );
+  }
+
+  Widget _buildVadTuneRows(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: DropdownButtonFormField<VadBackend>(
+            decoration: InputDecoration(
+              labelText: l.advancedVadBackend,
+              helperText: l.advancedVadBackendHelper,
+              border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+            initialValue: opts.vadBackend,
+            items: [
+              DropdownMenuItem(
+                  value: VadBackend.silero, child: Text(l.advancedVadBackendSilero)),
+              DropdownMenuItem(
+                  value: VadBackend.firered,
+                  child: Text(l.advancedVadBackendFirered)),
+              DropdownMenuItem(
+                  value: VadBackend.marblenet,
+                  child: Text(l.advancedVadBackendMarblenet)),
+              DropdownMenuItem(
+                  value: VadBackend.whisperEncDec,
+                  child: Text(l.advancedVadBackendWhisperEncDec)),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(vadBackend: v);
+            },
+          ),
+        ),
+        _sliderRow(
+          label: l.advancedVadThreshold(opts.vadThreshold.toStringAsFixed(2)),
+          value: opts.vadThreshold,
+          min: 0.05,
+          max: 0.95,
+          divisions: 18,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(vadThreshold: v),
+          helper: l.advancedVadThresholdHelper,
+        ),
+        _sliderRow(
+          label: l.advancedVadMinSpeech(opts.vadMinSpeechMs),
+          value: opts.vadMinSpeechMs.toDouble(),
+          min: 50,
+          max: 2000,
+          divisions: 39,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(vadMinSpeechMs: v.round()),
+          helper: l.advancedVadMinSpeechHelper,
+        ),
+        _sliderRow(
+          label: l.advancedVadMinSilence(opts.vadMinSilenceMs),
+          value: opts.vadMinSilenceMs.toDouble(),
+          min: 50,
+          max: 2000,
+          divisions: 39,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(vadMinSilenceMs: v.round()),
+          helper: l.advancedVadMinSilenceHelper,
+        ),
+        _sliderRow(
+          label: l.advancedVadSpeechPad(opts.vadSpeechPadMs),
+          value: opts.vadSpeechPadMs.toDouble(),
+          min: 0,
+          max: 500,
+          divisions: 50,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(vadSpeechPadMs: v.round()),
+          helper: l.advancedVadSpeechPadHelper,
+        ),
+      ],
+    );
+  }
+
+  Widget _sliderRow({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+    String? helper,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: value.toStringAsFixed(2),
+            onChanged: onChanged,
+          ),
+          if (helper != null)
+            Text(helper,
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLidMethodRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<crispasr.LidMethod>(
+        decoration: InputDecoration(
+          labelText: l.advancedLidMethod,
+          helperText: l.advancedLidMethodHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        initialValue: opts.lidMethod,
+        items: [
+          DropdownMenuItem(
+              value: crispasr.LidMethod.whisper,
+              child: Text(l.advancedLidMethodWhisper)),
+          DropdownMenuItem(
+              value: crispasr.LidMethod.silero,
+              child: Text(l.advancedLidMethodSilero)),
+        ],
+        onChanged: (v) {
+          if (v == null) return;
+          ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(lidMethod: v);
+        },
+      ),
+    );
+  }
+
+  Widget _buildDiarizationMethodRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<crispasr.DiarizeMethod>(
+        decoration: InputDecoration(
+          labelText: l.advancedDiarizeMethod,
+          helperText: l.advancedDiarizeMethodHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        initialValue: opts.diarizeMethod,
+        items: [
+          DropdownMenuItem(
+              value: crispasr.DiarizeMethod.vadTurns,
+              child: Text(l.advancedDiarizeVadTurns)),
+          DropdownMenuItem(
+              value: crispasr.DiarizeMethod.pyannote,
+              child: Text(l.advancedDiarizePyannote)),
+          DropdownMenuItem(
+              value: crispasr.DiarizeMethod.energy,
+              child: Text(l.advancedDiarizeEnergy)),
+          DropdownMenuItem(
+              value: crispasr.DiarizeMethod.xcorr,
+              child: Text(l.advancedDiarizeXcorr)),
+        ],
+        onChanged: (v) {
+          if (v == null) return;
+          ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(diarizeMethod: v);
+        },
+      ),
+    );
+  }
+
+  Widget _buildTdrzRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(l.advancedTdrz),
+      subtitle: Text(l.advancedTdrzSubtitle,
+          style: const TextStyle(fontSize: 11)),
+      value: opts.tdrz,
+      onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(tdrz: v),
+    );
+  }
+
+  Widget _buildTokenTimestampsRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(l.advancedTokenTimestamps),
+      subtitle: Text(l.advancedTokenTimestampsSubtitle,
+          style: const TextStyle(fontSize: 11)),
+      value: opts.tokenTimestamps,
+      onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(tokenTimestamps: v),
+    );
+  }
+
+  Widget _buildPuncFamilyRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: l.advancedPuncFamily,
+          helperText: l.advancedPuncFamilyHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        initialValue: opts.puncFamily,
+        items: [
+          DropdownMenuItem(
+              value: 'firered',
+              child: Text(l.advancedPuncFamilyFirered)),
+          DropdownMenuItem(
+              value: 'fullstop',
+              child: Text(l.advancedPuncFamilyFullstop)),
+        ],
+        onChanged: (v) {
+          if (v == null) return;
+          ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(puncFamily: v);
+        },
+      ),
     );
   }
 

@@ -23,12 +23,18 @@ import 'model_service.dart';
 /// but inference is per-segment, so the model is kept resident rather
 /// than reopened on every transcription.
 class PuncService {
-  /// Filenames the service recognises as a FireRedPunc GGUF. Anything
-  /// matching one of these basenames in the models dir is loadable.
+  /// Filenames the service recognises as a punctuation GGUF. Both
+  /// FireRedPunc (ZH+EN) and fullstop-punc (EN/DE/FR/IT) load through
+  /// the same `crispasr.PuncModel` ABI; pick by user preference.
   static const List<String> _knownFilenames = [
+    // FireRedPunc — Chinese + English
     'fireredpunc-q8_0.gguf',
     'fireredpunc-q4_k.gguf',
     'fireredpunc-f16.gguf',
+    // Fullstop-punc multilang — EN/DE/FR/IT
+    'fullstop-punc-multilang-q8_0.gguf',
+    'fullstop-punc-multilang-q4_k.gguf',
+    'fullstop-punc-multilang-f16.gguf',
   ];
 
   /// Optional ModelService injection. When present we honour the
@@ -42,9 +48,14 @@ class PuncService {
   bool _searched = false;
   String? _cachedPath;
 
-  /// Locate a downloaded FireRedPunc GGUF. Returns null if none is
-  /// available — the caller should treat that as "punctuation
-  /// restoration unavailable" and pass the segments through unchanged.
+  /// User-preferred filename hint (e.g. `"fullstop"` to prefer fullstop-punc
+  /// over fireredpunc when both are on disk). Honoured by [_findModel] as
+  /// a substring match against the basename. Empty / null = first match.
+  String? preferredFamily;
+
+  /// Locate a downloaded punctuation GGUF. Both FireRedPunc and
+  /// fullstop-punc are recognised; pick by [preferredFamily] when both
+  /// are present. Returns null if neither is on disk.
   Future<String?> _findModel() async {
     if (_searched) return _cachedPath;
     _searched = true;
@@ -56,23 +67,47 @@ class PuncService {
       final modelsDir = Directory(dirPath);
       if (!await modelsDir.exists()) return null;
       final entries = await modelsDir.list().toList();
+      final matches = <File>[];
       for (final e in entries) {
         if (e is! File) continue;
         final base = p.basename(e.path);
+        final lower = base.toLowerCase();
         if (_knownFilenames.contains(base) ||
-            base.toLowerCase().startsWith('fireredpunc')) {
-          _cachedPath = e.path;
-          Log.instance
-              .d('punc', 'found FireRedPunc model', fields: {'path': e.path});
-          return _cachedPath;
+            lower.startsWith('fireredpunc') ||
+            lower.startsWith('fullstop-punc')) {
+          matches.add(e);
         }
       }
-      return null;
+      if (matches.isEmpty) return null;
+      // Honour the user preference: if `preferredFamily` is set,
+      // prefer the file whose basename contains that substring.
+      final pref = preferredFamily?.toLowerCase();
+      if (pref != null && pref.isNotEmpty) {
+        for (final f in matches) {
+          if (p.basename(f.path).toLowerCase().contains(pref)) {
+            _cachedPath = f.path;
+            Log.instance.d('punc', 'found punc model (preferred)',
+                fields: {'path': f.path, 'pref': pref});
+            return _cachedPath;
+          }
+        }
+      }
+      _cachedPath = matches.first.path;
+      Log.instance
+          .d('punc', 'found punc model', fields: {'path': matches.first.path});
+      return _cachedPath;
     } catch (e, st) {
       Log.instance
           .w('punc', 'failed to search models dir', error: e, stack: st);
       return null;
     }
+  }
+
+  /// Reset the search cache so a new `preferredFamily` value is honoured
+  /// on the next [restore] call.
+  void invalidate() {
+    _searched = false;
+    _cachedPath = null;
   }
 
   Future<crispasr.PuncModel?> _ensureLoaded() async {

@@ -10,6 +10,7 @@ import '../services/aligner_service.dart';
 import '../services/lid_service.dart';
 import '../services/log_service.dart';
 import '../services/model_service.dart';
+import '../services/transcription_service.dart' show AdvancedTranscribeOptions;
 
 /// Transcription engine backed by the CrispASR FFI package.
 ///
@@ -436,9 +437,19 @@ class CrispASREngine implements TranscriptionEngine {
     String? askPrompt,
     double temperature = 0.0,
     int bestOf = 1,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
+    // Push the LID-method preference into the service so the next
+    // detectIfModelAvailable() call honours it. Sticky across calls
+    // until the user changes it in Advanced Options.
+    final lid = _lidService;
+    if (lid != null) {
+      lid.method = advanced.lidMethod;
+      lid.invalidate();
+    }
+
     // Apply sticky session-state setters before dispatching transcribe.
     // Per-call args win when supplied, otherwise these are the fallback.
     if (_session != null && targetLanguage != null && targetLanguage.isNotEmpty) {
@@ -563,6 +574,7 @@ class CrispASREngine implements TranscriptionEngine {
             beamSearch: beamSearch,
             initialPrompt: initialPrompt,
             bestOf: bestOf,
+            advanced: advanced,
             onSegment: onSegment,
             onProgress: onProgress,
           );
@@ -577,6 +589,7 @@ class CrispASREngine implements TranscriptionEngine {
             vad: vad,
             vadModelPath: vadModelPath,
             bestOf: bestOf,
+            advanced: advanced,
           );
           segments = _mapWhisperSegments(
               nativeSegments, enableWordTimestamps, onSegment);
@@ -588,6 +601,7 @@ class CrispASREngine implements TranscriptionEngine {
           language: language,
           vad: vad,
           vadModelPath: vadModelPath,
+          advanced: advanced,
         );
         segments = _mapSessionSegments(sessionSegments, onSegment);
 
@@ -720,6 +734,7 @@ class CrispASREngine implements TranscriptionEngine {
     bool beamSearch = false,
     String? initialPrompt,
     int bestOf = 1,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -755,6 +770,7 @@ class CrispASREngine implements TranscriptionEngine {
         vad: false,
         vadModelPath: null,
         bestOf: bestOf,
+        advanced: advanced,
       );
 
       // Re-map with the chunk's time offset baked into each segment +
@@ -789,6 +805,7 @@ class CrispASREngine implements TranscriptionEngine {
     bool vad = false,
     String? vadModelPath,
     int bestOf = 1,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
   }) async {
     // Keep FFI call off the UI thread where possible. `Isolate.run` requires
     // sending the model handle across isolates which FFI can't do, so we
@@ -816,6 +833,12 @@ class CrispASREngine implements TranscriptionEngine {
         bestOf: bestOf,
         vad: useVad,
         vadModelPath: useVad ? vadModelPath : null,
+        // CrispASR 0.6 VAD tunables — defaults match Silero ships.
+        vadThreshold: advanced.vadThreshold,
+        vadMinSpeechMs: advanced.vadMinSpeechMs,
+        vadMinSilenceMs: advanced.vadMinSilenceMs,
+        // Whisper tinydiarize speaker-turn markers (requires .tdrz finetune).
+        tdrz: advanced.tdrz,
       ),
     );
   }
@@ -825,6 +848,7 @@ class CrispASREngine implements TranscriptionEngine {
     String? language,
     bool vad = false,
     String? vadModelPath,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
   }) async {
     // Yield once so the FFI call doesn't block the current microtask batch
     // in the UI thread (same pattern as `_runTranscription`).
@@ -865,8 +889,19 @@ class CrispASREngine implements TranscriptionEngine {
         'vad_model': vadModelPath,
         'samples': pcm.length,
         'lang': langHint ?? 'default',
+        'vad_threshold': advanced.vadThreshold,
       });
-      return _session!.transcribeVad(pcm, vadModelPath, language: langHint);
+      return _session!.transcribeVad(
+        pcm,
+        vadModelPath,
+        language: langHint,
+        options: crispasr.SessionVadOptions(
+          threshold: advanced.vadThreshold,
+          minSpeechDurationMs: advanced.vadMinSpeechMs,
+          minSilenceDurationMs: advanced.vadMinSilenceMs,
+          speechPadMs: advanced.vadSpeechPadMs,
+        ),
+      );
     }
     return _session!.transcribe(pcm, language: langHint);
   }

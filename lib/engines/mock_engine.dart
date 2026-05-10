@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:async';
 
 import '../services/model_service.dart';
+import '../services/transcription_service.dart' show AdvancedTranscribeOptions;
 import 'transcription_engine.dart';
 
 /// Mock transcription engine for testing and development
@@ -175,6 +176,7 @@ class MockEngine implements TranscriptionEngine {
     String? askPrompt,
     double temperature = 0.0,
     int bestOf = 1,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {

@@ -141,4 +141,74 @@ void main() {
       expect((decoded[0] as Map)['speaker'], isNull);
     });
   });
+
+  group('FileUtils.generateCsvContent', () {
+    test('emits a header and one row per segment', () {
+      final out = FileUtils.generateCsvContent(segs);
+      final lines = out.trim().split('\n');
+      expect(lines.first, 'start_s,end_s,speaker,text');
+      expect(lines.length, 3); // header + 2 rows
+      expect(lines[1], '0.000,1.500,Alice,Hello world.');
+      expect(lines[2], '1.500,3.000,Bob,How are you?');
+    });
+
+    test('RFC-4180 quoting on cells containing commas, quotes, newlines', () {
+      const tricky = [
+        TranscriptionSegment(
+          text: 'Hello, "world"!\nNewline here',
+          startTime: 0.0,
+          endTime: 1.0,
+          speaker: 'Alice',
+          confidence: 1.0,
+        ),
+      ];
+      final out = FileUtils.generateCsvContent(tricky);
+      // Embedded `"` is doubled, the whole cell is quoted, and the
+      // commas inside the cell don't break column alignment.
+      expect(
+          out,
+          contains(
+              '0.000,1.000,Alice,"Hello, ""world""!\nNewline here"'));
+    });
+
+    test('empty input still emits the header', () {
+      expect(FileUtils.generateCsvContent(const []), 'start_s,end_s,speaker,text\n');
+    });
+  });
+
+  group('FileUtils.formatLrcTime / generateLrcContent', () {
+    test('LRC time uses mm:ss.cs format', () {
+      expect(FileUtils.formatLrcTime(0.0), '00:00.00');
+      expect(FileUtils.formatLrcTime(1.50), '00:01.50');
+      expect(FileUtils.formatLrcTime(61.25), '01:01.25');
+    });
+
+    test('emits standard LRC tags + one line per segment', () {
+      final out = FileUtils.generateLrcContent(segs);
+      expect(out, contains('[ti:CrisperWeaver transcription]'));
+      expect(out, contains('[length:00:03.00]'));
+      expect(out, contains('[00:00.00]Alice: Hello world.'));
+      expect(out, contains('[00:01.50]Bob: How are you?'));
+    });
+  });
+
+  group('FileUtils.generateWtsContent', () {
+    test('emits one [t0 --> t1] line per segment', () {
+      final out = FileUtils.generateWtsContent(segs);
+      expect(out,
+          contains('[00:00:00,000 --> 00:00:01,500] <Alice> Hello world.'));
+      expect(out,
+          contains('[00:00:01,500 --> 00:00:03,000] <Bob> How are you?'));
+    });
+
+    test('omits the speaker wrapper when speaker is null', () {
+      const noSpk = [
+        TranscriptionSegment(
+            text: 'no speaker', startTime: 0.0, endTime: 1.0, confidence: 1.0),
+      ];
+      final out = FileUtils.generateWtsContent(noSpk);
+      expect(out, contains('[00:00:00,000 --> 00:00:01,000] no speaker'));
+      expect(out, isNot(contains('<>')));
+    });
+  });
 }

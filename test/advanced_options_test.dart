@@ -98,29 +98,82 @@ void main() {
     });
 
     test('capability sets cover the documented backends', () {
-      // Translation: shipped backends with `-tl` support today.
-      expect(AdvancedOptions.translationCapableBackends, {
-        'canary',
-        'cohere',
-        'voxtral',
-        'voxtral4b',
-        'qwen3',
-        'whisper',
-      });
-      // Q&A: instruct-tuned audio LLMs.
-      expect(AdvancedOptions.askCapableBackends, {
-        'voxtral',
-        'voxtral4b',
-        'qwen3',
-      });
-      // Temperature: `crispasr_session_set_temperature` honourers per
-      // the CrispASR doc comment.
-      expect(AdvancedOptions.temperatureCapableBackends, {
-        'canary',
-        'cohere',
-        'parakeet',
-        'moonshine',
-      });
+      // Translation: shipped backends with `-tl` support today,
+      // including the Granite Speech 4.1 family added in the CrispASR
+      // 0.6 parity sweep.
+      expect(
+          AdvancedOptions.translationCapableBackends.containsAll([
+            'canary',
+            'cohere',
+            'voxtral',
+            'voxtral4b',
+            'qwen3',
+            'whisper',
+            'granite',
+            'granite-4.1',
+            'granite-4.1-plus',
+            'granite-4.1-nar',
+          ]),
+          isTrue);
+      // Q&A: instruct-tuned audio LLMs — Granite + GLM-ASR joined in
+      // the parity sweep.
+      expect(
+          AdvancedOptions.askCapableBackends.containsAll([
+            'voxtral',
+            'voxtral4b',
+            'qwen3',
+            'granite',
+            'glm-asr',
+          ]),
+          isTrue);
+      // Temperature: every backend `crispasr_session_set_temperature`
+      // honours per the CrispASR CLI surface. Sweep added the LLM
+      // backends (voxtral, qwen3, granite, glm-asr, gemma4-e2b,
+      // omniasr-llm).
+      expect(
+          AdvancedOptions.temperatureCapableBackends.containsAll([
+            'canary',
+            'cohere',
+            'parakeet',
+            'moonshine',
+            'voxtral',
+            'voxtral4b',
+            'qwen3',
+            'granite',
+            'glm-asr',
+            'gemma4-e2b',
+            'omniasr-llm',
+          ]),
+          isTrue);
+    });
+
+    test('new CrispASR 0.6 parity fields roundtrip', () {
+      const opts = AdvancedOptions();
+      // Defaults match the historical behaviour so old call sites
+      // see no change.
+      expect(opts.vadThreshold, 0.5);
+      expect(opts.vadMinSpeechMs, 250);
+      expect(opts.vadMinSilenceMs, 100);
+      expect(opts.vadSpeechPadMs, 30);
+      expect(opts.tdrz, isFalse);
+      expect(opts.tokenTimestamps, isFalse);
+      expect(opts.puncFamily, 'firered');
+
+      final tuned = opts.copyWith(
+        vadThreshold: 0.65,
+        vadMinSpeechMs: 400,
+        tdrz: true,
+        tokenTimestamps: true,
+        puncFamily: 'fullstop',
+      );
+      expect(tuned.vadThreshold, 0.65);
+      expect(tuned.vadMinSpeechMs, 400);
+      expect(tuned.tdrz, isTrue);
+      expect(tuned.tokenTimestamps, isTrue);
+      expect(tuned.puncFamily, 'fullstop');
+      // Unrelated fields preserved.
+      expect(tuned.vadMinSilenceMs, opts.vadMinSilenceMs);
+      expect(tuned.bestOf, opts.bestOf);
     });
   });
 }

@@ -1,8 +1,8 @@
 # CrisperWeaver
 
-**On-device speech recognition + text-to-speech. No cloud. 24+ model families, one app.**
+**On-device speech recognition + text-to-speech. No cloud. 28+ model families, one app.**
 
-CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcription and speech synthesis. Drop in a file, paste a URL, or record with the mic — audio never leaves the device. 21+ open-weight ASR families and 4 TTS families are supported through a single unified engine ([CrispASR][crispasr]): Whisper, Parakeet, Canary, Voxtral, Qwen3-ASR, Cohere, Granite, FastConformer-CTC, Canary-CTC, Wav2Vec2, OmniASR, FireRed, Kyutai-STT, GLM-ASR, Moonshine, VibeVoice ASR, MiMo ASR — plus Kokoro / VibeVoice / Qwen3-TTS / Orpheus for synthesis and FireRedPunc for punctuation restoration.
+CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcription and speech synthesis. Drop in a file, paste a URL, or record with the mic — audio never leaves the device. 24+ open-weight ASR families and 7 TTS families are supported through a single unified engine ([CrispASR][crispasr]): Whisper, Parakeet, Canary, Voxtral, Qwen3-ASR, Cohere, Granite (3.x + 4.1 family), FastConformer-CTC, Canary-CTC, Wav2Vec2, OmniASR (+ streaming "unlimited" variant), FireRed, Kyutai-STT, GLM-ASR, Moonshine, VibeVoice ASR, MiMo ASR, **Gemma4-E2B** (140+ languages) — plus Kokoro / VibeVoice / Qwen3-TTS / Orpheus / **Chatterbox** / **Kartoffelbox** / **IndexTTS** for synthesis, **Pyannote v3** for ML diarisation, FireRedPunc + **fullstop-punc** for punctuation restoration, **Silero LID** for language detection, and FireRed/MarbleNet/Whisper-VAD-EncDec VAD options.
 
 [crispasr]: https://github.com/CrispStrobe/CrispASR
 
@@ -30,18 +30,21 @@ CrisperWeaver is a cross-platform Flutter app for fully-offline audio transcript
 - **Choose your model family and quantisation** — q4_0 / q5_0 / q4_k / q5_k / q6_k / q8_0 variants plus f16 originals. Model picker filters by name + backend; Model Management screen auto-probes HuggingFace to discover every available quant.
 - **Download and manage models** from a built-in browser — parallel queue, resume, SHA-1 verify, cancel, delete.
 - **Advanced decoding knobs** — translate-to-English (Whisper), beam search, initial-prompt vocabulary bias (huge win for domain audio), audio Q&A prompt for instruct-tuned LLM backends (Voxtral / Qwen3), source + target language pickers for true speech translation.
-- **Tune the decoder live** — best-of-N slider (1–10, picks the highest-scoring of N decodes; works on every backend) and decoder temperature slider for sampling-capable backends (canary, cohere, parakeet, moonshine).
+- **Tune the decoder live** — best-of-N slider (1–10, picks the highest-scoring of N decodes; works on every backend) and decoder temperature slider for every backend `crispasr_session_set_temperature` honours (canary, cohere, parakeet, moonshine, voxtral, qwen3, granite, glm-asr, gemma4, omniasr-llm, kyutai-stt).
+- **Tune the VAD** — pick between Silero (bundled), FireRedVAD (F1 97.57%), MarbleNet, Whisper-VAD-EncDec; live sliders for threshold, min-speech-ms, min-silence-ms, speech-pad-ms.
+- **Pick the diarisation method** — vad-turns (default, mono-friendly), pyannote (ML, GGUF), stereo energy, stereo cross-correlation.
+- **Pick the language-detection method** — Whisper-encoder LID (reuses an existing model) or Silero 95-langs (faster + smaller).
 - **See live performance numbers** — real-time factor, words per second, wall-clock.
 - **Get word-level timestamps** and language auto-detection (via Whisper).
 - **Stream transcription** from long-running mic input — partial transcripts appear in the output card while you talk (10 s sliding window / 3 s step).
 - **Watch long files transcribe in real time** — chunked Whisper splits >60 s files into 30 s windows and streams segments through as each finishes, instead of waiting until the end.
-- **Export** to `.txt`, `.srt`, `.vtt`, or `.json` through the system share sheet.
+- **Export** to `.txt`, `.srt`, `.vtt`, `.json`, `.csv`, `.lrc` (lyrics), or `.wts` (Whisper Text Segments debug) through the system share sheet.
 - **Review history** — every run is persisted as JSON and browseable / re-exportable, with speaker renames preserved across launches.
 - **Rename diariser speakers** — tap a speaker chip in the output to override the auto-assigned label ("Speaker 1" → "Alice"); the new name persists in history.
 - **See where storage went** — Settings → Storage breakdown lists per-backend disk usage with a one-click "delete all of X" action.
 - **Diagnose with logs** — in-app viewer with filter / search / copy / export, optional file sink.
-- **Synthesize speech (TTS)** — pick a downloaded TTS model + voice + codec on the *Synthesize* screen, type text, hit *Synthesize*; output plays in-app and saves as WAV.
-- **Restore punctuation** — FireRedPunc post-processor toggle in Advanced Options; turns `wav2vec2 / fastconformer-ctc / firered-asr` lowercase output into properly punctuated text.
+- **Synthesize speech (TTS)** — pick a downloaded TTS model + voice + codec on the *Synthesize* screen, type text, hit *Synthesize*; output plays in-app and saves as WAV. Advanced section adds trim-silence, 0.25×–4× speed slider, reference-transcript field for runtime voice cloning, and natural-language voice-design prompts (qwen3-tts VoiceDesign).
+- **Restore punctuation** — FireRedPunc (ZH+EN) or fullstop-punc (EN/DE/FR/IT) toggle in Advanced Options; turns `wav2vec2 / fastconformer-ctc / firered-asr` lowercase output into properly punctuated text. Picker chooses which family runs when both are downloaded.
 - **Use CrisperWeaver in English or German** — full i18n scaffold via `flutter_localizations`, every user-facing string covered (guarded by an ARB-consistency test).
 
 ## Supported models
@@ -69,21 +72,37 @@ One dispatcher (`CrispasrSession`) handles every backend; bundled `libcrispasr` 
 | **Moonshine**         | tiny / base + streaming             | en                          | Tiny CPU-friendly                     |
 | **VibeVoice ASR**     | large                               | multilingual                | Large multilingual ASR (~4.5 GB)      |
 | **MiMo ASR**          | 2.5B + tokenizer companion          | en zh                       | XiaomiMiMo, two-file (model + codec)  |
+| **Gemma4-E2B**        | 2B (q4_k)                           | 140+ languages              | USM Conformer + Gemma-4 35L          |
+| **OmniASR LLM unlim.**| 300M v2 streaming                   | 1600+ languages             | Streaming, 15 s protocol, unlimited audio |
+| **Granite Speech 4.1**| 2B / 4.1+ / 4.1-NAR                 | en fr de es pt ja           | Instruction-tuned + parallel decode  |
 
 ### TTS
 
 | Family            | Sizes                          | Notes                                       |
 | ----------------- | ------------------------------ | ------------------------------------------- |
 | **Kokoro**        | 82M + voicepacks               | Multilingual, espeak-ng phonemiser bundled  |
-| **VibeVoice**     | realtime 0.5B (f32 + tokenizer) | + voicepack via `setVoice`                  |
-| **Qwen3-TTS**     | 0.6B base + customvoice + codec | Customvoice has 9 baked speakers via `setSpeakerName` |
+| **VibeVoice**     | realtime 0.5B (f32 + tokenizer), 1.5B base | + voicepack via `setVoice`; 1.5B supports runtime WAV cloning |
+| **Qwen3-TTS**     | 0.6B base + customvoice + codec, 1.7B VoiceDesign | Customvoice has 9 baked speakers; VoiceDesign accepts natural-language voice descriptions via `setInstruct` |
 | **Orpheus**       | 3B + SNAC codec                 | 8 baked English speakers; SNAC via `setCodecPath` |
+| **Chatterbox**    | 850 MB EN / DE (Kartoffelbox)   | T3 AR + S3Gen flow-matching; voice cloning via baked GGUF |
+| **IndexTTS**      | 1.6 GB                          | GPT-2 AR + BigVGAN; zero-shot WAV cloning, ZH+EN |
 
-### Post-processor
+### Post-processors
 
-| Family            | Notes                                       |
-| ----------------- | ------------------------------------------- |
-| **FireRedPunc**   | BERT-based punctuation + capitalisation; pairs with CTC ASR backends |
+| Family            | Languages          | Notes                                       |
+| ----------------- | ------------------ | ------------------------------------------- |
+| **FireRedPunc**   | ZH + EN            | BERT-based punctuation + capitalisation     |
+| **Fullstop-punc** | EN / DE / FR / IT  | Multilingual punctuation restoration        |
+
+### Diarisation / LID / VAD GGUFs
+
+| Family                | Role                | Notes                                                       |
+| --------------------- | ------------------- | ----------------------------------------------------------- |
+| **Pyannote v3 seg**   | Diarisation         | ML segmentation, up to 3 speakers per slice                 |
+| **Silero LID 95**     | Language ID         | 95-language classifier, ~16 MB GGUF — faster than Whisper LID |
+| **FireRedVAD**        | VAD                 | F1 97.57%, ~3 MB                                            |
+| **MarbleNet VAD**     | VAD                 | Small (~500 KB), EN/DE/FR/ES/RU/ZH                          |
+| **Whisper-VAD-EncDec**| VAD (experimental)  | English ASMR-trained, ~22 MB                                |
 
 Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cstr/whisper-ggml-quants`][cstr] and other `cstr/*-GGUF` repos. Skip-checksum toggle in Settings for custom or mirrored GGUFs.
 

@@ -27,6 +27,19 @@ class LidService {
   final ModelService modelService;
   LidService(this.modelService);
 
+  /// Method used by the next LID call. Whisper LID reuses any
+  /// multilingual ggml-*.bin already downloaded (no extra asset);
+  /// Silero LID needs the dedicated `silero-lang95-v1-f16.gguf` to be
+  /// downloaded first. Setting this clears the cached resolution so
+  /// the next call picks up the new method's model.
+  crispasr.LidMethod method = crispasr.LidMethod.whisper;
+
+  /// Drop any cached model path so the next call re-resolves. Call
+  /// after the user switches `method` or downloads a new GGUF.
+  void invalidate() {
+    _cachedPath = null;
+  }
+
   String? _cachedPath;
 
   /// Returns the on-disk path to a multilingual whisper ggml-*.bin model
@@ -85,23 +98,58 @@ class LidService {
     return dir.path;
   }
 
-  /// Run LID on [pcm] using the first available multilingual whisper
-  /// model. Returns the ISO 639-1 code (e.g. "en", "de") or null when
-  /// either no model is available, the lib call failed, or the
-  /// confidence is too low to be useful.
+  /// Locate the Silero LID GGUF the user downloaded via Model
+  /// Management. Returns null if it isn't on disk yet — the caller
+  /// should fall back to the whisper LID path (or skip LID entirely).
+  Future<String?> _findSileroModel() async {
+    try {
+      final models = await modelService.getWhisperCppModels();
+      for (final m in models) {
+        if (!m.isDownloaded || m.localPath == null) continue;
+        final base = p.basename(m.localPath!).toLowerCase();
+        if (base.startsWith('silero-lang')) return m.localPath;
+      }
+      return null;
+    } catch (e, st) {
+      Log.instance
+          .w('lid', 'failed to enumerate silero LID models', error: e, stack: st);
+      return null;
+    }
+  }
+
+  /// Run LID on [pcm] using the configured [method]. Returns the ISO
+  /// 639-1 code (e.g. "en", "de") or null when no model is available,
+  /// the lib call failed, or the confidence is too low to be useful.
   Future<String?> detectIfModelAvailable(Float32List pcm,
       {double minConfidence = 0.35}) async {
     if (pcm.isEmpty) return null;
-    final modelPath = await _findMultilingualModel();
+    String? modelPath;
+    if (method == crispasr.LidMethod.silero) {
+      modelPath = await _findSileroModel();
+      if (modelPath == null) {
+        Log.instance.d('lid',
+            'Silero LID GGUF not downloaded — falling back to whisper LID');
+        modelPath = await _findMultilingualModel();
+      }
+    } else {
+      modelPath = await _findMultilingualModel();
+    }
     if (modelPath == null) {
       Log.instance.d('lid',
-          'no multilingual whisper model available — skipping LID pre-step');
+          'no LID model available (method=${method.name}) — skipping LID pre-step');
       return null;
     }
+    // Resolve the effective method based on the file we actually have:
+    // a whisper ggml-*.bin needs LidMethod.whisper, a silero-lang*.gguf
+    // needs LidMethod.silero. Mismatched method + file would return rc=-2.
+    final base = p.basename(modelPath).toLowerCase();
+    final effectiveMethod = base.startsWith('silero-lang')
+        ? crispasr.LidMethod.silero
+        : crispasr.LidMethod.whisper;
     try {
       final r = crispasr.detectLanguagePcm(
         pcm: pcm,
-        method: crispasr.LidMethod.whisper,
+        method: effectiveMethod,
         modelPath: modelPath,
       );
       if (r.isEmpty || r.confidence < minConfidence) {
@@ -112,6 +160,7 @@ class LidService {
       Log.instance.i('lid', 'detected language', fields: {
         'code': r.langCode,
         'confidence': r.confidence.toStringAsFixed(3),
+        'method': effectiveMethod.name,
         'model': p.basename(modelPath),
       });
       return r.langCode;

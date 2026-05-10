@@ -463,5 +463,62 @@
   "synthShareButton": "Save / share WAV",
   "synthNoTtsModelsDownloaded": "No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.",
   "synthMissingDependency": "Missing required companion file: {name}",
-  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}}
+  "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}},
+
+  "advancedVadBackend": "VAD backend",
+  "advancedVadBackendHelper": "Silero is bundled (~885 KB). FireRed / MarbleNet / Whisper-VAD need a Model Management download; missing files fall back to Silero.",
+  "advancedVadBackendSilero": "Silero (bundled, default)",
+  "advancedVadBackendFirered": "FireRedVAD (F1 97.57%, ~3 MB)",
+  "advancedVadBackendMarblenet": "MarbleNet (small, multilingual)",
+  "advancedVadBackendWhisperEncDec": "Whisper-VAD-EncDec (experimental EN)",
+  "advancedVadThreshold": "VAD threshold: {value}",
+  "@advancedVadThreshold": {"placeholders": {"value": {"type": "String"}}},
+  "advancedVadThresholdHelper": "Higher = fewer / shorter speech regions detected. CrispASR default is 0.50.",
+  "advancedVadMinSpeech": "Min. speech duration: {ms} ms",
+  "@advancedVadMinSpeech": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadMinSpeechHelper": "Shortest voiced run kept as a speech segment.",
+  "advancedVadMinSilence": "Min. silence duration: {ms} ms",
+  "@advancedVadMinSilence": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadMinSilenceHelper": "Shortest silence that splits one segment from the next.",
+  "advancedVadSpeechPad": "Speech padding: {ms} ms",
+  "@advancedVadSpeechPad": {"placeholders": {"ms": {"type": "int"}}},
+  "advancedVadSpeechPadHelper": "Extra context added on each side of every speech segment.",
+
+  "advancedLidMethod": "Language detection method",
+  "advancedLidMethodHelper": "Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero needs its own GGUF (16 MB, 95 langs).",
+  "advancedLidMethodWhisper": "Whisper encoder (reuses an existing model)",
+  "advancedLidMethodSilero": "Silero (95 languages, ~16 MB GGUF)",
+
+  "advancedDiarizeMethod": "Diarisation method",
+  "advancedDiarizeMethodHelper": "Only takes effect when diarisation is enabled. vad-turns is mono-friendly; pyannote requires its segmentation GGUF; energy / xcorr need stereo audio.",
+  "advancedDiarizeVadTurns": "VAD turns (mono, no extra model)",
+  "advancedDiarizePyannote": "Pyannote v3 (ML, needs GGUF)",
+  "advancedDiarizeEnergy": "Stereo L/R energy",
+  "advancedDiarizeXcorr": "Stereo cross-correlation",
+
+  "advancedTdrz": "Tinydiarize speaker turns (Whisper only)",
+  "advancedTdrzSubtitle": "Insert [SPEAKER_TURN] markers via a Whisper .en.tdrz finetune. No-op on session backends.",
+
+  "advancedTokenTimestamps": "Token-level timestamps",
+  "advancedTokenTimestampsSubtitle": "DTW-aligned per-token timing. Slower than word timestamps; useful for fine-grained subtitle tooling.",
+
+  "advancedPuncFamily": "Punctuation model",
+  "advancedPuncFamilyHelper": "Visible only when Restore punctuation is on. Switch between FireRedPunc (ZH+EN) and fullstop-punc (EN/DE/FR/IT). Auto-fallback to whichever is downloaded.",
+  "advancedPuncFamilyFirered": "FireRedPunc (Chinese + English)",
+  "advancedPuncFamilyFullstop": "Fullstop-punc multilang (EN/DE/FR/IT)",
+
+  "transcriptionSaveAsCsv": "Save as CSV",
+  "transcriptionSaveAsLrc": "Save as LRC (lyrics)",
+  "transcriptionSaveAsWts": "Save as WTS (debug)",
+
+  "synthAdvancedSection": "Advanced synthesis",
+  "synthRefText": "Reference transcript (voice cloning)",
+  "synthRefTextHelper": "Required when pairing a WAV voice with qwen3-tts Base or vibevoice-1.5b for runtime cloning. Empty for baked GGUF voices.",
+  "synthInstruct": "Voice description (qwen3-tts VoiceDesign only)",
+  "synthInstructHelper": "Natural-language description of the desired voice (\"warm female narrator, slight British accent\"). Silently ignored on every other backend.",
+  "synthTrimSilence": "Trim silence",
+  "synthTrimSilenceSubtitle": "Strip leading and trailing silence below -72 dBFS from the synthesised PCM.",
+  "synthSpeed": "Speed: {value}×",
+  "@synthSpeed": {"placeholders": {"value": {"type": "String"}}},
+  "synthSpeedHelper": "Playback speed multiplier (0.25× – 4.00×). Nearest-neighbour resample; no pitch correction."
 }

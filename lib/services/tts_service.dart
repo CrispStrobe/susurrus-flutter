@@ -52,25 +52,51 @@ class TtsService {
   /// Prepare a session for the given combination, opening the model if
   /// needed. Returns the resolved on-disk paths so the UI can surface
   /// "needs download" hints when something is missing.
+  ///
+  /// [refText] is the transcript of `voiceName` for runtime voice
+  /// cloning on backends that support it (qwen3-tts Base, vibevoice-1.5b).
+  /// Ignored when null or when the backend does its own clone (orpheus,
+  /// kokoro, chatterbox baked voices).
+  ///
+  /// [voiceWavPath] is an explicit on-disk path to a WAV file the user
+  /// supplied via the Custom Voice picker — takes precedence over a
+  /// catalog [voiceName] lookup. Used for one-off voice clones without
+  /// having to bake a GGUF first.
+  ///
+  /// [speakerName] selects a baked preset speaker (orpheus, qwen3-tts
+  /// CustomVoice). Ignored on backends without preset speakers.
+  ///
+  /// [instructPrompt] is the natural-language voice description for
+  /// qwen3-tts VoiceDesign. Ignored on every other backend.
   Future<TtsLoadStatus> prepare({
     required String modelName,
     String? voiceName,
     String? codecName,
+    String? refText,
+    String? voiceWavPath,
+    String? speakerName,
+    String? instructPrompt,
   }) async {
     final modelPath = await _resolvePath(modelName);
     if (modelPath == null) {
       return TtsLoadStatus.missing(modelName: modelName);
     }
-    final voicePath = voiceName == null ? null : await _resolvePath(voiceName);
-    if (voiceName != null && voicePath == null) {
-      return TtsLoadStatus.missing(voiceName: voiceName);
+    String? voicePath;
+    if (voiceWavPath != null && voiceWavPath.isNotEmpty) {
+      voicePath = voiceWavPath;
+    } else if (voiceName != null) {
+      voicePath = await _resolvePath(voiceName);
+      if (voicePath == null) {
+        return TtsLoadStatus.missing(voiceName: voiceName);
+      }
     }
     final codecPath = codecName == null ? null : await _resolvePath(codecName);
     if (codecName != null && codecPath == null) {
       return TtsLoadStatus.missing(codecName: codecName);
     }
 
-    final key = _makeKey(modelPath, voicePath, codecPath);
+    final key = _makeKey('$modelPath#${speakerName ?? ''}#${instructPrompt ?? ''}',
+        voicePath, codecPath);
     if (_session != null && _key == key) {
       return TtsLoadStatus.ready(_backend!);
     }
@@ -84,7 +110,28 @@ class TtsService {
     try {
       final s = crispasr.CrispasrSession.open(modelPath);
       if (codecPath != null) s.setCodecPath(codecPath);
-      if (voicePath != null) s.setVoice(voicePath);
+      // qwen3-tts VoiceDesign branch — takes priority because it
+      // can't combine with setVoice / setSpeakerName.
+      if (instructPrompt != null && instructPrompt.isNotEmpty) {
+        try {
+          s.setInstruct(instructPrompt);
+        } catch (e) {
+          Log.instance
+              .d('tts', 'setInstruct rejected', fields: {'err': e.toString()});
+        }
+      } else if (speakerName != null && speakerName.isNotEmpty) {
+        try {
+          s.setSpeakerName(speakerName);
+        } catch (e) {
+          Log.instance.d('tts', 'setSpeakerName rejected',
+              fields: {'name': speakerName, 'err': e.toString()});
+        }
+      } else if (voicePath != null) {
+        // refText pairs with WAV-cloning voices on qwen3-tts /
+        // vibevoice-1.5b; baked GGUFs ignore it. The Dart binding
+        // accepts a nullable refText, so passing null is safe.
+        s.setVoice(voicePath, refText: refText);
+      }
       _session = s;
       _key = key;
       _backend = s.backend;
@@ -92,6 +139,9 @@ class TtsService {
         'model': p.basename(modelPath),
         'voice': voicePath == null ? '' : p.basename(voicePath),
         'codec': codecPath == null ? '' : p.basename(codecPath),
+        'speaker': speakerName ?? '',
+        'instruct_len': instructPrompt?.length ?? 0,
+        'ref_text_len': refText?.length ?? 0,
         'backend': _backend,
       });
       return TtsLoadStatus.ready(_backend!);
@@ -101,16 +151,51 @@ class TtsService {
     }
   }
 
+  /// Whether the active session is a qwen3-tts CustomVoice variant.
+  /// Surfaces the CrispASR FFI capability to the UI so the Synthesize
+  /// screen knows whether to show the speaker-name picker.
+  bool get isCustomVoice => _session?.isCustomVoice() ?? false;
+
+  /// Whether the active session is a qwen3-tts VoiceDesign variant.
+  bool get isVoiceDesign => _session?.isVoiceDesign() ?? false;
+
+  /// Preset speaker names for the active backend (orpheus baked
+  /// English speakers, qwen3-tts customvoice speakers, etc.). Empty
+  /// list when the backend has no preset-speaker contract.
+  List<String> get presetSpeakers => _session?.speakers() ?? const [];
+
   /// Synthesise [text] using the currently-prepared session.
-  Future<SynthesizedAudio?> synthesize(String text) async {
+  ///
+  /// Post-processing knobs:
+  /// * [trimSilence] strips leading + trailing silence (samples below
+  ///   `1/4096` magnitude). Cheap and lossy; useful when the backend
+  ///   leaves ~100 ms of dead air at the edges (kokoro, qwen3-tts).
+  /// * [speed] is a multiplicative playback rate (1.0 = unchanged,
+  ///   0.5 = half-speed, 2.0 = double-speed). Implemented as a nearest-
+  ///   neighbour resample on the PCM buffer; no pitch correction. Clamped
+  ///   to [0.25, 4.0] to mirror the OpenAI `speed` parameter range.
+  Future<SynthesizedAudio?> synthesize(
+    String text, {
+    bool trimSilence = false,
+    double speed = 1.0,
+  }) async {
     final session = _session;
     if (session == null || text.trim().isEmpty) return null;
     try {
-      final pcm = session.synthesize(text);
+      Float32List pcm = session.synthesize(text);
       // CrispASR's TTS backends all output 24 kHz mono float32.
+      final int beforeSamples = pcm.length;
+      if (trimSilence) pcm = _trimSilence(pcm);
+      final clampedSpeed = speed.clamp(0.25, 4.0).toDouble();
+      if ((clampedSpeed - 1.0).abs() > 1e-3) {
+        pcm = _resampleSpeed(pcm, clampedSpeed);
+      }
       Log.instance.i('tts', 'synth done', fields: {
-        'samples': pcm.length,
+        'samples_raw': beforeSamples,
+        'samples_out': pcm.length,
         'seconds': (pcm.length / 24000.0).toStringAsFixed(2),
+        'speed': clampedSpeed.toStringAsFixed(2),
+        'trim_silence': trimSilence,
         'backend': _backend,
       });
       return SynthesizedAudio(samples: pcm, sampleRate: 24000);
@@ -118,6 +203,41 @@ class TtsService {
       Log.instance.e('tts', 'synth failed', error: e, stack: st);
       return null;
     }
+  }
+
+  /// Strip leading + trailing samples whose magnitude is below the
+  /// `1/4096` threshold (about -72 dBFS). Cheap pure-Dart audio gate.
+  /// Returns the original buffer when no silence is found.
+  static Float32List _trimSilence(Float32List pcm) {
+    if (pcm.isEmpty) return pcm;
+    const double threshold = 1.0 / 4096.0;
+    int start = 0;
+    while (start < pcm.length && pcm[start].abs() < threshold) {
+      start++;
+    }
+    int end = pcm.length - 1;
+    while (end > start && pcm[end].abs() < threshold) {
+      end--;
+    }
+    if (start == 0 && end == pcm.length - 1) return pcm;
+    return Float32List.sublistView(pcm, start, end + 1);
+  }
+
+  /// Nearest-neighbour resample for tempo change. Pitch is preserved
+  /// by the player (the listener perceives a faster / slower talker
+  /// at the same pitch). Higher-quality (phase-vocoder) resampling
+  /// would need a separate audio dep — keep it simple for the GUI use
+  /// case where users typically tweak by ±20%.
+  static Float32List _resampleSpeed(Float32List pcm, double speed) {
+    if (pcm.isEmpty || speed == 1.0) return pcm;
+    final int outLen = (pcm.length / speed).floor();
+    if (outLen <= 0) return Float32List(0);
+    final out = Float32List(outLen);
+    for (int i = 0; i < outLen; i++) {
+      final int srcIdx = (i * speed).floor();
+      out[i] = srcIdx < pcm.length ? pcm[srcIdx] : 0.0;
+    }
+    return out;
   }
 
   /// Write the synthesised PCM as a 16-bit WAV to a temp file. Returns

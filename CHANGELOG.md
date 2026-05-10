@@ -5,6 +5,43 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep (May 2026)**
+- 4 new ASR backends in the catalog: **gemma4-e2b** (USM Conformer +
+  Gemma-4, 140+ languages), **omniasr-llm-unlimited** (streaming, 15 s
+  protocol), **granite-speech-4.1** (2B, 4.1+, 4.1-nar variants),
+  rounding out the Granite Speech family.
+- 4 new TTS backends: **chatterbox** (T3 AR + S3Gen flow-matching),
+  **kartoffelbox** (Chatterbox German finetune), **indextts** (GPT-2 AR
+  + BigVGAN, zero-shot WAV cloning), **qwen3-tts-voicedesign** (natural-
+  language voice description via the new `synthInstruct` field),
+  **vibevoice-1.5b** (runtime WAV cloning via `setVoice(wav, refText:)`).
+- New diarisation method picker — pick between vad-turns (mono,
+  bundled), pyannote (ML, downloadable GGUF), stereo energy, stereo
+  cross-correlation. Pyannote v3 segmentation GGUF added to the model
+  catalog.
+- New LID method picker — Silero 95-langs joins the Whisper-encoder
+  default. The new `silero-lang95-v1-f16.gguf` GGUF is downloadable
+  through Model Management.
+- VAD picker + tuning sliders — choose between Silero (bundled),
+  FireRedVAD (F1 97.57%), MarbleNet, Whisper-VAD-EncDec. Threshold,
+  min-speech-ms, min-silence-ms, speech-pad-ms exposed as sliders
+  when VAD is enabled.
+- Multilingual punctuation: new fullstop-punc post-processor
+  (EN/DE/FR/IT) alongside the existing FireRedPunc (ZH+EN). Toggle
+  in Advanced Options chooses which family runs.
+- Whisper-only: tinydiarize speaker-turn markers (`tdrz`) and token-
+  level DTW timestamps now available in Advanced Options.
+- Three new export formats — **CSV** (segment-level, RFC-4180 quoted),
+  **LRC** (lyrics, mm:ss.cs), **WTS** (Whisper Text Segments debug
+  format).
+- TTS knobs: trim-silence (post-process under -72 dBFS), speed slider
+  (0.25×–4.00×, nearest-neighbour resample), reference-transcript
+  field for runtime voice cloning, natural-language voice-design
+  prompt for qwen3-tts VoiceDesign.
+- Capability sets in `AdvancedOptions` extended — Granite 4.1 family,
+  GLM-ASR, Gemma4, OmniASR LLM all now eligible for source/target
+  language hints, audio Q&A, and the temperature slider.
+
 **Decoder controls**
 - Best-of-N slider in Advanced Options (1–10, always visible).
   Whisper consumes via `wparams.greedy.best_of`; other backends

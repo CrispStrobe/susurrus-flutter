@@ -106,6 +106,15 @@ class FileUtils {
       case TranscriptFormat.json:
         content = generateJsonContent(segments ?? []);
         break;
+      case TranscriptFormat.csv:
+        content = generateCsvContent(segments ?? []);
+        break;
+      case TranscriptFormat.lrc:
+        content = generateLrcContent(segments ?? []);
+        break;
+      case TranscriptFormat.wts:
+        content = generateWtsContent(segments ?? []);
+        break;
     }
 
     await file.writeAsString(content, encoding: utf8);
@@ -333,6 +342,12 @@ class FileUtils {
         return 'vtt';
       case TranscriptFormat.json:
         return 'json';
+      case TranscriptFormat.csv:
+        return 'csv';
+      case TranscriptFormat.lrc:
+        return 'lrc';
+      case TranscriptFormat.wts:
+        return 'wts';
     }
   }
 
@@ -402,6 +417,65 @@ class FileUtils {
         '${secs.floor().toString().padLeft(2, '0')}.'
         '${ms.toString().padLeft(3, '0')}';
   }
+
+  /// CSV: one row per segment. Column order matches CrispASR's
+  /// `crispasr -o csv` output (start_s, end_s, speaker, text). Standard
+  /// RFC-4180 quoting — embedded `"` is doubled, newlines stay verbatim.
+  static String generateCsvContent(List<TranscriptionSegment> segments) {
+    final buffer = StringBuffer();
+    buffer.writeln('start_s,end_s,speaker,text');
+    for (final s in segments) {
+      buffer.writeln(
+          '${s.startTime.toStringAsFixed(3)},${s.endTime.toStringAsFixed(3)},${_csvCell(s.speaker ?? '')},${_csvCell(s.text)}');
+    }
+    return buffer.toString();
+  }
+
+  static String _csvCell(String s) {
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+      return '"${s.replaceAll('"', '""')}"';
+    }
+    return s;
+  }
+
+  /// LRC lyrics: `[mm:ss.xx]text` per segment. Compatible with most
+  /// karaoke players; speaker labels embedded inline (`Speaker 1: …`).
+  static String generateLrcContent(List<TranscriptionSegment> segments) {
+    final buffer = StringBuffer();
+    buffer.writeln('[ti:CrisperWeaver transcription]');
+    buffer.writeln('[length:${formatLrcTime(segments.isEmpty ? 0 : segments.last.endTime)}]');
+    for (final s in segments) {
+      final tag = '[${formatLrcTime(s.startTime)}]';
+      final speaker = s.speaker == null ? '' : '${s.speaker}: ';
+      buffer.writeln('$tag$speaker${s.text.trim()}');
+    }
+    return buffer.toString();
+  }
+
+  /// LRC time stamp: `mm:ss.xx`. Truncates at 99:59.99 (matches the
+  /// historical 2-digit-minute convention).
+  static String formatLrcTime(double seconds) {
+    final minutes = (seconds / 60).floor();
+    final secs = seconds % 60;
+    final cs = ((secs - secs.floor()) * 100).round();
+    return '${minutes.toString().padLeft(2, '0')}:'
+        '${secs.floor().toString().padLeft(2, '0')}.'
+        '${cs.toString().padLeft(2, '0')}';
+  }
+
+  /// WTS (Whisper Text Segments) — CrispASR's debug-friendly format
+  /// mirroring `crispasr -o wts`. One line per segment with both
+  /// timestamp forms and the optional speaker label.
+  static String generateWtsContent(List<TranscriptionSegment> segments) {
+    final buffer = StringBuffer();
+    for (final s in segments) {
+      final t0 = formatSrtTime(s.startTime);
+      final t1 = formatSrtTime(s.endTime);
+      final spk = s.speaker == null ? '' : '<${s.speaker}> ';
+      buffer.writeln('[$t0 --> $t1] $spk${s.text.trim()}');
+    }
+    return buffer.toString();
+  }
 }
 
 enum TranscriptFormat {
@@ -409,6 +483,9 @@ enum TranscriptFormat {
   srt,
   vtt,
   json,
+  csv,
+  lrc,
+  wts,
 }
 
 class FileInfo {

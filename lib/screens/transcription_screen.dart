@@ -832,6 +832,30 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                           dense: true,
                         ),
                       ),
+                      PopupMenuItem(
+                        value: 'save_csv',
+                        child: ListTile(
+                          leading: const Icon(Icons.table_chart),
+                          title: Text(l.transcriptionSaveAsCsv),
+                          dense: true,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'save_lrc',
+                        child: ListTile(
+                          leading: const Icon(Icons.lyrics),
+                          title: Text(l.transcriptionSaveAsLrc),
+                          dense: true,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'save_wts',
+                        child: ListTile(
+                          leading: const Icon(Icons.timer_outlined),
+                          title: Text(l.transcriptionSaveAsWts),
+                          dense: true,
+                        ),
+                      ),
                     ];
                   },
                 ),
@@ -976,6 +1000,19 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           ? adv.sourceLanguage
           : (_language == 'auto' ? null : _language);
 
+      final advancedRun = AdvancedTranscribeOptions(
+        vadBackend: adv.vadBackend,
+        vadThreshold: adv.vadThreshold,
+        vadMinSpeechMs: adv.vadMinSpeechMs,
+        vadMinSilenceMs: adv.vadMinSilenceMs,
+        vadSpeechPadMs: adv.vadSpeechPadMs,
+        diarizeMethod: adv.diarizeMethod,
+        lidMethod: adv.lidMethod,
+        tdrz: adv.tdrz,
+        tokenTimestamps: adv.tokenTimestamps,
+        puncFamily: adv.puncFamily,
+      );
+
       if (filePath != null) {
         segments = await transcriptionService.transcribeFile(
           File(filePath),
@@ -991,6 +1028,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
+          advanced: advancedRun,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1009,6 +1047,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
+          advanced: advancedRun,
           onProgress: appStateNotifier.updateProgress,
           onSegment: appStateNotifier.addSegment,
         );
@@ -1061,6 +1100,18 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final language = adv.sourceLanguage.isNotEmpty
         ? adv.sourceLanguage
         : (_language == 'auto' ? null : _language);
+    final advancedRun = AdvancedTranscribeOptions(
+      vadBackend: adv.vadBackend,
+      vadThreshold: adv.vadThreshold,
+      vadMinSpeechMs: adv.vadMinSpeechMs,
+      vadMinSilenceMs: adv.vadMinSilenceMs,
+      vadSpeechPadMs: adv.vadSpeechPadMs,
+      diarizeMethod: adv.diarizeMethod,
+      lidMethod: adv.lidMethod,
+      tdrz: adv.tdrz,
+      tokenTimestamps: adv.tokenTimestamps,
+      puncFamily: adv.puncFamily,
+    );
 
     // Load the model once for the whole batch.
     if (!_engineReady) await _ensureEngineReady();
@@ -1099,6 +1150,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
+          advanced: advancedRun,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);
@@ -1175,6 +1227,15 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         break;
       case 'save_json':
         _saveAs(appState, TranscriptFormat.json);
+        break;
+      case 'save_csv':
+        _saveAs(appState, TranscriptFormat.csv);
+        break;
+      case 'save_lrc':
+        _saveAs(appState, TranscriptFormat.lrc);
+        break;
+      case 'save_wts':
+        _saveAs(appState, TranscriptFormat.wts);
         break;
     }
   }

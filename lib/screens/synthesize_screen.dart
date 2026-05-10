@@ -25,6 +25,8 @@ class SynthesizeScreen extends ConsumerStatefulWidget {
 
 class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   final _textController = TextEditingController();
+  final _refTextController = TextEditingController();
+  final _instructController = TextEditingController();
   final _player = AudioPlayer();
 
   List<ModelInfo> _all = const [];
@@ -34,7 +36,13 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   String? _selectedModel;
   String? _selectedVoice;
   String? _selectedCodec;
+  String? _selectedSpeaker;
   File? _lastWav;
+
+  // CrispASR 0.6 TTS knobs.
+  bool _trimSilence = false;
+  double _speed = 1.0;
+  bool _showAdvanced = false;
 
   @override
   void initState() {
@@ -45,6 +53,8 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _refTextController.dispose();
+    _instructController.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -100,10 +110,15 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
     });
     final tts = ref.read(ttsServiceProvider);
     try {
+      final refText = _refTextController.text.trim();
+      final instructPrompt = _instructController.text.trim();
       final status = await tts.prepare(
         modelName: _selectedModel!,
         voiceName: _selectedVoice,
         codecName: _selectedCodec,
+        refText: refText.isEmpty ? null : refText,
+        speakerName: _selectedSpeaker,
+        instructPrompt: instructPrompt.isEmpty ? null : instructPrompt,
       );
       if (!status.ready) {
         if (!mounted) return;
@@ -118,7 +133,11 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
         return;
       }
 
-      final audio = await tts.synthesize(text);
+      final audio = await tts.synthesize(
+        text,
+        trimSilence: _trimSilence,
+        speed: _speed,
+      );
       if (audio == null) return;
       final wav = await tts.writeWav(audio);
       _lastWav = wav;
@@ -258,6 +277,78 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                       hintText: l.synthTextHint,
                       border: const OutlineInputBorder(),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    initiallyExpanded: _showAdvanced,
+                    onExpansionChanged: (v) =>
+                        setState(() => _showAdvanced = v),
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(l.synthAdvancedSection),
+                    children: [
+                      // Reference transcript — paired with a WAV voice on
+                      // qwen3-tts Base / vibevoice-1.5b for runtime cloning.
+                      TextField(
+                        controller: _refTextController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l.synthRefText,
+                          helperText: l.synthRefTextHelper,
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Natural-language voice description — qwen3-tts
+                      // VoiceDesign only. Silently ignored on others.
+                      TextField(
+                        controller: _instructController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l.synthInstruct,
+                          helperText: l.synthInstructHelper,
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                      SwitchListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l.synthTrimSilence),
+                        subtitle: Text(l.synthTrimSilenceSubtitle,
+                            style: const TextStyle(fontSize: 11)),
+                        value: _trimSilence,
+                        onChanged: (v) => setState(() => _trimSilence = v),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.synthSpeed(_speed.toStringAsFixed(2)),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Slider(
+                              value: _speed,
+                              min: 0.25,
+                              max: 4.0,
+                              divisions: 30,
+                              label: _speed.toStringAsFixed(2),
+                              onChanged: (v) => setState(() => _speed = v),
+                            ),
+                            Text(l.synthSpeedHelper,
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Row(

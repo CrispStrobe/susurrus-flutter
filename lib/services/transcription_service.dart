@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:async';
 
+import 'package:crispasr/crispasr.dart' as crispasr;
+
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import 'audio_service.dart';
@@ -12,13 +14,73 @@ import 'diarization_service.dart';
 import 'punc_service.dart';
 import 'vad_service.dart';
 
+/// Bundles the CrispASR 0.6 parity decoder/diarisation/LID knobs that
+/// don't fit cleanly as individual named args. Defaults match the
+/// historical CrispASR behaviour, so callers that don't pass anything
+/// see no change.
+///
+/// Why a class? Each new CrispASR cycle adds another optional tunable;
+/// growing `transcribeFile`'s signature past 15 args every release is
+/// painful for both us and call sites. Bundling new knobs here keeps
+/// the public surface stable.
+class AdvancedTranscribeOptions {
+  /// Which VAD GGUF to use when VAD is enabled. Silero is bundled and
+  /// always available; FireRed / MarbleNet / Whisper-VAD-EncDec
+  /// require a Model Management download.
+  final VadBackend vadBackend;
+
+  /// Silero VAD decision threshold (0..1).
+  final double vadThreshold;
+
+  /// Shortest run of voiced frames (ms) kept as a speech segment.
+  final int vadMinSpeechMs;
+
+  /// Shortest silence (ms) needed to split one segment from the next.
+  final int vadMinSilenceMs;
+
+  /// Extra context padding (ms) added on each side of every segment.
+  final int vadSpeechPadMs;
+
+  /// Diarisation algorithm. `vadTurns` is mono-friendly and needs no
+  /// extra model; `pyannote` requires `pyannote-v3-seg-*.gguf` to be on
+  /// disk and falls back to `vadTurns` when missing.
+  final crispasr.DiarizeMethod diarizeMethod;
+
+  /// LID classifier. `whisper` reuses any multilingual ggml-*.bin
+  /// already downloaded; `silero` needs its own ~16 MB GGUF.
+  final crispasr.LidMethod lidMethod;
+
+  /// Whisper tinydiarize speaker-turn markers.
+  final bool tdrz;
+
+  /// Whisper token-level DTW timestamps.
+  final bool tokenTimestamps;
+
+  /// Punctuation post-processor preference: `"firered"` for FireRedPunc,
+  /// `"fullstop"` for fullstop-punc.
+  final String puncFamily;
+
+  const AdvancedTranscribeOptions({
+    this.vadBackend = VadBackend.silero,
+    this.vadThreshold = 0.5,
+    this.vadMinSpeechMs = 250,
+    this.vadMinSilenceMs = 100,
+    this.vadSpeechPadMs = 30,
+    this.diarizeMethod = crispasr.DiarizeMethod.vadTurns,
+    this.lidMethod = crispasr.LidMethod.whisper,
+    this.tdrz = false,
+    this.tokenTimestamps = false,
+    this.puncFamily = 'firered',
+  });
+}
+
 /// Main transcription service that coordinates engines, audio processing, and diarization
 class TranscriptionService {
   final AudioService _audioService;
   final ModelService _modelService;
-  final DiarizationService _diarizationService = DiarizationService();
+  late final DiarizationService _diarizationService;
   final EngineManager _engineManager = EngineManager();
-  final VadService _vadService = VadService();
+  late final VadService _vadService;
   late final PuncService _puncService;
 
   bool _isTranscribing = false;
@@ -32,6 +94,8 @@ class TranscriptionService {
 
   TranscriptionService(this._audioService, this._modelService) {
     _puncService = PuncService(modelService: _modelService);
+    _vadService = VadService(modelService: _modelService);
+    _diarizationService = DiarizationService(modelService: _modelService);
   }
 
   bool get isTranscribing => _isTranscribing;
@@ -93,6 +157,7 @@ class TranscriptionService {
     int bestOf = 1,
     int? minSpeakers,
     int? maxSpeakers,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -109,11 +174,12 @@ class TranscriptionService {
     _isTranscribing = true;
     onProgress?.call(0.0);
 
-    // If the user opted into VAD, make sure the Silero model is on disk.
-    // Extraction is cached after the first call.
+    // If the user opted into VAD, make sure the chosen backend's GGUF
+    // is on disk. VadService falls back to bundled silero when a
+    // catalog VAD GGUF isn't downloaded yet.
     String? vadModelPath;
     if (vad) {
-      vadModelPath = await _vadService.ensureModel();
+      vadModelPath = await _vadService.ensureModel(backend: advanced.vadBackend);
       if (vadModelPath == null) {
         Log.instance.w(
             'service',
@@ -121,6 +187,13 @@ class TranscriptionService {
                 'transcribing without VAD');
       }
     }
+
+    // Apply sticky service-level preferences before transcription so
+    // each invocation sees the user's current picks.
+    _puncService.preferredFamily = advanced.puncFamily;
+    _puncService.invalidate();
+    // LidService is owned by the engine, not us — engine.transcribe
+    // reads `advanced.lidMethod` from the passed-through options.
 
     try {
       // Step 1: Load and process audio (10% of progress)
@@ -142,6 +215,7 @@ class TranscriptionService {
         askPrompt: askPrompt,
         temperature: temperature,
         bestOf: bestOf,
+        advanced: advanced,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -161,6 +235,7 @@ class TranscriptionService {
           segments,
           minSpeakers: minSpeakers,
           maxSpeakers: maxSpeakers,
+          method: advanced.diarizeMethod,
           onProgress: (progress) => onProgress?.call(0.75 + progress * 0.2),
         );
       }
@@ -199,6 +274,7 @@ class TranscriptionService {
     int bestOf = 1,
     int? minSpeakers,
     int? maxSpeakers,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -232,6 +308,7 @@ class TranscriptionService {
         bestOf: bestOf,
         minSpeakers: minSpeakers,
         maxSpeakers: maxSpeakers,
+        advanced: advanced,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.9),
         onSegment: onSegment,
       );
@@ -415,6 +492,7 @@ class TranscriptionService {
     String? askPrompt,
     double temperature = 0.0,
     int bestOf = 1,
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -439,6 +517,7 @@ class TranscriptionService {
         askPrompt: askPrompt,
         temperature: temperature,
         bestOf: bestOf,
+        advanced: advanced,
         onSegment: onSegment,
         onProgress: onProgress,
       );

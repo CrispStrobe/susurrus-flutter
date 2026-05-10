@@ -1,6 +1,8 @@
 // lib/engines/transcription_engine.dart
 import 'dart:typed_data';
+
 import '../services/model_service.dart';
+import '../services/transcription_service.dart' show AdvancedTranscribeOptions;
 
 /// Abstract interface for all transcription engines
 abstract class TranscriptionEngine {
@@ -67,6 +69,10 @@ abstract class TranscriptionEngine {
     /// backends CrispASR runs N transcribes externally and picks
     /// the highest-mean-confidence result.
     int bestOf = 1,
+    /// CrispASR 0.6 parity knobs (VAD tuning, LID method, tdrz,
+    /// token timestamps). Defaults mirror historical behaviour so
+    /// existing call sites don't change.
+    AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });
