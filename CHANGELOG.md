@@ -5,7 +5,51 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
-**CrispASR 0.6 parity sweep — round 6 (May 2026)**
+(Nothing yet — round 7 will land here as it ships.)
+
+## v0.4.1 — 2026-05-10
+
+Conservative patch over v0.4.0 covering six rounds of CrispASR-0.6.2
+parity work. Pairs with [`CrispASR v0.6.2`][crispasr-062]. No
+breaking app-side changes; new screens are additive, every new
+toggle defaults to "behaves like v0.4.0".
+
+[crispasr-062]: https://github.com/CrispStrobe/CrispASR/releases/tag/v0.6.2
+
+### Highlights
+
+* **3 new screens** — Translate (text-to-text via M2M-100 / WMT21 /
+  MADLAD-400), Voice Bake (Chatterbox WAV-to-GGUF via the
+  bake-chatterbox-voice-from-wav.py script), Local HTTP server
+  (OpenAI-compatible on 127.0.0.1:8765).
+* **4 new ASR backends + 4 new TTS backends in the model catalog**:
+  gemma4-e2b (140 langs), omniasr-llm-unlimited (streaming),
+  granite-speech 4.1 family, chatterbox / kartoffelbox / indextts /
+  qwen3-tts-voicedesign / vibevoice-1.5b. Plus pyannote-v3-seg,
+  silero-LID, FireRed/MarbleNet/Whisper-VAD GGUFs, fullstop-punc,
+  m2m100-418m / 1.2b, WMT21 (both directions), MADLAD-400.
+* **Streaming for non-Whisper backends** — kyutai-stt,
+  moonshine-streaming, voxtral4b live mic transcription via the
+  new session-level openStream binding.
+* **Custom-WAV picker on Synthesize** with reference-transcript
+  field for runtime cloning (qwen3-tts Base, vibevoice-1.5b,
+  indextts, chatterbox without a baked GGUF).
+* **Advanced Options blossomed**: VAD picker (silero / firered /
+  marblenet / whisper-vad-encdec) + threshold + min-speech +
+  min-silence + speech-pad sliders, diarisation method picker
+  (vad-turns / pyannote / energy / xcorr), LID method picker
+  (whisper / silero), tdrz toggle, token-timestamps toggle,
+  punctuation-family picker, Performance section (ASR-on-GPU,
+  flash-attn, n_gpu_layers, n_threads, LID-on-GPU).
+* **Synthesize advanced section**: ref-text / instruct fields,
+  trim-silence toggle, speed slider (0.25× – 4.00×, drives both
+  client-side resample AND the new kokoro length_scale), 5
+  sampling sliders (temperature, diffusion-steps, CFG weight,
+  exaggeration, top-p).
+* **3 new export formats**: CSV (RFC-4180), LRC (lyrics, mm:ss.cs),
+  WTS (Whisper Text Segments debug).
+
+### CrispASR 0.6 parity sweep — round 6 (May 2026)
 - **PLAN #89 — flash_attn fields on every backend's
   `*_context_params`** — mechanical struct-field plumbing across
   the 12 backends with `use_gpu`. The runtime toggle now reaches
@@ -22,7 +66,7 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
   `crispasr_session_set_tts_steps` so the existing
   *Diffusion steps* slider works on it as well as chatterbox.
 
-**CrispASR 0.6 parity sweep — round 5 (May 2026)**
+### CrispASR 0.6 parity sweep — round 5 (May 2026)
 - **Flash-attention + n_gpu_layers** — bumped the open-params struct
   to v2 with `flash_attn` (bool, default true) and `n_gpu_layers`
   (int, default -1 = max). Whisper now honours flash-attn natively;
@@ -46,7 +90,7 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
   `https://api.openai.com/v1/audio/...` now work unchanged when
   pointed at the local URL. No auth — bound to loopback only.
 
-**CrispASR 0.6 parity sweep — round 4 (May 2026)**
+### CrispASR 0.6 parity sweep — round 4 (May 2026)
 - **ASR-side GPU toggle is now a runtime knob.** New
   `crispasr_session_open_with_params` C-ABI on the CrispASR side
   takes a versioned struct (`abi_version`, `n_threads`, `use_gpu`,
@@ -72,7 +116,7 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
   parakeet / moonshine, so the existing temperature slider works
   on those TTS backends too without UI changes.
 
-**CrispASR 0.6 parity sweep — round 3 (May 2026)**
+### CrispASR 0.6 parity sweep — round 3 (May 2026)
 - **Custom voice (WAV reference)** card on the *Synthesize* screen.
   Pick a WAV from disk for runtime cloning on backends that take a
   reference (qwen3-tts Base, vibevoice-1.5b, indextts, chatterbox).
@@ -97,7 +141,7 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 - Desktop-only — mobile sandboxes have no Python runtime, so the
   Bake button hides itself on iOS / Android.
 
-**CrispASR 0.6 parity sweep — round 2 (May 2026)**
+### CrispASR 0.6 parity sweep — round 2 (May 2026)
 - New **Translate** screen — text-to-text translation via M2M-100,
   WMT21 Dense (en→X **and** X→en, both checkpoints catalogued), and
   MADLAD-400 (419 languages). Source/target dropdowns with a swap
@@ -114,7 +158,7 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 - CrispASR README + cli docs corrected — WMT21 ships **two** Dense
   24-wide checkpoints (`en-x` and `x-en`), not one en→X-only.
 
-**CrispASR 0.6 parity sweep (May 2026)**
+### CrispASR 0.6 parity sweep — round 1 (May 2026)
 - 4 new ASR backends in the catalog: **gemma4-e2b** (USM Conformer +
   Gemma-4, 140+ languages), **omniasr-llm-unlimited** (streaming, 15 s
   protocol), **granite-speech-4.1** (2B, 4.1+, 4.1-nar variants),
