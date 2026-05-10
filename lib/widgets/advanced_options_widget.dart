@@ -152,6 +152,16 @@ class AdvancedOptions {
   /// time default; see `AdvancedTranscribeOptions.asrUseGpu`.
   final bool asrUseGpu;
 
+  /// Flash-attention on the ASR session. Honoured by whisper today;
+  /// other backends accept the toggle but their compute graphs aren't
+  /// yet branched on it (lands per-backend incrementally).
+  final bool asrFlashAttn;
+
+  /// Cap on GPU-offloaded transformer layers for LLM-based backends.
+  /// -1 = max, 0 = run LLM on CPU, >0 = explicit bound. Pre-0.6.2
+  /// dylibs ignore the value.
+  final int asrNGpuLayers;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -177,6 +187,8 @@ class AdvancedOptions {
     this.lidFlashAttn = true,
     this.nThreads = 4,
     this.asrUseGpu = true,
+    this.asrFlashAttn = true,
+    this.asrNGpuLayers = -1,
   });
 
   AdvancedOptions copyWith({
@@ -204,6 +216,8 @@ class AdvancedOptions {
     bool? lidFlashAttn,
     int? nThreads,
     bool? asrUseGpu,
+    bool? asrFlashAttn,
+    int? asrNGpuLayers,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -230,6 +244,8 @@ class AdvancedOptions {
         lidFlashAttn: lidFlashAttn ?? this.lidFlashAttn,
         nThreads: nThreads ?? this.nThreads,
         asrUseGpu: asrUseGpu ?? this.asrUseGpu,
+        asrFlashAttn: asrFlashAttn ?? this.asrFlashAttn,
+        asrNGpuLayers: asrNGpuLayers ?? this.asrNGpuLayers,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -471,6 +487,53 @@ class _AdvancedDecodingSectionState
           value: opts.asrUseGpu,
           onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
               opts.copyWith(asrUseGpu: v),
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedAsrFlashAttn),
+          subtitle: Text(l.advancedAsrFlashAttnSubtitle,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.asrFlashAttn,
+          onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+              opts.copyWith(asrFlashAttn: v),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                opts.asrNGpuLayers < 0
+                    ? l.advancedAsrNGpuLayersAuto
+                    : l.advancedAsrNGpuLayers(opts.asrNGpuLayers),
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              Slider(
+                // Slider doesn't support negative-as-sentinel cleanly,
+                // so we map -1 → 0 on the slider and re-encode on
+                // commit: 0 = "auto / max", 1..N = explicit bound.
+                value: (opts.asrNGpuLayers < 0
+                        ? 0
+                        : opts.asrNGpuLayers.clamp(0, 128))
+                    .toDouble(),
+                min: 0,
+                max: 128,
+                divisions: 128,
+                label: opts.asrNGpuLayers < 0
+                    ? 'auto'
+                    : opts.asrNGpuLayers.toString(),
+                onChanged: (v) {
+                  final n = v.round();
+                  // Map slider 0 back to -1 (auto).
+                  ref.read(advancedOptionsProvider.notifier).state =
+                      opts.copyWith(asrNGpuLayers: n == 0 ? -1 : n);
+                },
+              ),
+              Text(l.advancedAsrNGpuLayersHelper,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
         ),
         SwitchListTile(
           dense: true,

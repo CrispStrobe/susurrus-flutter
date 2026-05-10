@@ -582,6 +582,22 @@
 
   "advancedAsrUseGpu": "ASR on GPU",
   "advancedAsrUseGpuSubtitle": "Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.",
+  "advancedAsrFlashAttn": "ASR flash-attention",
+  "advancedAsrFlashAttnSubtitle": "Use the flash-attention kernel for the ASR compute graph. Honoured by Whisper natively; other backends accept the toggle but their compute graphs aren't yet branched on it. Takes effect on the next model load.",
+  "advancedAsrNGpuLayers": "GPU layers (LLM): {n}",
+  "@advancedAsrNGpuLayers": {"placeholders": {"n": {"type": "int"}}},
+  "advancedAsrNGpuLayersAuto": "GPU layers (LLM): auto (max)",
+  "advancedAsrNGpuLayersHelper": "Cap on GPU-offloaded transformer layers for LLM-based backends (orpheus / voxtral / qwen3 / granite / chatterbox). 0 = run LLM on CPU; 1+ = explicit bound; auto = as many as fit. Takes effect on the next model load.",
+
+  "settingsServerSection": "Local HTTP server (OpenAI-compatible)",
+  "settingsServerEnable": "Run server",
+  "settingsServerRunningAt": "Listening on {url}",
+  "@settingsServerRunningAt": {"placeholders": {"url": {"type": "String"}}},
+  "settingsServerStopped": "Stopped. Toggle on to expose CrisperWeaver's services on a local port.",
+  "settingsServerStartFailed": "Failed to start server: {error}",
+  "@settingsServerStartFailed": {"placeholders": {"error": {"type": "String"}}},
+  "settingsServerEndpoints": "Endpoints",
+  "settingsServerEndpointsHelp": "POST /v1/audio/transcriptions (multipart upload, file=audio) · POST /v1/audio/speech (JSON: model, input, voice, speed) · POST /v1/translations (JSON: model, text, src, tgt) · GET /health. Binds to 127.0.0.1 only — no auth.",
 
   "synthTemperature": "Temperature: {value}",
   "@synthTemperature": {"placeholders": {"value": {"type": "String"}}},

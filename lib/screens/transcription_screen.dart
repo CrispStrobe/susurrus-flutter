@@ -1020,6 +1020,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         lidFlashAttn: adv.lidFlashAttn,
         nThreads: adv.nThreads,
         asrUseGpu: adv.asrUseGpu,
+        asrFlashAttn: adv.asrFlashAttn,
+        asrNGpuLayers: adv.asrNGpuLayers,
       );
 
       if (filePath != null) {
@@ -1124,6 +1126,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       lidFlashAttn: adv.lidFlashAttn,
       nThreads: adv.nThreads,
       asrUseGpu: adv.asrUseGpu,
+      asrFlashAttn: adv.asrFlashAttn,
+      asrNGpuLayers: adv.asrNGpuLayers,
     );
 
     // Load the model once for the whole batch.

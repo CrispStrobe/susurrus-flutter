@@ -11,6 +11,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
 import '../services/log_service.dart';
 import '../services/model_service.dart';
+import '../services/server_service.dart';
 import '../services/settings_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -50,6 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildAudioSettings(settings),
           _buildDiarizationSettings(settings),
           _buildStorageSettings(),
+          _buildServerSettings(),
           _buildDeveloperSettings(settings),
           _buildSystemInfo(),
           _buildAboutSection(),
@@ -444,6 +446,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               AppLocalizations.of(context).settingsStorageBreakdownSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/storage'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServerSettings() {
+    final server = ref.watch(serverServiceProvider);
+    final running = server.isRunning;
+    final l = AppLocalizations.of(context);
+    return _buildSettingsSection(
+      title: l.settingsServerSection,
+      icon: Icons.cloud,
+      children: [
+        SwitchListTile(
+          title: Text(l.settingsServerEnable),
+          subtitle: Text(
+            running
+                ? l.settingsServerRunningAt(server.boundUrl ?? '')
+                : l.settingsServerStopped,
+          ),
+          value: running,
+          onChanged: (v) async {
+            if (v) {
+              try {
+                await server.start();
+              } on ServerStartException catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.settingsServerStartFailed(e.message))),
+                );
+              }
+            } else {
+              await server.stop();
+            }
+            if (mounted) setState(() {});
+          },
+        ),
+        ListTile(
+          title: Text(l.settingsServerEndpoints),
+          subtitle: Text(l.settingsServerEndpointsHelp,
+              style: const TextStyle(fontSize: 11)),
+          isThreeLine: true,
         ),
       ],
     );

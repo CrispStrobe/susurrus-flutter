@@ -47,6 +47,27 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 * `AdvancedTranscribeOptions` value class bundling the new knobs so
   `transcribeFile`/`transcribeUrl` keep their signatures stable.
 
+**Round 5 (still May 2026)**:
+
+* ✅ **Flash-attention + n_gpu_layers plumbing** — open-params struct
+  bumped to v2 (additive — v1 callers keep working). Wired through
+  the Dart binding's `CrispasrSession.openWithParams()` and into
+  CrisperWeaver's Advanced Options Performance section. Whisper
+  honours flash_attn at the kernel level today; other backends
+  accept the toggle and will branch on it as per-backend kernel
+  refactors land.
+* ✅ **Qwen3-TTS sampling temperature** — was a hardcoded
+  `temperature=0.9f` in the code-predictor's top-k sampler; now
+  reads `c->params.temperature` so the existing Synthesize-screen
+  temperature slider works on it. New `qwen3_tts_set_temperature`
+  runtime setter wired into `crispasr_session_set_temperature`.
+* ✅ **Local HTTP server (OpenAI-compatible)** — `shelf`-based,
+  bound to 127.0.0.1 only. Three endpoints
+  (`/v1/audio/transcriptions`, `/v1/audio/speech`,
+  `/v1/translations`) plus `/health`. Spins up from
+  *Settings → Local HTTP server*; lets external scripts drive
+  CrisperWeaver locally without re-authoring against a different API.
+
 **Round 4 (still May 2026)**:
 
 * ✅ **ASR-side GPU + perf toggles** — extended the C-ABI with
@@ -99,22 +120,25 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 
 **Still deferred**:
 
-* **`flash_attn` + `n_gpu_layers` for ASR** — those fields aren't in
-  any per-backend `*_context_params` struct today. Adding them would
-  mean a per-backend refactor (touching parakeet, canary, qwen3,
-  voxtral, granite, etc.) plus their internal init paths. Doable in
-  a future sweep but bigger surface than the parity work warranted.
+* **Wiring `flash_attn` into every backend's compute graph** — the
+  toggle ships in the open-params struct (round 5) and threads
+  through to each backend's session, but only whisper consumes it
+  at the kernel level today. The other backends need their per-graph
+  attention path switched from `ggml_soft_max_ext(KQ)` to
+  `ggml_flash_attn_ext(...)` to actually honour the flag. That's
+  per-backend work that lands incrementally.
 * **`gpu_backend` selector** (metal / cuda / vulkan / cpu-only as a
-  string) — same shape as above. The compile-time flag governs which
-  ggml backend is built into libcrispasr; runtime selection between
-  multiple backends in one binary needs ggml-side support.
-* **Per-backend TTS sampling knobs beyond chatterbox** — qwen3-tts
-  hardcodes `temperature=0.9` inside its top-k sampler (not pulled
-  from cparams), kokoro has only `use_gpu`, vibevoice's diffusion
-  steps live in its session config not a runtime field. Each is its
-  own small refactor.
-* **Server / OpenAI-compatible mode** — the CLI ships an HTTP server
-  (`crispasr --server`). Out of scope for a GUI app.
+  runtime string) — needs a multi-backend ggml build (compile in
+  more than one ggml backend simultaneously) plus per-backend
+  dispatch refactor so each `*_init_from_file` consults the hint.
+  Doable but requires the ggml-side support to land first.
+* **Kokoro length-scale / speaking rate** — kokoro's
+  `kokoro_context_params` has only `use_gpu`; the duration model is
+  applied inside the StyleTTS2 forward pass without a runtime
+  scalar. Adding one is a kokoro-internal refactor.
+* **Vibevoice diffusion-steps slider** — vibevoice's diffusion
+  step count is locked into its session config; making it
+  runtime-tunable needs a vibevoice-internal change.
 
 ---
 

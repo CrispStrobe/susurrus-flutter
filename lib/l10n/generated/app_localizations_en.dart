@@ -1378,6 +1378,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.';
 
   @override
+  String get advancedAsrFlashAttn => 'ASR flash-attention';
+
+  @override
+  String get advancedAsrFlashAttnSubtitle =>
+      'Use the flash-attention kernel for the ASR compute graph. Honoured by Whisper natively; other backends accept the toggle but their compute graphs aren\'t yet branched on it. Takes effect on the next model load.';
+
+  @override
+  String advancedAsrNGpuLayers(int n) {
+    return 'GPU layers (LLM): $n';
+  }
+
+  @override
+  String get advancedAsrNGpuLayersAuto => 'GPU layers (LLM): auto (max)';
+
+  @override
+  String get advancedAsrNGpuLayersHelper =>
+      'Cap on GPU-offloaded transformer layers for LLM-based backends (orpheus / voxtral / qwen3 / granite / chatterbox). 0 = run LLM on CPU; 1+ = explicit bound; auto = as many as fit. Takes effect on the next model load.';
+
+  @override
+  String get settingsServerSection => 'Local HTTP server (OpenAI-compatible)';
+
+  @override
+  String get settingsServerEnable => 'Run server';
+
+  @override
+  String settingsServerRunningAt(String url) {
+    return 'Listening on $url';
+  }
+
+  @override
+  String get settingsServerStopped =>
+      'Stopped. Toggle on to expose CrisperWeaver\'s services on a local port.';
+
+  @override
+  String settingsServerStartFailed(String error) {
+    return 'Failed to start server: $error';
+  }
+
+  @override
+  String get settingsServerEndpoints => 'Endpoints';
+
+  @override
+  String get settingsServerEndpointsHelp =>
+      'POST /v1/audio/transcriptions (multipart upload, file=audio) · POST /v1/audio/speech (JSON: model, input, voice, speed) · POST /v1/translations (JSON: model, text, src, tgt) · GET /health. Binds to 127.0.0.1 only — no auth.';
+
+  @override
   String synthTemperature(String value) {
     return 'Temperature: $value';
   }

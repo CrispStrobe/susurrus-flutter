@@ -5,6 +5,30 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep — round 5 (May 2026)**
+- **Flash-attention + n_gpu_layers** — bumped the open-params struct
+  to v2 with `flash_attn` (bool, default true) and `n_gpu_layers`
+  (int, default -1 = max). Whisper now honours flash-attn natively;
+  other backends accept the toggle and will branch on it as the
+  per-backend kernel work lands. Surfaced as the *ASR flash-attention*
+  toggle and *GPU layers (LLM)* slider in the Performance section.
+- **Qwen3-TTS sampling temperature is now runtime-tunable** — was
+  hardcoded `temperature=0.9f` inside the code-predictor's top-k
+  sampler; now reads `c->params.temperature` (still defaulting to
+  0.9 when unset). New `qwen3_tts_set_temperature` runtime setter,
+  routed through `crispasr_session_set_temperature` so the existing
+  Synthesize-screen Temperature slider Just Works on qwen3-tts now
+  too.
+- **Local OpenAI-compatible HTTP server** — toggle in Settings →
+  *Local HTTP server* spins up a `shelf` HTTP server on
+  `127.0.0.1:8765` exposing `POST /v1/audio/transcriptions`
+  (multipart, OpenAI-shaped JSON / text / SRT / VTT response),
+  `POST /v1/audio/speech` (JSON body → 24 kHz mono WAV bytes),
+  `POST /v1/translations` (JSON body → translated text), and `GET
+  /health`. External scripts that previously hit
+  `https://api.openai.com/v1/audio/...` now work unchanged when
+  pointed at the local URL. No auth — bound to loopback only.
+
 **CrispASR 0.6 parity sweep — round 4 (May 2026)**
 - **ASR-side GPU toggle is now a runtime knob.** New
   `crispasr_session_open_with_params` C-ABI on the CrispASR side

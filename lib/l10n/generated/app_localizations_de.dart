@@ -1387,6 +1387,52 @@ class AppLocalizationsDe extends AppLocalizations {
       'Leitet die ASR-Initialisierung an Metal / CUDA / Vulkan weiter, sofern unterstützt. Wird beim nächsten Modell-Laden aktiv. Backends ohne Laufzeit-GPU-Steuerung behalten ihre Compile-Time-Vorgabe.';
 
   @override
+  String get advancedAsrFlashAttn => 'ASR mit Flash-Attention';
+
+  @override
+  String get advancedAsrFlashAttnSubtitle =>
+      'Verwendet den Flash-Attention-Kernel im ASR-Compute-Graph. Whisper unterstützt das nativ; andere Backends akzeptieren den Schalter, ihr Compute-Graph wird aber noch nicht darauf verzweigt. Wird beim nächsten Modell-Laden aktiv.';
+
+  @override
+  String advancedAsrNGpuLayers(int n) {
+    return 'GPU-Schichten (LLM): $n';
+  }
+
+  @override
+  String get advancedAsrNGpuLayersAuto => 'GPU-Schichten (LLM): auto (max.)';
+
+  @override
+  String get advancedAsrNGpuLayersHelper =>
+      'Obergrenze für GPU-Schichten bei LLM-Backends (orpheus / voxtral / qwen3 / granite / chatterbox). 0 = LLM auf der CPU; 1+ = harte Grenze; auto = so viele wie passen. Wird beim nächsten Modell-Laden aktiv.';
+
+  @override
+  String get settingsServerSection => 'Lokaler HTTP-Server (OpenAI-kompatibel)';
+
+  @override
+  String get settingsServerEnable => 'Server starten';
+
+  @override
+  String settingsServerRunningAt(String url) {
+    return 'Lauscht auf $url';
+  }
+
+  @override
+  String get settingsServerStopped =>
+      'Gestoppt. Aktivieren, um die CrisperWeaver-Services auf einem lokalen Port bereitzustellen.';
+
+  @override
+  String settingsServerStartFailed(String error) {
+    return 'Server konnte nicht starten: $error';
+  }
+
+  @override
+  String get settingsServerEndpoints => 'Endpunkte';
+
+  @override
+  String get settingsServerEndpointsHelp =>
+      'POST /v1/audio/transcriptions (Multipart-Upload, file=audio) · POST /v1/audio/speech (JSON: model, input, voice, speed) · POST /v1/translations (JSON: model, text, src, tgt) · GET /health. Bindet nur an 127.0.0.1 — keine Authentifizierung.';
+
+  @override
   String synthTemperature(String value) {
     return 'Temperatur: $value';
   }

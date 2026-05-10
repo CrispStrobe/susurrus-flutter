@@ -2462,6 +2462,78 @@ abstract class AppLocalizations {
   /// **'Route ASR session inits to Metal / CUDA / Vulkan when supported. Takes effect on the next model load. Backends without runtime GPU control keep their compile-time default.'**
   String get advancedAsrUseGpuSubtitle;
 
+  /// No description provided for @advancedAsrFlashAttn.
+  ///
+  /// In en, this message translates to:
+  /// **'ASR flash-attention'**
+  String get advancedAsrFlashAttn;
+
+  /// No description provided for @advancedAsrFlashAttnSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the flash-attention kernel for the ASR compute graph. Honoured by Whisper natively; other backends accept the toggle but their compute graphs aren\'t yet branched on it. Takes effect on the next model load.'**
+  String get advancedAsrFlashAttnSubtitle;
+
+  /// No description provided for @advancedAsrNGpuLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'GPU layers (LLM): {n}'**
+  String advancedAsrNGpuLayers(int n);
+
+  /// No description provided for @advancedAsrNGpuLayersAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'GPU layers (LLM): auto (max)'**
+  String get advancedAsrNGpuLayersAuto;
+
+  /// No description provided for @advancedAsrNGpuLayersHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Cap on GPU-offloaded transformer layers for LLM-based backends (orpheus / voxtral / qwen3 / granite / chatterbox). 0 = run LLM on CPU; 1+ = explicit bound; auto = as many as fit. Takes effect on the next model load.'**
+  String get advancedAsrNGpuLayersHelper;
+
+  /// No description provided for @settingsServerSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Local HTTP server (OpenAI-compatible)'**
+  String get settingsServerSection;
+
+  /// No description provided for @settingsServerEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Run server'**
+  String get settingsServerEnable;
+
+  /// No description provided for @settingsServerRunningAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening on {url}'**
+  String settingsServerRunningAt(String url);
+
+  /// No description provided for @settingsServerStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped. Toggle on to expose CrisperWeaver\'s services on a local port.'**
+  String get settingsServerStopped;
+
+  /// No description provided for @settingsServerStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start server: {error}'**
+  String settingsServerStartFailed(String error);
+
+  /// No description provided for @settingsServerEndpoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoints'**
+  String get settingsServerEndpoints;
+
+  /// No description provided for @settingsServerEndpointsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'POST /v1/audio/transcriptions (multipart upload, file=audio) · POST /v1/audio/speech (JSON: model, input, voice, speed) · POST /v1/translations (JSON: model, text, src, tgt) · GET /health. Binds to 127.0.0.1 only — no auth.'**
+  String get settingsServerEndpointsHelp;
+
   /// No description provided for @synthTemperature.
   ///
   /// In en, this message translates to:

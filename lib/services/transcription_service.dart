@@ -80,6 +80,18 @@ class AdvancedTranscribeOptions {
   /// `use_gpu` field keep their compile-time default.
   final bool asrUseGpu;
 
+  /// Flash-attention on the ASR session's compute graph. Honoured by
+  /// whisper natively; other backends accept the toggle but their
+  /// graphs aren't yet branched on it (lands incrementally per
+  /// backend). Default true — matches the ggml-side default.
+  final bool asrFlashAttn;
+
+  /// Cap on GPU-offloaded transformer layers for LLM-based backends
+  /// (orpheus / voxtral / qwen3 / granite / chatterbox-T3). -1 means
+  /// "as many as possible" (the C-side sentinel); 0 = run the LLM on
+  /// CPU; >0 = explicit bound. Pre-0.6.2 dylibs ignore the value.
+  final int asrNGpuLayers;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -95,6 +107,8 @@ class AdvancedTranscribeOptions {
     this.lidFlashAttn = true,
     this.nThreads = 4,
     this.asrUseGpu = true,
+    this.asrFlashAttn = true,
+    this.asrNGpuLayers = -1,
   });
 }
 

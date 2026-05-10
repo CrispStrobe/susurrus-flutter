@@ -49,6 +49,14 @@ dependencies:
   dio: ^5.4.0
   url_launcher: ^6.2.2
 
+  # OpenAI-compatible HTTP server (Settings → "Server mode") — lets
+  # external scripts drive CrisperWeaver's local ASR + TTS + translate
+  # services over /v1/audio/transcriptions, /v1/audio/speech,
+  # /v1/translations. shelf was already a transitive dep via just_audio
+  # / dio; pulled to direct so we can build the routes ourselves.
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+
   # Native integration
   ffi: ^2.1.0
 
