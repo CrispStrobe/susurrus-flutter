@@ -47,6 +47,28 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 * `AdvancedTranscribeOptions` value class bundling the new knobs so
   `transcribeFile`/`transcribeUrl` keep their signatures stable.
 
+**Round 6 (still May 2026)** — closes CrispASR PLAN #88 and #89:
+
+* ✅ **PLAN #89 — flash_attn fields on every backend** — 12 of 12
+  backends (parakeet, canary, qwen3, cohere, granite_speech,
+  voxtral, voxtral4b, vibevoice, qwen3_tts, orpheus, kokoro,
+  chatterbox) now have `flash_attn` (or pre-existing `use_flash`)
+  in their `*_context_params`. `crispasr_session_open_explicit`
+  threads `g_open_flash_attn_tls` through. Compute-graph wiring
+  (PLAN #86) lands per backend incrementally.
+* ✅ **PLAN #88 — kokoro length-scale + vibevoice diffusion-step
+  runtime knobs.** Kokoro: new `length_scale` field +
+  `kokoro_set_length_scale` setter, applied before banker's-
+  rounding in the duration predictor. VibeVoice: new
+  `vibevoice_set_tts_steps` setter mutates the pre-existing
+  `tts_steps` cparams field. Both routed through unified session
+  setters (`crispasr_session_set_length_scale`,
+  `crispasr_session_set_tts_steps`). CrisperWeaver: TtsService's
+  `synthesize` now drives `setLengthScale(1/speed)` so the speed
+  slider stretches/squeezes via the duration model on kokoro
+  (clean) AND the client-side resampler on backends without one
+  (fallback).
+
 **Round 5 (still May 2026)**:
 
 * ✅ **Flash-attention + n_gpu_layers plumbing** — open-params struct
@@ -122,15 +144,14 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
 
 * **Wiring `flash_attn` into every backend's compute graph** — the
   toggle ships in the open-params struct (round 5) and threads
-  through to each backend's session, but only whisper consumes it
-  at the kernel level today. The other backends need their per-graph
-  attention path switched from `ggml_soft_max_ext(KQ)` to
-  `ggml_flash_attn_ext(...)` to actually honour the flag.
-  Tracked as **CrispASR PLAN.md #86** — full per-backend status
-  table, recipe, and recommended order (orpheus + chatterbox-T3
-  first; ~2–3 focused days for the full sweep). Prerequisite struct-
-  field migration is **CrispASR PLAN.md #89** (~2 hours, mechanical
-  across 12 backends).
+  through to each backend's session via the per-backend `flash_attn`
+  field on context_params (round 6, closing CrispASR #89). Only
+  whisper consumes it at the kernel level today. The other 11
+  backends need their per-graph attention path switched from
+  `ggml_soft_max_ext(KQ)` to `ggml_flash_attn_ext(...)` to actually
+  honour the flag. Tracked as **CrispASR PLAN.md #86** — full per-
+  backend status table, recipe, and recommended order (orpheus +
+  chatterbox-T3 first; ~2–3 focused days for the full sweep).
 * **`gpu_backend` selector** (metal / cuda / vulkan / cpu-only as a
   runtime string) — needs a multi-backend ggml build (compile in
   more than one ggml backend simultaneously) plus per-backend
@@ -138,17 +159,6 @@ post-processor wiring up to CrispASR 0.6.0 parity. Concretely shipped:
   Tracked as **CrispASR PLAN.md #87** — needs ggml-side multi-
   backend dispatch to land first; ~1 week of focused work when we
   pick it up.
-* **Kokoro length-scale / speaking rate** — `kokoro_context_params`
-  has only `use_gpu`; the duration model runs inside the StyleTTS2
-  forward pass without a runtime scalar. Adding one is a kokoro-
-  internal refactor (half a day). Tracked as **CrispASR PLAN.md #88
-  (Kokoro section)**. CrisperWeaver's Synthesize screen already has
-  a client-side resample-based "speed" slider as a fallback.
-* **Vibevoice diffusion-steps slider** — vibevoice's diffusion step
-  count is baked into the GGUF's schedule tensor; runtime tuning
-  means sub-sampling that schedule at synth time. Half-day fix
-  inside vibevoice. Tracked as **CrispASR PLAN.md #88 (VibeVoice
-  section)**.
 
 The OpenAI-compatible server item that was previously deferred is
 now SHIPPED as a Dart-side `shelf` server (round 5, see CHANGELOG +

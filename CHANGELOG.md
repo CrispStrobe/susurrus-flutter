@@ -5,6 +5,23 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+**CrispASR 0.6 parity sweep — round 6 (May 2026)**
+- **PLAN #89 — flash_attn fields on every backend's
+  `*_context_params`** — mechanical struct-field plumbing across
+  the 12 backends with `use_gpu`. The runtime toggle now reaches
+  per-backend init code; per-backend kernel wiring (PLAN #86) lands
+  incrementally.
+- **PLAN #88 — kokoro length-scale + vibevoice diffusion-step
+  runtime knobs.** Kokoro has a new `length_scale` field on
+  `kokoro_context_params` that multiplies the duration-predictor
+  output before banker's-rounding; CrisperWeaver's existing TTS
+  *speed* slider now drives BOTH the C-side scalar (clean stretch
+  via the duration model) AND the client-side resample (fallback
+  on every other TTS backend). VibeVoice's pre-existing `tts_steps`
+  field gets a runtime setter, routed through the unified
+  `crispasr_session_set_tts_steps` so the existing
+  *Diffusion steps* slider works on it as well as chatterbox.
+
 **CrispASR 0.6 parity sweep — round 5 (May 2026)**
 - **Flash-attention + n_gpu_layers** — bumped the open-params struct
   to v2 with `flash_attn` (bool, default true) and `n_gpu_layers`

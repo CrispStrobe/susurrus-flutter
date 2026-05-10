@@ -208,8 +208,21 @@ class TtsService {
       void applyTtsKnobs() {
         if (ttsSteps != null) {
           try {
+            // Routes to chatterbox cfm_steps + vibevoice tts_steps.
             session.setTtsSteps(ttsSteps);
           } catch (_) {/* old dylib */}
+        }
+        // Per-phoneme length-scale for backends with a duration model
+        // (kokoro today). Drive it from the same `speed` slider the
+        // client-side resampler uses, but inverted: slider 2× = audio
+        // twice as fast = phoneme durations halved. Backends without a
+        // duration model (orpheus / chatterbox / etc.) silently no-op,
+        // and the client-side resample still applies on the output PCM
+        // for them.
+        if (speed != 1.0) {
+          try {
+            session.setLengthScale(1.0 / speed.clamp(0.25, 4.0));
+          } catch (_) {/* old dylib or unsupported */}
         }
         if (temperature != null) {
           try {
