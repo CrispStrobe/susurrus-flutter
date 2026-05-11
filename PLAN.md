@@ -144,18 +144,37 @@ is what's missing — ranked by impact ÷ effort.
 
 #### Tier A — high impact, moderate cost
 
-* **5.1.1 System audio capture** — "Transcribe what's playing in
-  Zoom / YouTube / any app." Buzz has this on macOS via
-  BlackHole / Loopback. Every desktop platform has a native API:
-  ScreenCaptureKit on macOS 12+ (no virtual-audio-device install
-  needed), WASAPI loopback on Windows, PulseAudio /
-  pipewire-pulse `<sink>.monitor` on Linux. iOS doesn't allow
-  system audio capture (Apple restriction); Android has
-  MediaProjection but the docs are sparse and it triggers a
-  user-visible recording-indicator. This is **the** feature that
-  bridges "I have audio files" → "I have any audio source at
-  all" and is probably the single biggest UX gap. Desktop-only
-  v1 first, ~3–5 days end-to-end.
+* **5.1.1 System audio capture** — "Transcribe what's playing
+  in Zoom / YouTube / any app." Cross-platform Dart interface +
+  per-platform native implementations.
+  - ✅ **macOS 13+** (May 2026) — ScreenCaptureKit-based,
+    `SystemAudioCapture.swift` registered from
+    `MainFlutterWindow.swift`. AVAudioConverter resamples to
+    16 kHz mono Float32 inside the isolate; EventChannel
+    delivers PCM frames to Dart. UI: new "screen-share" icon
+    button in the audio recorder, greyed out on unsupported
+    platforms. First use prompts for Screen Recording
+    permission (TCC); `permission_denied` / `os_too_old` /
+    `start_failed` rcs come back as typed exceptions
+    (`SystemAudioPermissionException`,
+    `SystemAudioUnsupportedException`) with localised
+    snackbar messages in en + de.
+  - ⏳ **Windows** — WASAPI loopback. The native
+    `IAudioClient::Initialize` with `AUDCLNT_STREAMFLAGS_LOOPBACK`
+    captures the default render device. Either via a small
+    custom C++ plugin or a Process.run subprocess to ffmpeg
+    (`-f dshow -i audio=...` / `-f wasapi -i ...`). ~2–3 days.
+  - ⏳ **Linux** — PulseAudio / PipeWire monitor source. The
+    `<default-sink>.monitor` source is captureable via
+    `parec -d @DEFAULT_SINK@.monitor`, libpulse, or libpipewire.
+    Subprocess to `parec` is the path of least resistance.
+    ~1–2 days.
+  - ❌ **iOS** — Apple sandbox forbids system audio capture
+    entirely. Throws `SystemAudioUnsupportedException`
+    permanently.
+  - ⏳ **Android** — MediaProjection API. Surfaces a
+    system-visible "recording" indicator; the UX cost is real
+    but the feature works. ~2–3 days.
 
 * **5.1.2 Custom vocabulary / dictionary boost** — Persistent
   list of "always-recognize-these" terms (brand names, acronyms,

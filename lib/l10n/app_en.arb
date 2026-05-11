@@ -136,6 +136,9 @@
   "recorderQueuedForTranscription": "Recording queued for transcription.",
   "recorderStream": "Stream",
   "recorderStreamTooltip": "Live mic transcribe (Whisper sliding window). Partial text appears as you speak.",
+  "recorderSystemAudioTooltip": "Capture system audio (Zoom call, browser tab, podcast app) and transcribe live. macOS 13+ only; first use prompts for Screen Recording permission.",
+  "recorderSystemAudioPermission": "Screen Recording permission denied. Open System Settings → Privacy & Security → Screen Recording and tick CrisperWeaver, then try again.",
+  "recorderSystemAudioUnsupported": "System audio capture is not yet supported on this platform. Tracked in PLAN.md §5.1.1.",
 
   "outputShowTimestamps": "Show timestamps",
   "outputShowSpeakers": "Show speakers",

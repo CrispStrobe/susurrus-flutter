@@ -698,6 +698,24 @@ abstract class AppLocalizations {
   /// **'Live mic transcribe (Whisper sliding window). Partial text appears as you speak.'**
   String get recorderStreamTooltip;
 
+  /// No description provided for @recorderSystemAudioTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture system audio (Zoom call, browser tab, podcast app) and transcribe live. macOS 13+ only; first use prompts for Screen Recording permission.'**
+  String get recorderSystemAudioTooltip;
+
+  /// No description provided for @recorderSystemAudioPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Recording permission denied. Open System Settings → Privacy & Security → Screen Recording and tick CrisperWeaver, then try again.'**
+  String get recorderSystemAudioPermission;
+
+  /// No description provided for @recorderSystemAudioUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'System audio capture is not yet supported on this platform. Tracked in PLAN.md §5.1.1.'**
+  String get recorderSystemAudioUnsupported;
+
   /// No description provided for @outputShowTimestamps.
   ///
   /// In en, this message translates to:

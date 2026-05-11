@@ -22,6 +22,12 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
+    // PLAN §5.1.1 system-audio capture — register before
+    // super.awakeFromNib so the channels are live by the time
+    // Flutter side first invokes them.
+    registerSystemAudioCapture(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     super.awakeFromNib()
   }
 }

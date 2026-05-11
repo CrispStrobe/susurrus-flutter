@@ -136,6 +136,9 @@
   "recorderQueuedForTranscription": "Aufnahme zur Transkription eingereiht.",
   "recorderStream": "Stream",
   "recorderStreamTooltip": "Live-Mikrofon-Transkription (Whisper-Schiebefenster). Teil-Text erscheint beim Sprechen.",
+  "recorderSystemAudioTooltip": "Systemton aufnehmen (Zoom-Anruf, Browser-Tab, Podcast-App) und live transkribieren. Nur macOS 13+; bei erster Nutzung wird die Bildschirmaufzeichnungs-Berechtigung abgefragt.",
+  "recorderSystemAudioPermission": "Berechtigung für Bildschirmaufzeichnung verweigert. Öffne Systemeinstellungen → Datenschutz & Sicherheit → Bildschirmaufzeichnung, aktiviere CrisperWeaver und versuche es erneut.",
+  "recorderSystemAudioUnsupported": "Systemton-Aufnahme wird auf dieser Plattform noch nicht unterstützt. Siehe PLAN.md §5.1.1.",
 
   "outputShowTimestamps": "Zeitstempel anzeigen",
   "outputShowSpeakers": "Sprecher anzeigen",

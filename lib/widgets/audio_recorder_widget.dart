@@ -11,6 +11,7 @@ import '../main.dart';
 import '../services/audio_service.dart';
 import '../services/log_service.dart';
 import '../services/settings_service.dart';
+import '../services/system_audio_capture_service.dart';
 
 class AudioRecorderWidget extends ConsumerStatefulWidget {
   const AudioRecorderWidget({super.key});
@@ -37,6 +38,12 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   bool _streamMode = false;
   StreamController<Float32List>? _micController;
   StreamSubscription<TranscriptionSegment>? _streamSub;
+  // §5.1.1 system-audio capture — separate from mic recording. When
+  // `_isCapturingSystemAudio` is true the same `transcribeStream`
+  // arm runs against the system-audio source instead of the mic.
+  bool _isCapturingSystemAudio = false;
+  bool _systemAudioSupported = false;
+  StreamSubscription<Float32List>? _sysAudioFramesSub;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -55,6 +62,15 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
       parent: _pulseController,
       curve: Curves.easeInOut,
     ));
+    // Async probe for system-audio capture support so the UI button
+    // can grey out on macOS 11/12 / Linux / Windows / Android / iOS
+    // (every platform without §5.1.1 wiring yet).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final svc = ref.read(systemAudioCaptureServiceProvider);
+      svc.isSupported().then((ok) {
+        if (mounted) setState(() => _systemAudioSupported = ok);
+      });
+    });
   }
 
   @override
@@ -62,6 +78,7 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     _timer?.cancel();
     _streamSub?.cancel();
     _micController?.close();
+    _sysAudioFramesSub?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -136,6 +153,32 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
                 ),
 
                 const SizedBox(width: 16),
+
+                // §5.1.1 — System audio capture button. Greyed out
+                // when the platform doesn't support it (everything
+                // except macOS 13+ in v1). Mutually exclusive with
+                // mic recording — toggling either off cancels both.
+                if (_systemAudioSupported || _isCapturingSystemAudio)
+                  Tooltip(
+                    message: AppLocalizations.of(context)
+                        .recorderSystemAudioTooltip,
+                    child: IconButton(
+                      iconSize: 28,
+                      onPressed: _isRecording
+                          ? null
+                          : (_isCapturingSystemAudio
+                              ? _stopSystemAudioCapture
+                              : _startSystemAudioCapture),
+                      icon: Icon(
+                        _isCapturingSystemAudio
+                            ? Icons.stop_screen_share
+                            : Icons.screen_share,
+                        color: _isCapturingSystemAudio
+                            ? Colors.red
+                            : null,
+                      ),
+                    ),
+                  ),
 
                 // Pause/Resume button (only show when recording)
                 if (_isRecording) ...[
@@ -402,6 +445,99 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
       setState(() {
         _isRecording = false;
         _isPaused = false;
+      });
+    }
+  }
+
+  /// §5.1.1 — start a system-audio capture stream and pipe its
+  /// PCM frames into the engine's `transcribeStream`. Same UX
+  /// shape as mic stream-mode: rolling text into the output card.
+  /// Whisper-only today; non-streaming-capable backends surface
+  /// the same "backend doesn't support streaming" error as the
+  /// mic stream path.
+  Future<void> _startSystemAudioCapture() async {
+    // Snapshot localised strings BEFORE the first `await` so the
+    // linter doesn't complain about reading BuildContext across
+    // async gaps. The screen lives as long as the recorder widget,
+    // so saving a stale string is fine on cancellation.
+    final l = AppLocalizations.of(context);
+    final transcriptionService = ref.read(transcriptionServiceProvider);
+    final engine = transcriptionService.currentEngine;
+    if (engine == null || !engine.supportsStreaming) {
+      _showErrorDialog(l.streamingRequiresWhisper);
+      return;
+    }
+    final svc = ref.read(systemAudioCaptureServiceProvider);
+    Stream<Float32List> frames;
+    try {
+      frames = await svc.start();
+    } on SystemAudioPermissionException catch (e) {
+      Log.instance.w('sysaudio', 'permission denied: ${e.message}');
+      _showErrorDialog(l.recorderSystemAudioPermission);
+      return;
+    } on SystemAudioUnsupportedException catch (e) {
+      Log.instance.w('sysaudio', 'unsupported: ${e.message}');
+      _showErrorDialog(l.recorderSystemAudioUnsupported);
+      return;
+    } catch (e, st) {
+      Log.instance
+          .e('sysaudio', 'start failed', error: e, stack: st);
+      _showErrorDialog(e.toString());
+      return;
+    }
+
+    setState(() {
+      _isCapturingSystemAudio = true;
+      _recordingDuration = Duration.zero;
+    });
+
+    _micController = StreamController<Float32List>(sync: true);
+    _sysAudioFramesSub = frames.listen(
+      _micController!.add,
+      onError: _micController!.addError,
+      onDone: _micController!.close,
+    );
+
+    final segStream = engine.transcribeStream(_micController!.stream);
+    if (segStream == null) {
+      await _stopSystemAudioCapture();
+      final backend =
+          transcriptionService.getEngineStatus().currentModelId ?? 'unknown';
+      _showErrorDialog(l.streamingNotAvailableForBackend(backend));
+      return;
+    }
+
+    final appNotifier = ref.read(appStateProvider.notifier);
+    appNotifier.startTranscription();
+    _streamSub = segStream.listen(
+      (seg) => appNotifier.replaceLiveStreamingText(seg.text),
+      onError: (Object e, StackTrace st) {
+        Log.instance.w('sysaudio',
+            'transcribeStream failed', error: e, stack: st);
+      },
+    );
+
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (_isCapturingSystemAudio && mounted) {
+        setState(
+            () => _recordingDuration += const Duration(milliseconds: 100));
+      }
+    });
+  }
+
+  Future<void> _stopSystemAudioCapture() async {
+    final svc = ref.read(systemAudioCaptureServiceProvider);
+    await svc.stop();
+    await _sysAudioFramesSub?.cancel();
+    _sysAudioFramesSub = null;
+    await _streamSub?.cancel();
+    _streamSub = null;
+    await _micController?.close();
+    _micController = null;
+    _timer?.cancel();
+    if (mounted) {
+      setState(() {
+        _isCapturingSystemAudio = false;
       });
     }
   }

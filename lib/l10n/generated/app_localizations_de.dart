@@ -334,6 +334,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Live-Mikrofon-Transkription (Whisper-Schiebefenster). Teil-Text erscheint beim Sprechen.';
 
   @override
+  String get recorderSystemAudioTooltip =>
+      'Systemton aufnehmen (Zoom-Anruf, Browser-Tab, Podcast-App) und live transkribieren. Nur macOS 13+; bei erster Nutzung wird die Bildschirmaufzeichnungs-Berechtigung abgefragt.';
+
+  @override
+  String get recorderSystemAudioPermission =>
+      'Berechtigung für Bildschirmaufzeichnung verweigert. Öffne Systemeinstellungen → Datenschutz & Sicherheit → Bildschirmaufzeichnung, aktiviere CrisperWeaver und versuche es erneut.';
+
+  @override
+  String get recorderSystemAudioUnsupported =>
+      'Systemton-Aufnahme wird auf dieser Plattform noch nicht unterstützt. Siehe PLAN.md §5.1.1.';
+
+  @override
   String get outputShowTimestamps => 'Zeitstempel anzeigen';
 
   @override
