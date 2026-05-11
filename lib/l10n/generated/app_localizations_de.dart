@@ -594,6 +594,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Heruntergeladene Modelle auch bei SHA-1-Abweichung akzeptieren';
 
   @override
+  String get settingsGroupBatchByBackend => 'Stapel nach Backend gruppieren';
+
+  @override
+  String get settingsGroupBatchByBackendSubtitle =>
+      'Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden';
+
+  @override
   String get settingsOpenLogViewer => 'Protokoll-Ansicht öffnen';
 
   @override

@@ -405,11 +405,16 @@ launch-blocker; the rest are quality issues that surface in use.
 
 **Still open:**
 
-* ⏳ **Q1 sub-bullet: backend grouping reorder + duration pre-flight**
-  — opt-in Settings toggle to reorder a queue into
-  `(backend, modelId, language)` bundles so consecutive same-backend
-  jobs reuse the loaded session; pre-flight miniaudio duration
-  probe per job so the queue card shows a real ETA. ~1 day.
+* ✅ **Q1 sub-bullet: backend grouping reorder + duration pre-flight** —
+  shipped. Opt-in `Settings.groupBatchByBackend`; the drain loop calls
+  `reorderByGrouping()` at start when on, stable-sorting only queued
+  jobs by `(backend, modelId, language, createdAt)` so running/done/
+  error rows stay put. Duration probe via `AudioService.probeDuration`
+  (header-only just_audio read; throwaway player so no playback
+  conflict), wired through an injectable `durationProbe` parameter on
+  `BatchQueueNotifier` so unit tests stay hermetic. Queue card shows
+  the sum as a "~ Xm" badge — "~" prefix when some probes haven't
+  returned, exact when all measured. 12 new tests.
 * ⏳ **Q2 (parallel workers)** — Settings slider
   `Concurrent transcriptions: 1–4`, per-isolate
   `DynamicLibrary.open` + `CrispasrSession`; iOS clamp to 2 for

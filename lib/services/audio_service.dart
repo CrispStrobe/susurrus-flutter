@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crispasr/crispasr.dart' as crispasr;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +10,12 @@ import 'package:http/http.dart' as http;
 
 import 'log_service.dart';
 import 'settings_service.dart';
+
+/// Singleton-per-ProviderScope. Lives alongside [AudioService] so
+/// downstream services (BatchQueueNotifier, transcription pipeline)
+/// can wire to it without depending on main.dart's provider graph.
+final audioServiceProvider =
+    Provider<AudioService>((ref) => AudioService());
 
 class AudioService {
   final AudioRecorder _recorder = AudioRecorder();
@@ -118,6 +125,45 @@ class AudioService {
       return linear.clamp(0.0, 1.0);
     } catch (_) {
       return 0.0;
+    }
+  }
+
+  /// Cheap header-only duration probe for batch ETA estimation
+  /// (§5.23 Q1). Uses a throwaway [AudioPlayer] so we don't stomp the
+  /// shared `_player` mid-playback. just_audio reads the container
+  /// header to derive duration — no decode work — so this is sub-
+  /// second on every supported format and platform.
+  ///
+  /// Returns null on any failure (unreadable file, unsupported
+  /// codec, just_audio platform implementation missing). Callers
+  /// (BatchQueueNotifier.enqueue) treat null as "we don't know,
+  /// don't show an ETA" rather than failing the enqueue.
+  Future<Duration?> probeDuration(File audioFile) async {
+    AudioPlayer? probe;
+    try {
+      probe = AudioPlayer();
+      // setFilePath returns the parsed duration when known (every
+      // common container — wav/mp3/m4a/flac/ogg/opus — exposes it
+      // in the header).
+      final d = await probe.setFilePath(audioFile.path);
+      if (d != null) return d;
+      // Fallback: some platforms hand duration through the stream
+      // shortly after setFilePath returns null. One short await is
+      // enough; if it never arrives the file is genuinely
+      // unprobable and we return null.
+      return probe.duration;
+    } catch (e, st) {
+      Log.instance.d('audio', 'probeDuration failed',
+          fields: {'file': path.basename(audioFile.path)},
+          error: e,
+          stack: st);
+      return null;
+    } finally {
+      try {
+        await probe?.dispose();
+      } catch (_) {
+        // Probe-only disposal failure isn't actionable.
+      }
     }
   }
 

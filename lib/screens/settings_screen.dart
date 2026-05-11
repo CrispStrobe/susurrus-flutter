@@ -529,6 +529,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : 'Checksum verification enabled');
           },
         ),
+        SwitchListTile(
+          title:
+              Text(AppLocalizations.of(context).settingsGroupBatchByBackend),
+          subtitle: Text(AppLocalizations.of(context)
+              .settingsGroupBatchByBackendSubtitle),
+          value: settings.groupBatchByBackend,
+          onChanged: (value) {
+            setState(() => settings.groupBatchByBackend = value);
+            Log.instance.i('settings',
+                'Group batch by backend: ${value ? "ON" : "OFF"}');
+          },
+        ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsHfToken),
           subtitle: Text(settings.hfToken.isEmpty

@@ -1165,6 +1165,14 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     }
 
     final persistence = queue.persistence;
+    // §5.23 Q1: reorder queued jobs into (backend, modelId, language)
+    // bundles when the setting is on so consecutive same-bundle jobs
+    // reuse the loaded session. Stable within each bundle, so the
+    // user's drag-and-drop order within one model still holds. Done /
+    // error / running rows stay in place.
+    if (ref.read(settingsServiceProvider).groupBatchByBackend) {
+      queue.reorderByGrouping();
+    }
 
     while (true) {
       final next = queue.nextQueued();

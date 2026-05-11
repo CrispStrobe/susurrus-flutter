@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'audio_service.dart';
 import 'batch_persistence_service.dart';
 import 'log_service.dart';
 
@@ -135,11 +137,20 @@ class BatchJob {
 /// the in-memory queue. The persistence layer is injectable so unit
 /// tests can hand in a `Directory.systemTemp` path.
 class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
-  BatchQueueNotifier({BatchPersistenceService? persistence})
-      : _persistence = persistence ?? BatchPersistenceService(),
+  BatchQueueNotifier({
+    BatchPersistenceService? persistence,
+    /// Optional duration probe — called async after enqueue to stamp
+    /// `durationSec` on the job for ETA estimation (§5.23 Q1).
+    /// Default `null` skips probing so unit tests stay hermetic (no
+    /// just_audio platform binding). Production wiring in
+    /// `main.dart` passes `audioService.probeDuration`.
+    Future<Duration?> Function(String filePath)? durationProbe,
+  })  : _persistence = persistence ?? BatchPersistenceService(),
+        _durationProbe = durationProbe,
         super(const []);
 
   final BatchPersistenceService _persistence;
+  final Future<Duration?> Function(String filePath)? _durationProbe;
   bool _loaded = false;
 
   /// Hydrate in-memory state from the on-disk queue. Idempotent —
@@ -239,7 +250,77 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
     );
     state = [...state, job];
     unawaited(_persist(job));
+    // §5.23 Q1 ETA probe — fire-and-forget. The job is queued
+    // regardless of probe outcome; the durationSec field stays null
+    // when the probe fails or returns null and the UI just doesn't
+    // show an ETA badge for that one.
+    if (_durationProbe != null) {
+      unawaited(_probeAndStamp(job.id, filePath));
+    }
     return job.id;
+  }
+
+  Future<void> _probeAndStamp(String jobId, String filePath) async {
+    try {
+      final d = await _durationProbe!(filePath);
+      final secs = d?.inMilliseconds == null ? null : d!.inMilliseconds / 1000.0;
+      if (secs == null || secs <= 0) return;
+      _update(jobId, (j) => j.copyWith(durationSec: secs));
+    } catch (e) {
+      // Intentionally caught — probe failure means "we don't know
+      // the duration", not "the job is broken". Logged without the
+      // stack trace so concurrent flutter test runs don't attribute
+      // the stack-frame chatter to whatever unrelated test is
+      // happening to run at that moment.
+      Log.instance
+          .d('batch-queue', 'duration probe failed (swallowed): $e',
+              fields: {'id': jobId});
+    }
+  }
+
+  /// Reorder non-terminal jobs into `(backend, modelId, language)`
+  /// bundles so consecutive same-bundle jobs reuse the loaded
+  /// session. Stable within each bundle (preserves enqueue order).
+  /// Done / error / cancelled / running jobs stay in place — only
+  /// queued jobs are reordered, and they get appended after any
+  /// in-place rows so the drain loop's next pick still respects the
+  /// "currently running first" invariant.
+  ///
+  /// Called by the drain loop at `_startBatchRun` start when
+  /// `settings.groupBatchByBackend` is true. Cheap — O(n log n).
+  /// §5.23 Q1 grouping sub-bullet.
+  void reorderByGrouping() {
+    final keep = <BatchJob>[]; // non-queued: order untouched
+    final queued = <BatchJob>[];
+    for (final j in state) {
+      if (j.status == BatchJobStatus.queued) {
+        queued.add(j);
+      } else {
+        keep.add(j);
+      }
+    }
+    if (queued.isEmpty) return;
+    // Composite sort key. nulls collate to the END (jobs without
+    // captured metadata batch after the typed ones).
+    int cmp(String? a, String? b) {
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      return a.compareTo(b);
+    }
+    queued.sort((a, b) {
+      var c = cmp(a.backend, b.backend);
+      if (c != 0) return c;
+      c = cmp(a.modelId, b.modelId);
+      if (c != 0) return c;
+      c = cmp(a.language, b.language);
+      if (c != 0) return c;
+      // Tiebreak by enqueue order (createdAt) so the sort is stable.
+      return a.createdAt.compareTo(b.createdAt);
+    });
+    state = List<BatchJob>.unmodifiable([...keep, ...queued]);
+    Log.instance.i('batch-queue',
+        'reordered ${queued.length} queued job(s) by grouping');
   }
 
   void remove(String id) {
@@ -348,5 +429,13 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
 }
 
 final batchQueueProvider =
-    StateNotifierProvider<BatchQueueNotifier, List<BatchJob>>(
-        (ref) => BatchQueueNotifier());
+    StateNotifierProvider<BatchQueueNotifier, List<BatchJob>>((ref) {
+  final audio = ref.read(audioServiceProvider);
+  return BatchQueueNotifier(
+    // Wire the §5.23 Q1 duration probe — fires async after enqueue,
+    // stamps `durationSec` on the job so the queue card can show a
+    // real ETA. AudioService is grabbed eagerly here (the provider
+    // is already created by the time the queue is touched).
+    durationProbe: (filePath) => audio.probeDuration(File(filePath)),
+  );
+});

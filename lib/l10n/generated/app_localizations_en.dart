@@ -590,6 +590,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Accept downloaded models even if SHA-1 does not match';
 
   @override
+  String get settingsGroupBatchByBackend => 'Group batch by backend';
+
+  @override
+  String get settingsGroupBatchByBackendSubtitle =>
+      'Reorder queued files so consecutive jobs reuse the same model session';
+
+  @override
   String get settingsOpenLogViewer => 'Open log viewer';
 
   @override

@@ -39,6 +39,26 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
         jobs.where((j) => j.status == BatchJobStatus.running).length;
     final done = jobs.where((j) => j.status == BatchJobStatus.done).length;
     final errored = jobs.where((j) => j.status == BatchJobStatus.error).length;
+    // §5.23 Q1 ETA badge: sum of probed durations across still-to-run
+    // jobs (queued + running) so the card shows total audio left.
+    // Probes that haven't returned yet contribute 0; the badge reads
+    // "≥ Xm" so the user knows it's a lower bound when some files
+    // are still being measured.
+    final pendingDurationSec = jobs
+        .where((j) =>
+            j.status == BatchJobStatus.queued ||
+            j.status == BatchJobStatus.running)
+        .map((j) => j.durationSec ?? 0.0)
+        .fold<double>(0.0, (a, b) => a + b);
+    final probedCount = jobs
+        .where((j) =>
+            (j.status == BatchJobStatus.queued ||
+                j.status == BatchJobStatus.running) &&
+            j.durationSec != null)
+        .length;
+    final pendingTotal = queued + running;
+    final hasUnprobed = pendingTotal > 0 && probedCount < pendingTotal;
+    final etaLabel = _formatEta(pendingDurationSec, partial: hasUnprobed);
 
     return DropTarget(
       onDragEntered: (_) => setState(() => _hover = true),
@@ -73,15 +93,47 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
                         Text(l.batchQueueTitle,
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          jobs.isEmpty
-                              ? l.batchQueueDropHint
-                              : l.batchQueueSummary(
-                                  queued, running, done, errored),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade700),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                jobs.isEmpty
+                                    ? l.batchQueueDropHint
+                                    : l.batchQueueSummary(
+                                        queued, running, done, errored),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade700),
+                              ),
+                            ),
+                            // §5.23 Q1 ETA badge — total pending audio
+                            // (queued + running). Shows "~ 12m" when
+                            // some files haven't been probed yet,
+                            // "12m" when every pending job has a
+                            // measured duration. Hidden when zero.
+                            if (etaLabel.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  etaLabel,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade800,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ]),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -150,6 +202,26 @@ class _BatchQueueCardState extends ConsumerState<BatchQueueCard> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  /// Render the §5.23 Q1 ETA badge. Returns empty string when the
+  /// caller should hide the chip (no pending audio measured yet).
+  /// `partial` = true means some pending jobs haven't been probed; we
+  /// prefix with "≥ " so the user reads it as a lower bound.
+  String _formatEta(double seconds, {required bool partial}) {
+    if (seconds <= 0) return '';
+    final mins = seconds / 60.0;
+    final String body;
+    if (mins < 1) {
+      body = '< 1m';
+    } else if (mins < 60) {
+      body = '${mins.round()}m';
+    } else {
+      final h = (mins / 60).floor();
+      final m = (mins.round() % 60);
+      body = m == 0 ? '${h}h' : '${h}h${m}m';
+    }
+    return partial ? '~ $body' : body;
   }
 }
 

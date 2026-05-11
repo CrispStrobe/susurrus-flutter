@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
+import '../services/audio_service.dart';
 import '../services/log_service.dart';
 import '../services/settings_service.dart';
 

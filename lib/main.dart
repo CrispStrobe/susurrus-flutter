@@ -288,7 +288,9 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
 }
 
 // Global providers
-final audioServiceProvider = Provider<AudioService>((ref) => AudioService());
+// (audioServiceProvider moved into lib/services/audio_service.dart so
+// downstream services can wire to it without round-tripping through
+// main.dart.)
 
 final historyServiceProvider =
     Provider<HistoryService>((ref) => HistoryService());

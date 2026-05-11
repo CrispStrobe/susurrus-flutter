@@ -1100,6 +1100,18 @@ abstract class AppLocalizations {
   /// **'Accept downloaded models even if SHA-1 does not match'**
   String get settingsSkipChecksumSubtitle;
 
+  /// No description provided for @settingsGroupBatchByBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Group batch by backend'**
+  String get settingsGroupBatchByBackend;
+
+  /// No description provided for @settingsGroupBatchByBackendSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder queued files so consecutive jobs reuse the same model session'**
+  String get settingsGroupBatchByBackendSubtitle;
+
   /// No description provided for @settingsOpenLogViewer.
   ///
   /// In en, this message translates to:

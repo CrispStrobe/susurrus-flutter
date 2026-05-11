@@ -253,6 +253,8 @@
   "settingsMirrorLogsSubtitle": "Schreibt nach logs/session.log im App-Dokumentverzeichnis",
   "settingsSkipChecksum": "Prüfsummen-Validierung überspringen",
   "settingsSkipChecksumSubtitle": "Heruntergeladene Modelle auch bei SHA-1-Abweichung akzeptieren",
+  "settingsGroupBatchByBackend": "Stapel nach Backend gruppieren",
+  "settingsGroupBatchByBackendSubtitle": "Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden",
   "settingsOpenLogViewer": "Protokoll-Ansicht öffnen",
   "settingsSystemInfo": "Systeminformation",
   "settingsAbout": "Über",

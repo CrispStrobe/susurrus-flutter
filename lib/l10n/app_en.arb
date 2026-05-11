@@ -253,6 +253,8 @@
   "settingsMirrorLogsSubtitle": "Writes to logs/session.log in the app documents directory",
   "settingsSkipChecksum": "Skip checksum verification",
   "settingsSkipChecksumSubtitle": "Accept downloaded models even if SHA-1 does not match",
+  "settingsGroupBatchByBackend": "Group batch by backend",
+  "settingsGroupBatchByBackendSubtitle": "Reorder queued files so consecutive jobs reuse the same model session",
   "settingsOpenLogViewer": "Open log viewer",
   "settingsSystemInfo": "System information",
   "settingsAbout": "About",

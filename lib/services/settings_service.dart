@@ -140,6 +140,19 @@ class SettingsService {
     _prefs.setString('custom_models_dir', dir);
   }
 
+  /// Reorder a batch queue so jobs with the same
+  /// (backend, modelId, language) run consecutively, sparing the
+  /// expensive session swap between them. Stable — preserves the
+  /// enqueue order within each bundle. Default off so the user's
+  /// drag-and-drop order is honoured verbatim by the drain loop.
+  /// §5.23 Q1 grouping sub-bullet.
+  bool get groupBatchByBackend =>
+      _prefs.getBool('group_batch_by_backend') ?? false;
+  set groupBatchByBackend(bool value) {
+    Log.instance.d('settings', 'Saving groupBatchByBackend: $value');
+    _prefs.setBool('group_batch_by_backend', value);
+  }
+
   /// Helper to clear all settings (for reset)
   Future<void> clearAll() async {
     await _prefs.clear();
