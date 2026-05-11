@@ -124,9 +124,11 @@ final class SystemAudioCaptureHandler: NSObject, SCStreamDelegate,
                 try s.addStreamOutput(self, type: .audio,
                                       sampleHandlerQueue: nil)
                 try await s.startCapture()
-                self.lock.lock()
-                self.stream = s
-                self.lock.unlock()
+                // Stash the stream via a sync helper — calling
+                // `lock.lock()` / `lock.unlock()` directly from this
+                // async closure is unavailable under Swift 6 (the
+                // suspension point between them risks deadlock).
+                self.assignStream(s)
                 completion(.success(true))
             } catch {
                 let nsErr = error as NSError
@@ -149,6 +151,14 @@ final class SystemAudioCaptureHandler: NSObject, SCStreamDelegate,
                     ])))
             }
         }
+    }
+
+    /// Sync helper used by the async start() closure — see comment
+    /// at the call site for why we don't inline lock()/unlock() there.
+    private func assignStream(_ s: SCStream) {
+        lock.lock()
+        stream = s
+        lock.unlock()
     }
 
     func stop() {
