@@ -876,6 +876,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyClearAll => 'Clear all';
 
   @override
+  String get historySearchHint => 'Search title or transcript…';
+
+  @override
+  String historySearchNoResults(String query) {
+    return 'No history entries match \"$query\"';
+  }
+
+  @override
+  String historySearchMatchCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      matched,
+      locale: localeName,
+      other: '$matched of $total matched',
+      one: '1 of $total matched',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get historyClearAllPrompt =>
       'Remove every saved transcription from this device. This cannot be undone.';
 

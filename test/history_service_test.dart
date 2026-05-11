@@ -131,5 +131,60 @@ void main() {
       expect(await tmp.exists(), isTrue);
       expect((await svc.list()), isEmpty);
     });
+
+    test('update overwrites segments + speakerNames on an existing id (§5.1.3)',
+        () async {
+      // Initial save — one segment, no speaker rename.
+      final entry = await svc.save(
+        engineId: 'crispasr',
+        modelId: 'whisper-tiny',
+        segments: const [
+          TranscriptionSegment(
+            text: 'orginal text',
+            startTime: 0.0,
+            endTime: 1.5,
+          ),
+        ],
+        speakerNames: const {},
+      );
+
+      // Build an "edited" entry with the SAME id but corrected
+      // text + a speaker rename.
+      final edited = HistoryEntry(
+        id: entry.id,
+        createdAt: entry.createdAt,
+        engineId: entry.engineId,
+        modelId: entry.modelId,
+        segments: const [
+          TranscriptionSegment(
+            text: 'original text',
+            startTime: 0.0,
+            endTime: 1.5,
+            speaker: 'Speaker 1',
+          ),
+        ],
+        speakerNames: const {'Speaker 1': 'Alice'},
+      );
+      await svc.update(edited);
+
+      // Reload → confirms the on-disk JSON reflects the edit.
+      final all = await svc.list();
+      expect(all.length, 1);
+      expect(all.first.id, entry.id);
+      expect(all.first.segments.first.text, 'original text');
+      expect(all.first.speakerNames, {'Speaker 1': 'Alice'});
+    });
+
+    test('update on a missing id is a no-op (no resurrection)', () async {
+      final ghost = HistoryEntry(
+        id: 'never-saved',
+        createdAt: DateTime.utc(2026, 5, 11),
+        engineId: 'crispasr',
+        segments: const [],
+      );
+      await svc.update(ghost);
+      // Directory remains empty.
+      expect((await svc.list()), isEmpty);
+    });
   });
 }

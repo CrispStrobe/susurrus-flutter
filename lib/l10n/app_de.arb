@@ -394,6 +394,18 @@
   "historyEmptyHint": "Eine Transkription ausführen – sie erscheint hier.",
   "historyRefresh": "Aktualisieren",
   "historyClearAll": "Alle löschen",
+  "historySearchHint": "Titel oder Transkript suchen…",
+  "historySearchNoResults": "Keine Verlaufseinträge passen zu „{query}“",
+  "@historySearchNoResults": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "historySearchMatchCount": "{matched, plural, =1{1 von {total} gefunden} other{{matched} von {total} gefunden}}",
+  "@historySearchMatchCount": {
+    "placeholders": {
+      "matched": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "historyClearAllPrompt": "Alle gespeicherten Transkriptionen von diesem Gerät entfernen. Das kann nicht rückgängig gemacht werden.",
   "cancel": "Abbrechen",
   "delete": "Löschen",

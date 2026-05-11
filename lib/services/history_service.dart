@@ -125,6 +125,22 @@ class HistoryService {
     return dir;
   }
 
+  /// §5.1.3 — overwrite an existing entry by id. Used when the
+  /// user inline-edits a segment text after the entry was first
+  /// saved. The entry's `createdAt` / `engineId` / `modelId`
+  /// stay untouched; only segments + speakerNames are typically
+  /// changed. No-op when the file doesn't exist (we don't
+  /// resurrect deleted entries — caller should fall back to
+  /// `save(...)` for that case).
+  Future<void> update(HistoryEntry entry) async {
+    final dir = await _ensureDir();
+    final file = File(p.join(dir.path, '${entry.id}.json'));
+    if (!await file.exists()) return;
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(entry.toJson()),
+    );
+  }
+
   Future<HistoryEntry> save({
     required String engineId,
     required List<TranscriptionSegment> segments,

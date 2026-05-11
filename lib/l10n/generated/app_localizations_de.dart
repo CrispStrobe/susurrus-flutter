@@ -881,6 +881,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String get historyClearAll => 'Alle löschen';
 
   @override
+  String get historySearchHint => 'Titel oder Transkript suchen…';
+
+  @override
+  String historySearchNoResults(String query) {
+    return 'Keine Verlaufseinträge passen zu „$query“';
+  }
+
+  @override
+  String historySearchMatchCount(int matched, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      matched,
+      locale: localeName,
+      other: '$matched von $total gefunden',
+      one: '1 von $total gefunden',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get historyClearAllPrompt =>
       'Alle gespeicherten Transkriptionen von diesem Gerät entfernen. Das kann nicht rückgängig gemacht werden.';
 

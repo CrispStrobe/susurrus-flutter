@@ -17,16 +17,42 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   late Future<List<HistoryEntry>> _future;
+  // §5.1.4 history search — naive client-side substring filter.
+  // Matches against the entry's title (source filename or URL) +
+  // every segment's text concatenated as fullText. Case-insensitive.
+  // Empty query = no filter. The TextField is mounted in the
+  // AppBar bottom so the keyboard doesn't push the list around.
+  String _searchQuery = '';
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     _reload();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _reload() {
     final service = ref.read(historyServiceProvider);
     _future = service.list();
+  }
+
+  /// Return only the entries whose title or fullText contains the
+  /// current search query. Case-insensitive substring match.
+  List<HistoryEntry> _applyFilter(List<HistoryEntry> all) {
+    if (_searchQuery.isEmpty) return all;
+    final q = _searchQuery.toLowerCase();
+    return all
+        .where((e) =>
+            e.title.toLowerCase().contains(q) ||
+            e.fullText.toLowerCase().contains(q))
+        .toList(growable: false);
   }
 
   Future<void> _deleteAll() async {
@@ -72,6 +98,39 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             onPressed: _deleteAll,
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: l.historySearchHint,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.12),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 0),
+              ),
+              onChanged: (v) =>
+                  setState(() => _searchQuery = v.trim()),
+            ),
+          ),
+        ),
       ),
       body: FutureBuilder<List<HistoryEntry>>(
         future: _future,
@@ -84,21 +143,57 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 child: Text(AppLocalizations.of(context)
                     .historyFailedToLoad('${snap.error}')));
           }
-          final items = snap.data ?? const <HistoryEntry>[];
-          if (items.isEmpty) {
+          final all = snap.data ?? const <HistoryEntry>[];
+          if (all.isEmpty) {
             return const _EmptyHistory();
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(8),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 4),
-            itemBuilder: (context, i) => _HistoryTile(
-              entry: items[i],
-              onDelete: () async {
-                await ref.read(historyServiceProvider).delete(items[i].id);
-                setState(_reload);
-              },
-            ),
+          final items = _applyFilter(all);
+          if (items.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  l.historySearchNoResults(_searchQuery),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ),
+            );
+          }
+          return Column(
+            children: [
+              // Per-search filter count strip. Hidden when not
+              // filtering so the list stays clean for normal use.
+              if (_searchQuery.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l.historySearchMatchCount(items.length, all.length),
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  itemBuilder: (context, i) => _HistoryTile(
+                    entry: items[i],
+                    searchQuery: _searchQuery,
+                    onDelete: () async {
+                      await ref
+                          .read(historyServiceProvider)
+                          .delete(items[i].id);
+                      setState(_reload);
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -136,21 +231,32 @@ class _EmptyHistory extends StatelessWidget {
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.entry, required this.onDelete});
+  const _HistoryTile({
+    required this.entry,
+    required this.onDelete,
+    this.searchQuery = '',
+  });
 
   final HistoryEntry entry;
   final VoidCallback onDelete;
+  /// Active history search query. When non-empty, the expanded
+  /// transcript shows a yellow highlight on matching substrings
+  /// + auto-expands so the user can see the hit without an extra
+  /// tap. See §5.1.4.
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat.yMMMd().add_Hm();
     return Card(
       child: ExpansionTile(
-        title: Text(
-          entry.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        // Auto-expand when an active search matches this entry's
+        // body so users see the hit without clicking through.
+        initiallyExpanded: searchQuery.isNotEmpty &&
+            entry.fullText
+                .toLowerCase()
+                .contains(searchQuery.toLowerCase()),
+        title: _highlightedTitle(context, entry.title, searchQuery),
         subtitle: Text(
           '${fmt.format(entry.createdAt)} · ${entry.engineId}'
           '${entry.modelId != null ? ' · ${entry.modelId}' : ''}',
@@ -161,7 +267,7 @@ class _HistoryTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(entry.fullText),
+                _highlightedBody(context, entry.fullText, searchQuery),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -213,6 +319,62 @@ class _HistoryTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// §5.1.4 — render `text` with `query` highlighted in yellow.
+  /// Returns the body text widget; uses SelectableText.rich so the
+  /// user can still copy-paste from the highlighted body. When
+  /// the query is empty, falls back to a plain SelectableText.
+  Widget _highlightedBody(
+      BuildContext context, String text, String query) {
+    if (query.isEmpty) return SelectableText(text);
+    final spans = _highlightSpans(text, query);
+    return SelectableText.rich(TextSpan(children: spans));
+  }
+
+  /// Title-row variant — same highlight machinery but as Text.rich
+  /// (titles aren't user-selectable to keep tap-to-expand working).
+  Widget _highlightedTitle(
+      BuildContext context, String text, String query) {
+    if (query.isEmpty) {
+      return Text(text, maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    final spans = _highlightSpans(text, query);
+    return Text.rich(
+      TextSpan(children: spans),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  /// Build a list of TextSpans alternating plain + highlighted
+  /// based on case-insensitive substring matches of [query] in
+  /// [text]. Matches the user-visible color hint with
+  /// `Colors.yellow.shade300` on the highlighted runs.
+  List<TextSpan> _highlightSpans(String text, String query) {
+    final lower = text.toLowerCase();
+    final q = query.toLowerCase();
+    final out = <TextSpan>[];
+    var i = 0;
+    while (i < text.length) {
+      final hit = lower.indexOf(q, i);
+      if (hit < 0) {
+        out.add(TextSpan(text: text.substring(i)));
+        break;
+      }
+      if (hit > i) {
+        out.add(TextSpan(text: text.substring(i, hit)));
+      }
+      out.add(TextSpan(
+        text: text.substring(hit, hit + query.length),
+        style: TextStyle(
+          backgroundColor: Colors.yellow.shade300,
+          color: Colors.black,
+        ),
+      ));
+      i = hit + query.length;
+    }
+    return out;
   }
 
   Future<void> _exportAs(BuildContext context, TranscriptFormat fmt) async {

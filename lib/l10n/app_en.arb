@@ -394,6 +394,18 @@
   "historyEmptyHint": "Run a transcription and it will show up here.",
   "historyRefresh": "Refresh",
   "historyClearAll": "Clear all",
+  "historySearchHint": "Search title or transcript…",
+  "historySearchNoResults": "No history entries match \"{query}\"",
+  "@historySearchNoResults": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "historySearchMatchCount": "{matched, plural, =1{1 of {total} matched} other{{matched} of {total} matched}}",
+  "@historySearchMatchCount": {
+    "placeholders": {
+      "matched": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "historyClearAllPrompt": "Remove every saved transcription from this device. This cannot be undone.",
   "cancel": "Cancel",
   "delete": "Delete",

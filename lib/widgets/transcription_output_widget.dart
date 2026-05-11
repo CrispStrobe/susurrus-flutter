@@ -7,7 +7,9 @@ import 'package:just_audio/just_audio.dart';
 
 import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 import '../l10n/generated/app_localizations.dart';
-import '../main.dart' show appStateProvider, selectedAudioPathProvider;
+import '../main.dart'
+    show appStateProvider, historyServiceProvider, selectedAudioPathProvider;
+import '../services/history_service.dart';
 
 class TranscriptionOutputWidget extends ConsumerStatefulWidget {
   final List<TranscriptionSegment> segments;
@@ -802,14 +804,37 @@ class _TranscriptionOutputWidgetState
             child: Text(AppLocalizations.of(ctx).cancel),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               final next = controller.text.trim();
               if (next.isNotEmpty && next != segment.text) {
-                ref
-                    .read(appStateProvider.notifier)
-                    .editSegment(index, next);
+                final notifier = ref.read(appStateProvider.notifier);
+                notifier.editSegment(index, next);
+                // §5.1.3 persist — if this transcription has a
+                // history entry on disk, overwrite the JSON so
+                // the edit survives a reload. Skip when there's
+                // no id (mid-flight transcription, mock engine,
+                // explicit "clear" before save).
+                final st = ref.read(appStateProvider);
+                final id = st.historyEntryId;
+                if (id != null) {
+                  try {
+                    final entry = HistoryEntry(
+                      id: id,
+                      createdAt: DateTime.now(),
+                      engineId: 'crispasr',
+                      segments: st.segments,
+                      speakerNames: st.speakerNames,
+                    );
+                    await ref
+                        .read(historyServiceProvider)
+                        .update(entry);
+                  } catch (_) {
+                    // History update failure isn't fatal — the
+                    // edit is still in AppState.
+                  }
+                }
               }
-              Navigator.of(ctx).pop();
+              if (ctx.mounted) Navigator.of(ctx).pop();
             },
             child: Text(AppLocalizations.of(ctx).ok),
           ),

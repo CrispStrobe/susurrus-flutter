@@ -197,21 +197,58 @@ is what's missing — ranked by impact ÷ effort.
 
 * **5.1.2 Custom vocabulary / dictionary boost** — Persistent
   list of "always-recognize-these" terms (brand names, acronyms,
-  technical jargon, people's names). Already plumbed through
-  whisper's `initial_prompt` field; just needs a UI for managing
-  the list + an `AdvancedOptions.vocabulary` array that gets
-  joined into the prompt on every dispatch. MacWhisper Pro sells
-  this as a paid feature. ~1 day.
+  technical jargon, people's names). The biasing mechanism
+  differs by backend class — same UI for the user, three
+  different paths under the hood:
 
-* **5.1.3 Inline transcript editing** — Click a segment → edit
-  text → re-save. The data model has it (segments are mutable),
-  but no robust click-to-edit UI yet. Polished version with
-  undo + auto-save: ~2 days. Every competitor has this.
+  | Backend class | Mechanism | Supported? |
+  |---|---|---|
+  | **Whisper / Moonshine** (encoder-decoder autoregressive) | `initial_prompt` — already plumbed via `AdvancedOptions.initialPrompt`. Decoder uses it to prefill the token-context window before decode. | ✅ Native |
+  | **LLM-backend** (voxtral / voxtral4b / qwen3 / granite-4.1 / glm-asr / kyutai-stt / gemma4-e2b / omniasr-llm / mimo-asr) | `setAsk(prompt)` — same field as the Audio-Q&A power-user flow. Vocabulary biasing prepends a "vocabulary hint" prefix before the user's actual prompt (or stands alone when no Q&A is active). | ✅ via prompt-prefix merging |
+  | **CTC-style** (parakeet / canary / cohere / fastconformer-ctc / wav2vec2 / firered-asr / omniasr-CTC) | None natively — CTC decodes greedy/beam over acoustic frames with no token-prefill point. Would need an external LM rescoring pass. | ❌ Backend-incompatible |
 
-* **5.1.4 History search** — Full-text search across past
-  transcriptions. The JSON files are already there, just need a
-  search index (fts5 via sqflite, or naive grep for small
-  libraries). ~1 day.
+  v1 design: a `vocabulary: List<String>` field in
+  `AdvancedOptions` (managed by a UI list with add/remove
+  chips). At dispatch time the engine joins terms comma-
+  separated into whichever prompt field the active backend
+  honors:
+    - whisper / moonshine → prepend to `initial_prompt`
+    - LLM-backend → prepend to `askPrompt` with a sentinel
+      separator so the user's actual ask still works
+    - CTC → ignored (UI surfaces a "this backend can't bias
+      vocabulary" hint)
+
+  MacWhisper Pro sells this as a paid feature; in CrisperWeaver
+  the plumbing for the whisper path is already there, so v1
+  cost is essentially "build the UI list + the per-backend
+  prompt-merge logic." ~1 day end-to-end.
+
+* ✅ **5.1.3 Inline transcript editing** (May 2026) — long-press
+  on a segment in `transcription_output_widget.dart` opens a
+  bottom-sheet → "Edit segment" → dialog with a multiline
+  TextField pre-filled with the current text. On save:
+  `AppStateNotifier.editSegment(index, newText)` updates the
+  in-memory state with `metadata['edited'] = true` (rendered as
+  a tiny pencil icon next to the segment), and if the
+  transcription has a saved history id we also fire
+  `historyService.update(entry)` so the edit survives a reload.
+  New `HistoryService.update(HistoryEntry)` method; new
+  `AppState.historyEntryId` field stashed by the transcription
+  screen after the first save; `startTranscription()` rebuilds
+  AppState from scratch so a fresh run can't overwrite the
+  previous entry. 2 new HistoryService tests pin the update /
+  missing-id-noop contract.
+
+* ✅ **5.1.4 History search** (May 2026) — text field in the
+  HistoryScreen AppBar. Filters entries client-side by
+  case-insensitive substring match against the entry's title
+  (source filename or URL) AND its full transcript. Matching
+  entries auto-expand so the user sees the hit without an extra
+  tap; matched substrings show a yellow highlight in both the
+  title row and the transcript body via `TextSpan.rich` +
+  `SelectableText.rich`. Per-search count strip ("N of M
+  matched") above the list when a query is active. ARB strings
+  for hint / no-results / match-count in en + de.
 
 #### Tier B — high impact, higher cost
 

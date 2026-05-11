@@ -1122,9 +1122,11 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       );
       appStateNotifier.completeTranscription(segments, performance: perf);
 
-      // Persist to history.
+      // Persist to history. Stash the new id on AppState so §5.1.3
+      // inline edits can propagate back to the same JSON file via
+      // historyService.update(...).
       try {
-        await ref.read(historyServiceProvider).save(
+        final saved = await ref.read(historyServiceProvider).save(
               engineId: engine?.engineId ?? 'unknown',
               segments: segments,
               sourcePath: filePath,
@@ -1135,6 +1137,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               processingTime: DateTime.now().difference(started),
               speakerNames: ref.read(appStateProvider).speakerNames,
             );
+        appStateNotifier.setHistoryEntryId(saved.id);
       } catch (e, st) {
         debugPrint('History save failed: $e\n$st');
       }

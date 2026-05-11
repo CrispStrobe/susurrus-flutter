@@ -325,6 +325,13 @@ class AppState {
   /// label is recoverable. Persisted into HistoryEntry on save so
   /// renames survive across launches.
   final Map<String, String> speakerNames;
+  /// History entry id of the most recent save. Set by the
+  /// transcription screen / batch drain loop after a successful
+  /// `historyService.save()`. Used by [editSegment] to propagate
+  /// inline edits back to the on-disk JSON (§5.1.3). Null while
+  /// transcription is mid-flight or when nothing has been saved
+  /// yet (e.g. an aborted run).
+  final String? historyEntryId;
 
   const AppState({
     this.currentTranscription,
@@ -334,6 +341,7 @@ class AppState {
     this.segments = const [],
     this.performance,
     this.speakerNames = const {},
+    this.historyEntryId,
   });
 
   AppState copyWith({
@@ -344,6 +352,7 @@ class AppState {
     List<TranscriptionSegment>? segments,
     PerformanceStats? performance,
     Map<String, String>? speakerNames,
+    String? historyEntryId,
   }) {
     return AppState(
       currentTranscription: currentTranscription ?? this.currentTranscription,
@@ -353,6 +362,7 @@ class AppState {
       segments: segments ?? this.segments,
       performance: performance ?? this.performance,
       speakerNames: speakerNames ?? this.speakerNames,
+      historyEntryId: historyEntryId ?? this.historyEntryId,
     );
   }
 }
@@ -410,12 +420,14 @@ class AppStateNotifier extends StateNotifier<AppState> {
   AppStateNotifier() : super(const AppState());
 
   void startTranscription() {
-    state = state.copyWith(
+    // Direct AppState() construction (not copyWith) so a previous
+    // run's `historyEntryId` is genuinely cleared rather than
+    // carried forward by the `?? this.field` fallback in copyWith.
+    // Without this, inline edits made on a fresh transcription
+    // would overwrite the previously-saved entry on disk (§5.1.3).
+    state = const AppState(
       isTranscribing: true,
       progress: 0.0,
-      errorMessage: null,
-      segments: [], // Clear previous segments
-      speakerNames: const {}, // Drop renames from previous run
     );
   }
 
@@ -502,6 +514,23 @@ class AppStateNotifier extends StateNotifier<AppState> {
     state = state.copyWith(
       segments: segments,
       currentTranscription: segments.map((s) => s.text).join(' ').trim(),
+    );
+  }
+
+  /// §5.1.3 — clear the saved history id, e.g. when starting a
+  /// new transcription. Without this, post-restart edits on a
+  /// fresh transcription would overwrite the previously-saved
+  /// entry.
+  void setHistoryEntryId(String? id) {
+    state = AppState(
+      currentTranscription: state.currentTranscription,
+      isTranscribing: state.isTranscribing,
+      progress: state.progress,
+      errorMessage: state.errorMessage,
+      segments: state.segments,
+      performance: state.performance,
+      speakerNames: state.speakerNames,
+      historyEntryId: id,
     );
   }
 }

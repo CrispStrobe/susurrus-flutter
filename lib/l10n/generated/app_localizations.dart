@@ -1574,6 +1574,24 @@ abstract class AppLocalizations {
   /// **'Clear all'**
   String get historyClearAll;
 
+  /// No description provided for @historySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search title or transcript…'**
+  String get historySearchHint;
+
+  /// No description provided for @historySearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No history entries match \"{query}\"'**
+  String historySearchNoResults(String query);
+
+  /// No description provided for @historySearchMatchCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{matched, plural, =1{1 of {total} matched} other{{matched} of {total} matched}}'**
+  String historySearchMatchCount(int matched, int total);
+
   /// No description provided for @historyClearAllPrompt.
   ///
   /// In en, this message translates to:
