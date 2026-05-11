@@ -15,6 +15,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/transcription_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/cloud_llm_settings_screen.dart';
+import 'screens/hotkey_settings_screen.dart';
+import 'screens/local_llm_settings_screen.dart';
 import 'screens/model_management_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/logs_screen.dart';
@@ -224,6 +227,29 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+        routes: [
+          // Phone-form sub-screens — wide layouts still see the
+          // dialogs in settings_screen.dart. The branch lives
+          // on the calling ListTile's onTap (isPhoneWidth ?
+          // context.push : showDialog), so these routes are
+          // never reached on desktop unless somebody types the
+          // URL by hand — which still works.
+          GoRoute(
+            path: 'cloud-llm',
+            name: 'settings-cloud-llm',
+            builder: (context, state) => const CloudLlmSettingsScreen(),
+          ),
+          GoRoute(
+            path: 'local-llm',
+            name: 'settings-local-llm',
+            builder: (context, state) => const LocalLlmSettingsScreen(),
+          ),
+          GoRoute(
+            path: 'hotkey',
+            name: 'settings-hotkey',
+            builder: (context, state) => const HotkeySettingsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/models',

@@ -108,12 +108,35 @@ without rewriting the existing layouts:
   destinations (Models / Synthesize / Translate / Logs / About)
   stay reachable via the AppBar overflow menu.
 
-Tracked follow-up: convert the Cloud LLM / Local LLM / Hotkey
-*dialogs* into pushable sub-screens on phones (Settings →
-sub-page model that matches iOS / Android native conventions).
-Left for a future pass — the dialog-width clamp already makes
-them functional on phones, and the sub-screen lift is
-larger-impact than the rest of this batch put together.
+### Responsive UI — Settings sub-screens on mobile (May 2026)
+
+Follow-up to the responsive-UI pass above: the Cloud LLM /
+Local LLM / Hotkey *dialogs* now convert to pushable sub-screens
+on phone-width viewports, matching iOS / Android Settings
+conventions. Wide layouts still see the original dialogs.
+
+- Three new form widgets — `CloudLlmSettingsForm`,
+  `LocalLlmSettingsForm`, `HotkeySettingsForm` — own the
+  TextEditingControllers + slider state and expose `save()` /
+  `clear()` via a GlobalKey<…FormState>. Both the wide-layout
+  AlertDialog and the new phone-form Scaffold consume the same
+  form widget, so behaviour stays identical across surfaces.
+- Three new sub-screen routes: `/settings/cloud-llm`,
+  `/settings/local-llm`, `/settings/hotkey`. Save/Clear actions
+  live in the AppBar; the leading back button discards in-flight
+  edits (matches the dialogs' Cancel).
+- Each Settings ListTile branches on `isPhoneWidth(context)` —
+  push the route on phones, show the dialog on wide. The branch
+  is the only call-site change; the rest of the refactor is
+  pure widget-extraction.
+- The Hotkey form keeps its commit-time validation: an invalid
+  combo while enabled returns a `HotkeySaveResult.invalidCombo`
+  instead of silently committing. Both containers surface the
+  rejection as a SnackBar.
+
+8 new widget tests cover the form-widget contracts
+(value rendering, save-time trimming, clear-and-fire, hotkey
+validation gating). Full test suite: 333 pass (was 325, +8).
 
 ### Performance — Metal cold start (CrispASR upstream)
 

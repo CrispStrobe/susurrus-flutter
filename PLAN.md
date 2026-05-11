@@ -179,17 +179,13 @@ Open items only below.
   v3 once a curation decision is made on which models to
   ship in the list.
 
-* **Responsive UI — phone sub-screens for Settings dialogs** —
-  the responsive-UI pass (CHANGELOG → "Responsive UI") landed
-  width-clamped dialogs + AppBar overflow + main-screen tabs +
-  phone NavigationBar. What's still pending is converting the
-  Cloud LLM / Local LLM / Hotkey *dialogs* into pushable
-  sub-screens on phones (matching iOS / Android native Settings
-  conventions). On wide widths they'd stay as dialogs; on
-  phones, tapping the corresponding Settings tile would push to
-  `/settings/cloud-llm` / `/settings/local-llm` /
-  `/settings/hotkey`. Half-day; mostly factoring the existing
-  dialog bodies into reusable widgets the routes can host.
+* ~~**Responsive UI — phone sub-screens for Settings dialogs**~~
+  — **shipped May 2026**. The Cloud LLM / Local LLM / Hotkey
+  dialogs now route to dedicated sub-screens
+  (`/settings/cloud-llm` / `/settings/local-llm` /
+  `/settings/hotkey`) on phone-width viewports, sharing the
+  same form-widget body with the wide-layout dialogs. See
+  CHANGELOG → "Responsive UI — Settings sub-screens on mobile".
 
 * **5.1.9 Subtitle burning into video** — User selects a video
   file + transcript, gets a video with hardcoded subs. FFmpeg

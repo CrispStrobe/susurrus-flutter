@@ -18,6 +18,9 @@ import '../services/model_service.dart';
 import '../services/server_service.dart';
 import '../services/settings_service.dart';
 import '../utils/responsive.dart';
+import '../widgets/cloud_llm_settings_form.dart';
+import '../widgets/hotkey_settings_form.dart';
+import '../widgets/local_llm_settings_form.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -670,7 +673,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : '${settings.hotkeyCombo} '
                     '(${settings.hotkeyAction == HotkeyAction.pushToTalk ? AppLocalizations.of(context).settingsHotkeyActionPushToTalk : AppLocalizations.of(context).settingsHotkeyActionToggle})'),
             trailing: const Icon(Icons.keyboard),
-            onTap: () => _showHotkeyDialog(settings),
+            onTap: () async {
+              if (isPhoneWidth(context)) {
+                await context.push('/settings/hotkey');
+                if (mounted) setState(() {});
+              } else {
+                _showHotkeyDialog(settings);
+              }
+            },
           ),
         // §5.1.6 v2 — BYOK cloud-LLM cleanup settings.
         ListTile(
@@ -682,7 +692,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   .settingsCloudLlmCleanupOff
               : '${settings.cloudLlmModel} · ${settings.cloudLlmApiUrl}'),
           trailing: const Icon(Icons.cloud_outlined),
-          onTap: () => _showCloudLlmDialog(settings),
+          onTap: () async {
+            // Phone → push the sub-screen; wide → keep the
+            // existing dialog. Both paths share the same form
+            // widget, so behaviour stays identical.
+            if (isPhoneWidth(context)) {
+              await context.push('/settings/cloud-llm');
+              if (mounted) setState(() {});
+            } else {
+              _showCloudLlmDialog(settings);
+            }
+          },
         ),
         // §5.1.6 v3 — on-device chat-LLM cleanup settings.
         ListTile(
@@ -692,7 +712,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ? AppLocalizations.of(context).settingsLocalLlmCleanupOff
               : _shortGgufLabel(settings.localLlmModelPath)),
           trailing: const Icon(Icons.memory_outlined),
-          onTap: () => _showLocalLlmDialog(settings),
+          onTap: () async {
+            if (isPhoneWidth(context)) {
+              await context.push('/settings/local-llm');
+              if (mounted) setState(() {});
+            } else {
+              _showLocalLlmDialog(settings);
+            }
+          },
         ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
@@ -715,10 +742,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showCloudLlmDialog(SettingsService settings) {
     final l = AppLocalizations.of(context);
-    final urlCtl = TextEditingController(text: settings.cloudLlmApiUrl);
-    final keyCtl = TextEditingController(text: settings.cloudLlmApiKey);
-    final modelCtl =
-        TextEditingController(text: settings.cloudLlmModel);
+    final formKey = GlobalKey<CloudLlmSettingsFormState>();
     showDialog<void>(
       context: context,
       builder: (ctx) {
@@ -726,47 +750,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: Text(l.settingsCloudLlmCleanup),
           content: SizedBox(
             width: responsiveDialogWidth(ctx, designed: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l.settingsCloudLlmHelp,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: urlCtl,
-                  decoration: InputDecoration(
-                    labelText: l.settingsCloudLlmUrl,
-                    hintText:
-                        'https://api.openai.com/v1/chat/completions',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: keyCtl,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l.settingsCloudLlmKey,
-                    hintText: 'sk-…',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: modelCtl,
-                  decoration: InputDecoration(
-                    labelText: l.settingsCloudLlmModel,
-                    hintText: 'gpt-4o-mini',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-              ],
+            child: CloudLlmSettingsForm(
+              key: formKey,
+              initialApiUrl: settings.cloudLlmApiUrl,
+              initialApiKey: settings.cloudLlmApiKey,
+              initialModel: settings.cloudLlmModel,
+              onCommit: (url, key, model) {
+                setState(() {
+                  settings.cloudLlmApiUrl = url;
+                  settings.cloudLlmApiKey = key;
+                  settings.cloudLlmModel = model;
+                });
+              },
+              onCleared: () {
+                setState(() {
+                  settings.cloudLlmApiUrl = '';
+                  settings.cloudLlmApiKey = '';
+                  settings.cloudLlmModel = 'gpt-4o-mini';
+                });
+              },
             ),
           ),
           actions: [
@@ -775,23 +777,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Text(l.cancel)),
             TextButton(
                 onPressed: () {
-                  setState(() {
-                    settings.cloudLlmApiUrl = '';
-                    settings.cloudLlmApiKey = '';
-                    settings.cloudLlmModel = 'gpt-4o-mini';
-                  });
+                  formKey.currentState?.clear();
                   Navigator.of(ctx).pop();
                 },
                 child: Text(l.settingsCloudLlmClear)),
             FilledButton(
                 onPressed: () {
-                  setState(() {
-                    settings.cloudLlmApiUrl = urlCtl.text.trim();
-                    settings.cloudLlmApiKey = keyCtl.text.trim();
-                    final m = modelCtl.text.trim();
-                    settings.cloudLlmModel =
-                        m.isEmpty ? 'gpt-4o-mini' : m;
-                  });
+                  formKey.currentState?.save();
                   Navigator.of(ctx).pop();
                 },
                 child: Text(l.save)),
@@ -806,185 +798,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// fields — the local path doesn't need them.
   void _showLocalLlmDialog(SettingsService settings) {
     final l = AppLocalizations.of(context);
-    // Local working copies of the advanced params so the user
-    // can play with sliders without committing until Save.
-    var modelPath = settings.localLlmModelPath;
-    var nGpuLayers = settings.localLlmNGpuLayers;
-    var nCtx = settings.localLlmNCtx;
-    var nThreads = settings.localLlmNThreads;
-    var maxTokens = settings.localLlmMaxTokens;
-    var temperature = settings.localLlmTemperature;
-
+    final formKey = GlobalKey<LocalLlmSettingsFormState>();
     showDialog<void>(
       context: context,
       builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setLocal) {
-          Future<void> pickModel() async {
-            final picked = await FilePicker.pickFiles(
-              dialogTitle: l.settingsLocalLlmModelPick,
-              type: FileType.custom,
-              allowedExtensions: const ['gguf'],
-            );
-            final p = picked?.files.single.path;
-            if (p == null || p.isEmpty) return;
-            setLocal(() => modelPath = p);
-          }
-
-          return AlertDialog(
-            title: Text(l.settingsLocalLlmCleanup),
-            content: SizedBox(
-              width: responsiveDialogWidth(ctx, designed: 560),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l.settingsLocalLlmHelp,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade700)),
-                    const SizedBox(height: 12),
-                    Text(l.settingsLocalLlmModelPath,
-                        style:
-                            Theme.of(context).textTheme.bodyMedium),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            modelPath.isEmpty
-                                ? l.settingsLocalLlmModelPathEmpty
-                                : modelPath,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: modelPath.isEmpty
-                                  ? Colors.grey.shade600
-                                  : null,
-                              fontFamily: 'monospace',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.folder_open, size: 16),
-                          label: Text(l.settingsLocalLlmModelPick),
-                          onPressed: pickModel,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      title: Text(l.settingsLocalLlmAdvanced),
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          nGpuLayers == -1
-                              ? l.settingsLocalLlmNGpuLayersAll
-                              : l.settingsLocalLlmNGpuLayers(nGpuLayers),
-                          style:
-                              Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Slider(
-                          min: -1,
-                          max: 99,
-                          divisions: 100,
-                          value: nGpuLayers.toDouble().clamp(-1, 99),
-                          label: nGpuLayers == -1 ? 'all' : '$nGpuLayers',
-                          onChanged: (v) =>
-                              setLocal(() => nGpuLayers = v.round()),
-                        ),
-                        Text(l.settingsLocalLlmNGpuLayersHelp,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade700)),
-                        const SizedBox(height: 8),
-                        Text(
-                          nCtx == 0
-                              ? l.settingsLocalLlmNCtxDefault
-                              : l.settingsLocalLlmNCtx(nCtx),
-                          style:
-                              Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Slider(
-                          min: 0,
-                          max: 32768,
-                          divisions: 64,
-                          value: nCtx.toDouble().clamp(0, 32768),
-                          label: nCtx == 0 ? 'auto' : '$nCtx',
-                          onChanged: (v) {
-                            // Snap to multiples of 512 for the
-                            // common-case context sizes; 0 is
-                            // the "model default" anchor.
-                            final snapped = (v / 512).round() * 512;
-                            setLocal(() => nCtx = snapped);
-                          },
-                        ),
-                        Text(l.settingsLocalLlmNCtxHelp,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade700)),
-                        const SizedBox(height: 8),
-                        Text(
-                          nThreads == 0
-                              ? l.settingsLocalLlmNThreadsAuto
-                              : l.settingsLocalLlmNThreads(nThreads),
-                          style:
-                              Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Slider(
-                          min: 0,
-                          max: 32,
-                          divisions: 32,
-                          value: nThreads.toDouble().clamp(0, 32),
-                          label:
-                              nThreads == 0 ? 'auto' : '$nThreads',
-                          onChanged: (v) =>
-                              setLocal(() => nThreads = v.round()),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(l.settingsLocalLlmMaxTokens(maxTokens),
-                            style:
-                                Theme.of(context).textTheme.bodySmall),
-                        Slider(
-                          min: 64,
-                          max: 4096,
-                          divisions: 63,
-                          value: maxTokens.toDouble().clamp(64, 4096),
-                          label: '$maxTokens',
-                          onChanged: (v) =>
-                              setLocal(() => maxTokens = v.round()),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                            l.settingsLocalLlmTemperature(
-                                temperature.toStringAsFixed(2)),
-                            style:
-                                Theme.of(context).textTheme.bodySmall),
-                        Slider(
-                          min: 0.0,
-                          max: 2.0,
-                          divisions: 40,
-                          value: temperature.clamp(0.0, 2.0),
-                          label: temperature.toStringAsFixed(2),
-                          onChanged: (v) =>
-                              setLocal(() => temperature = v),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(l.cancel)),
-              TextButton(
-                onPressed: () {
-                  // Reset to defaults, including clearing the
-                  // path so the feature falls back to Off.
+        return AlertDialog(
+          title: Text(l.settingsLocalLlmCleanup),
+          content: SizedBox(
+            width: responsiveDialogWidth(ctx, designed: 560),
+            child: SingleChildScrollView(
+              child: LocalLlmSettingsForm(
+                key: formKey,
+                initialModelPath: settings.localLlmModelPath,
+                initialNGpuLayers: settings.localLlmNGpuLayers,
+                initialNCtx: settings.localLlmNCtx,
+                initialNThreads: settings.localLlmNThreads,
+                initialMaxTokens: settings.localLlmMaxTokens,
+                initialTemperature: settings.localLlmTemperature,
+                onCommit: (path, gpu, ctx2, threads, maxT, temp) {
+                  setState(() {
+                    settings.localLlmModelPath = path;
+                    settings.localLlmNGpuLayers = gpu;
+                    settings.localLlmNCtx = ctx2;
+                    settings.localLlmNThreads = threads;
+                    settings.localLlmMaxTokens = maxT;
+                    settings.localLlmTemperature = temp;
+                  });
+                },
+                onCleared: () {
                   setState(() {
                     settings.localLlmModelPath = '';
                     settings.localLlmNGpuLayers = -1;
@@ -993,27 +834,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     settings.localLlmMaxTokens = 512;
                     settings.localLlmTemperature = 0.0;
                   });
-                  Navigator.of(ctx).pop();
                 },
-                child: Text(l.settingsLocalLlmModelClear),
               ),
-              FilledButton(
-                onPressed: () {
-                  setState(() {
-                    settings.localLlmModelPath = modelPath.trim();
-                    settings.localLlmNGpuLayers = nGpuLayers;
-                    settings.localLlmNCtx = nCtx;
-                    settings.localLlmNThreads = nThreads;
-                    settings.localLlmMaxTokens = maxTokens;
-                    settings.localLlmTemperature = temperature;
-                  });
-                  Navigator.of(ctx).pop();
-                },
-                child: Text(l.save),
-              ),
-            ],
-          );
-        });
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.cancel)),
+            TextButton(
+              onPressed: () {
+                formKey.currentState?.clear();
+                Navigator.of(ctx).pop();
+              },
+              child: Text(l.settingsLocalLlmModelClear),
+            ),
+            FilledButton(
+              onPressed: () {
+                formKey.currentState?.save();
+                Navigator.of(ctx).pop();
+              },
+              child: Text(l.save),
+            ),
+          ],
+        );
       },
     );
   }
@@ -1027,112 +871,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// recorder.
   void _showHotkeyDialog(SettingsService settings) {
     final l = AppLocalizations.of(context);
-    final comboCtl = TextEditingController(text: settings.hotkeyCombo);
-    bool enabled = settings.hotkeyEnabled;
-    HotkeyAction action = settings.hotkeyAction;
+    final formKey = GlobalKey<HotkeySettingsFormState>();
     showDialog<void>(
       context: context,
       builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setDialog) {
-          return AlertDialog(
-            title: Text(l.settingsHotkey),
-            content: SizedBox(
-              width: responsiveDialogWidth(ctx, designed: 480),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(l.settingsHotkeyHelp,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade700)),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    title: Text(l.settingsHotkeyEnable),
-                    value: enabled,
-                    onChanged: (v) => setDialog(() => enabled = v),
-                  ),
-                  TextField(
-                    controller: comboCtl,
-                    decoration: InputDecoration(
-                      labelText: l.settingsHotkeyCombo,
-                      hintText: 'meta+shift+space',
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(l.settingsHotkeyBehavior,
-                      style:
-                          Theme.of(context).textTheme.titleSmall),
-                  RadioGroup<HotkeyAction>(
-                    groupValue: action,
-                    onChanged: (v) {
-                      if (v != null) setDialog(() => action = v);
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        RadioListTile<HotkeyAction>(
-                          dense: true,
-                          title: Text(
-                              l.settingsHotkeyActionPushToTalk),
-                          subtitle: Text(
-                              l.settingsHotkeyActionPushToTalkHelp,
-                              style:
-                                  const TextStyle(fontSize: 11)),
-                          value: HotkeyAction.pushToTalk,
-                        ),
-                        RadioListTile<HotkeyAction>(
-                          dense: true,
-                          title:
-                              Text(l.settingsHotkeyActionToggle),
-                          subtitle: Text(
-                              l.settingsHotkeyActionToggleHelp,
-                              style:
-                                  const TextStyle(fontSize: 11)),
-                          value: HotkeyAction.toggle,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        return AlertDialog(
+          title: Text(l.settingsHotkey),
+          content: SizedBox(
+            width: responsiveDialogWidth(ctx, designed: 480),
+            child: HotkeySettingsForm(
+              key: formKey,
+              initialEnabled: settings.hotkeyEnabled,
+              initialCombo: settings.hotkeyCombo,
+              initialAction: settings.hotkeyAction,
+              onCommit: (enabled, combo, action) {
+                setState(() {
+                  settings.hotkeyEnabled = enabled;
+                  settings.hotkeyCombo = combo;
+                  settings.hotkeyAction = action;
+                });
+              },
             ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(l.cancel)),
-              FilledButton(
-                onPressed: () async {
-                  final combo = comboCtl.text.trim();
-                  // Validate first — refuse to save garbage
-                  // that would silently disable the hotkey on
-                  // next start.
-                  if (enabled &&
-                      combo.isNotEmpty &&
-                      HotkeyService.parse(combo) == null) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                      content: Text(l.settingsHotkeyInvalid(combo)),
-                    ));
-                    return;
-                  }
-                  setState(() {
-                    settings.hotkeyEnabled = enabled;
-                    settings.hotkeyCombo = combo;
-                    settings.hotkeyAction = action;
-                  });
-                  // Re-register with the freshly-saved values.
-                  await ref
-                      .read(hotkeyServiceProvider)
-                      .applyFromSettings();
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                },
-                child: Text(l.save),
-              ),
-            ],
-          );
-        });
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.cancel)),
+            FilledButton(
+              onPressed: () async {
+                final res = formKey.currentState?.save();
+                if (res == null) return;
+                if (!res.ok) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: Text(
+                        l.settingsHotkeyInvalid(res.invalidCombo!)),
+                  ));
+                  return;
+                }
+                // Re-register with the freshly-saved values.
+                await ref
+                    .read(hotkeyServiceProvider)
+                    .applyFromSettings();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: Text(l.save),
+            ),
+          ],
+        );
       },
     );
   }
