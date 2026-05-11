@@ -2096,6 +2096,102 @@ abstract class AppLocalizations {
   /// **'Marked split point at {time}.'**
   String editAudioSegmentMarkedForCut(String time);
 
+  /// No description provided for @outputCleanup.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy transcript…'**
+  String get outputCleanup;
+
+  /// No description provided for @outputCleanupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy transcript'**
+  String get outputCleanupTitle;
+
+  /// No description provided for @outputCleanupHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Deterministic cleanup of common ASR artifacts. Pick what to apply, preview the result, then Apply to all.'**
+  String get outputCleanupHelp;
+
+  /// No description provided for @outputCleanupRemoveFillers.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove filler words (um, uh, ah, …)'**
+  String get outputCleanupRemoveFillers;
+
+  /// No description provided for @outputCleanupCollapseRepeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse repeated words (the the → the)'**
+  String get outputCleanupCollapseRepeats;
+
+  /// No description provided for @outputCleanupSentenceCase.
+  ///
+  /// In en, this message translates to:
+  /// **'Capitalise sentence starts'**
+  String get outputCleanupSentenceCase;
+
+  /// No description provided for @outputCleanupFixPunctuation.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix punctuation (… , doubled commas, stray dots)'**
+  String get outputCleanupFixPunctuation;
+
+  /// No description provided for @outputCleanupNormalizeWhitespace.
+  ///
+  /// In en, this message translates to:
+  /// **'Normalise whitespace'**
+  String get outputCleanupNormalizeWhitespace;
+
+  /// No description provided for @outputCleanupStripAnnotations.
+  ///
+  /// In en, this message translates to:
+  /// **'Strip annotation tags'**
+  String get outputCleanupStripAnnotations;
+
+  /// No description provided for @outputCleanupStripAnnotationsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes [laughter], (applause), <noise>. Off by default — useful for accessibility.'**
+  String get outputCleanupStripAnnotationsHelp;
+
+  /// No description provided for @outputCleanupCustomFillers.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom filler words'**
+  String get outputCleanupCustomFillers;
+
+  /// No description provided for @outputCleanupCustomFillersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma- or space-separated, e.g. like, basically, you know'**
+  String get outputCleanupCustomFillersHint;
+
+  /// No description provided for @outputCleanupPreviewHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview (first 3 segments)'**
+  String get outputCleanupPreviewHeading;
+
+  /// No description provided for @outputCleanupPreviewEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No segments to preview.'**
+  String get outputCleanupPreviewEmpty;
+
+  /// No description provided for @outputCleanupApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to all'**
+  String get outputCleanupApply;
+
+  /// No description provided for @outputCleanupApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup applied to {n} segment(s).'**
+  String outputCleanupApplied(int n);
+
   /// No description provided for @outputEditSegmentInAudioEditor.
   ///
   /// In en, this message translates to:

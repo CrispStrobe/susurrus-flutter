@@ -356,13 +356,37 @@ is what's missing — ranked by impact ÷ effort.
   audio capture (§5.1.1), which is a separate feature and
   tracked for replacement with a native WASAPI plugin.
 
-* **5.1.6 LLM post-editing pass** — "Clean up this transcript"
-  button that runs segments through a local LLM (capitalize,
-  remove "um"s, fix obvious mishearings) OR via
-  Anthropic/OpenAI API for cloud users. CrisperWeaver has audio-
-  LLMs (voxtral, granite) but they're audio-instruction-tuned;
-  a small text LLM (Qwen2.5-1.5B-Instruct, ~1 GB) added to the
-  engine pool would be the right tool. ~3–4 days inc. UI.
+* **5.1.6 "Tidy transcript" deterministic pass — shipped May
+  2026.** Pure-Dart `TranscriptCleanupService` runs over every
+  segment in AppState:
+    - removeFillers — strip um/uh/ah/etc. (per-language default
+      set + custom additions, case-insensitive, word-boundary
+      matching so "Hummingbird" survives).
+    - collapseRepeats — "the the cat" → "the cat", repeat-
+      replace until stable for runs.
+    - normalizeWhitespace — multi-space → one, trim,
+      strip-space-before-punctuation.
+    - fixPunctuation — `..` → `.` (preserves three-dot
+      ellipsis), `,,` → `,`, `,.` → `.`.
+    - sentenceCase — capitalise after `.`/`?`/`!`, unicode-
+      aware (über → Über), skips content inside `[]`/`()`/`<>`.
+    - stripAnnotations — off by default (accessibility), strips
+      `[laughter]`/`(applause)`/`<noise>` on opt-in.
+  Reached from the transcript more-actions menu → "Tidy
+  transcript…" → dialog with toggles + custom-fillers field +
+  before/after preview of the first three segments → "Apply to
+  all". Applied edits persist via the existing
+  `AppState.editSegment` + HistoryService.update path so the
+  edits survive a reload. 33 hermetic tests pin each transform
+  individually plus the composed pipeline.
+
+  **Deferred to a follow-up:** LLM-driven v2 (Qwen2.5-1.5B-
+  Instruct or cloud Anthropic/OpenAI API) that does context-
+  aware fixes — mis-hearings of named entities, sentence-
+  boundary inference, terminology consistency. Will layer onto
+  the same `CleanupOptions` surface with an additional
+  `runLLMPass: true` flag once a text-LLM engine joins the
+  pool. ~3–4 days inc. UI when picked up.
 
 * **5.1.7 Templates / presets** — Save current `(model,
   AdvancedOptions, export formats)` as named preset. "Podcast

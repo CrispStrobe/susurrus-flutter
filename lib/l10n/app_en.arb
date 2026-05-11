@@ -546,6 +546,25 @@
   "@editAudioSegmentMarkedForCut": {
     "placeholders": { "time": { "type": "String" } }
   },
+  "outputCleanup": "Tidy transcript…",
+  "outputCleanupTitle": "Tidy transcript",
+  "outputCleanupHelp": "Deterministic cleanup of common ASR artifacts. Pick what to apply, preview the result, then Apply to all.",
+  "outputCleanupRemoveFillers": "Remove filler words (um, uh, ah, …)",
+  "outputCleanupCollapseRepeats": "Collapse repeated words (the the → the)",
+  "outputCleanupSentenceCase": "Capitalise sentence starts",
+  "outputCleanupFixPunctuation": "Fix punctuation (… , doubled commas, stray dots)",
+  "outputCleanupNormalizeWhitespace": "Normalise whitespace",
+  "outputCleanupStripAnnotations": "Strip annotation tags",
+  "outputCleanupStripAnnotationsHelp": "Removes [laughter], (applause), <noise>. Off by default — useful for accessibility.",
+  "outputCleanupCustomFillers": "Custom filler words",
+  "outputCleanupCustomFillersHint": "Comma- or space-separated, e.g. like, basically, you know",
+  "outputCleanupPreviewHeading": "Preview (first 3 segments)",
+  "outputCleanupPreviewEmpty": "No segments to preview.",
+  "outputCleanupApply": "Apply to all",
+  "outputCleanupApplied": "Cleanup applied to {n} segment(s).",
+  "@outputCleanupApplied": {
+    "placeholders": { "n": { "type": "int" } }
+  },
   "outputEditSegmentInAudioEditor": "Edit this segment in audio editor",
   "outputMarkSegmentInAudioEditor": "Mark for split in audio editor",
   "editAudioSegmentSelected": "Selection set: {start} – {end}.",

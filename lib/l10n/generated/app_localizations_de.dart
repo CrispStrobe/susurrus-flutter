@@ -1195,6 +1195,61 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get outputCleanup => 'Transkript aufräumen…';
+
+  @override
+  String get outputCleanupTitle => 'Transkript aufräumen';
+
+  @override
+  String get outputCleanupHelp =>
+      'Deterministische Bereinigung typischer ASR-Artefakte. Wähle die gewünschten Schritte, prüfe die Vorschau, dann auf alle anwenden.';
+
+  @override
+  String get outputCleanupRemoveFillers => 'Füllwörter entfernen (äh, ähm, …)';
+
+  @override
+  String get outputCleanupCollapseRepeats =>
+      'Wiederholte Wörter zusammenführen (die die → die)';
+
+  @override
+  String get outputCleanupSentenceCase => 'Satzanfänge großschreiben';
+
+  @override
+  String get outputCleanupFixPunctuation =>
+      'Zeichensetzung korrigieren (doppelte Kommas, Streupunkte)';
+
+  @override
+  String get outputCleanupNormalizeWhitespace => 'Leerzeichen normalisieren';
+
+  @override
+  String get outputCleanupStripAnnotations => 'Annotations-Tags entfernen';
+
+  @override
+  String get outputCleanupStripAnnotationsHelp =>
+      'Entfernt [Lachen], (Applaus), <Geräusch>. Standardmäßig aus — nützlich für Barrierefreiheit.';
+
+  @override
+  String get outputCleanupCustomFillers => 'Eigene Füllwörter';
+
+  @override
+  String get outputCleanupCustomFillersHint =>
+      'Mit Komma oder Leerzeichen getrennt, z. B. quasi, sozusagen, halt';
+
+  @override
+  String get outputCleanupPreviewHeading => 'Vorschau (erste 3 Segmente)';
+
+  @override
+  String get outputCleanupPreviewEmpty => 'Keine Segmente vorhanden.';
+
+  @override
+  String get outputCleanupApply => 'Auf alle anwenden';
+
+  @override
+  String outputCleanupApplied(int n) {
+    return '$n Segment(e) bereinigt.';
+  }
+
+  @override
   String get outputEditSegmentInAudioEditor =>
       'Dieses Segment im Audio-Editor bearbeiten';
 

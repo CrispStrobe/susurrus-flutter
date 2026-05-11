@@ -1186,6 +1186,62 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get outputCleanup => 'Tidy transcript…';
+
+  @override
+  String get outputCleanupTitle => 'Tidy transcript';
+
+  @override
+  String get outputCleanupHelp =>
+      'Deterministic cleanup of common ASR artifacts. Pick what to apply, preview the result, then Apply to all.';
+
+  @override
+  String get outputCleanupRemoveFillers =>
+      'Remove filler words (um, uh, ah, …)';
+
+  @override
+  String get outputCleanupCollapseRepeats =>
+      'Collapse repeated words (the the → the)';
+
+  @override
+  String get outputCleanupSentenceCase => 'Capitalise sentence starts';
+
+  @override
+  String get outputCleanupFixPunctuation =>
+      'Fix punctuation (… , doubled commas, stray dots)';
+
+  @override
+  String get outputCleanupNormalizeWhitespace => 'Normalise whitespace';
+
+  @override
+  String get outputCleanupStripAnnotations => 'Strip annotation tags';
+
+  @override
+  String get outputCleanupStripAnnotationsHelp =>
+      'Removes [laughter], (applause), <noise>. Off by default — useful for accessibility.';
+
+  @override
+  String get outputCleanupCustomFillers => 'Custom filler words';
+
+  @override
+  String get outputCleanupCustomFillersHint =>
+      'Comma- or space-separated, e.g. like, basically, you know';
+
+  @override
+  String get outputCleanupPreviewHeading => 'Preview (first 3 segments)';
+
+  @override
+  String get outputCleanupPreviewEmpty => 'No segments to preview.';
+
+  @override
+  String get outputCleanupApply => 'Apply to all';
+
+  @override
+  String outputCleanupApplied(int n) {
+    return 'Cleanup applied to $n segment(s).';
+  }
+
+  @override
   String get outputEditSegmentInAudioEditor =>
       'Edit this segment in audio editor';
 

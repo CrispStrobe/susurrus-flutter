@@ -543,6 +543,25 @@
   "@editAudioSegmentMarkedForCut": {
     "placeholders": { "time": { "type": "String" } }
   },
+  "outputCleanup": "Transkript aufräumen…",
+  "outputCleanupTitle": "Transkript aufräumen",
+  "outputCleanupHelp": "Deterministische Bereinigung typischer ASR-Artefakte. Wähle die gewünschten Schritte, prüfe die Vorschau, dann auf alle anwenden.",
+  "outputCleanupRemoveFillers": "Füllwörter entfernen (äh, ähm, …)",
+  "outputCleanupCollapseRepeats": "Wiederholte Wörter zusammenführen (die die → die)",
+  "outputCleanupSentenceCase": "Satzanfänge großschreiben",
+  "outputCleanupFixPunctuation": "Zeichensetzung korrigieren (doppelte Kommas, Streupunkte)",
+  "outputCleanupNormalizeWhitespace": "Leerzeichen normalisieren",
+  "outputCleanupStripAnnotations": "Annotations-Tags entfernen",
+  "outputCleanupStripAnnotationsHelp": "Entfernt [Lachen], (Applaus), <Geräusch>. Standardmäßig aus — nützlich für Barrierefreiheit.",
+  "outputCleanupCustomFillers": "Eigene Füllwörter",
+  "outputCleanupCustomFillersHint": "Mit Komma oder Leerzeichen getrennt, z. B. quasi, sozusagen, halt",
+  "outputCleanupPreviewHeading": "Vorschau (erste 3 Segmente)",
+  "outputCleanupPreviewEmpty": "Keine Segmente vorhanden.",
+  "outputCleanupApply": "Auf alle anwenden",
+  "outputCleanupApplied": "{n} Segment(e) bereinigt.",
+  "@outputCleanupApplied": {
+    "placeholders": { "n": { "type": "int" } }
+  },
   "outputEditSegmentInAudioEditor": "Dieses Segment im Audio-Editor bearbeiten",
   "outputMarkSegmentInAudioEditor": "Im Audio-Editor als Splitmarke setzen",
   "editAudioSegmentSelected": "Auswahl gesetzt: {start} – {end}.",
