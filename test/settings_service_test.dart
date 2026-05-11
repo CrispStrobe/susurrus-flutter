@@ -98,5 +98,37 @@ void main() {
             reason: 'LogLevel.$lv did not round-trip');
       }
     });
+
+    test('maxConcurrentTranscriptions defaults to 1', () {
+      expect(svc.maxConcurrentTranscriptions, 1);
+    });
+
+    test('maxConcurrentTranscriptions persists across instances', () {
+      svc.maxConcurrentTranscriptions = 2;
+      expect(SettingsService(prefs).maxConcurrentTranscriptions, 2);
+    });
+
+    test('maxConcurrentTranscriptions clamps below to 1', () {
+      svc.maxConcurrentTranscriptions = 0;
+      expect(svc.maxConcurrentTranscriptions, 1);
+      svc.maxConcurrentTranscriptions = -3;
+      expect(svc.maxConcurrentTranscriptions, 1);
+    });
+
+    test('maxConcurrentTranscriptions clamps above to the platform cap', () {
+      final cap = svc.maxConcurrentTranscriptionsLimit;
+      svc.maxConcurrentTranscriptions = cap + 1;
+      expect(svc.maxConcurrentTranscriptions, cap);
+      svc.maxConcurrentTranscriptions = 99;
+      expect(svc.maxConcurrentTranscriptions, cap);
+    });
+
+    test('maxConcurrentTranscriptionsLimit is sane on every host', () {
+      // iOS: 2 (tight memory budget). Everything else: 4 (Metal
+      // queue contention dominates beyond there).
+      final cap = svc.maxConcurrentTranscriptionsLimit;
+      expect(cap, anyOf(equals(2), equals(4)),
+          reason: 'unexpected platform cap value');
+    });
   });
 }

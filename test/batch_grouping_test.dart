@@ -156,7 +156,7 @@ void main() {
         durationProbe: (_) async => const Duration(milliseconds: 12500),
       );
 
-      final id = queue.enqueue('/tmp/foo.wav');
+      queue.enqueue('/tmp/foo.wav');
       // Probe is unawaited; let the microtask queue drain.
       await settle();
 

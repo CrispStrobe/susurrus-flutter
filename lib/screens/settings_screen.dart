@@ -541,6 +541,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Group batch by backend: ${value ? "ON" : "OFF"}');
           },
         ),
+        // §5.23 Q2 — pipeline parallelism slider. 1 = current serial
+        // behaviour, 2..N = pre-decode next file's audio in a worker
+        // isolate while the current file's GPU work runs. Cap is
+        // platform-specific (2 on iOS, 4 elsewhere).
+        Builder(builder: (context) {
+          final n = settings.maxConcurrentTranscriptions;
+          final cap = settings.maxConcurrentTranscriptionsLimit;
+          return ListTile(
+            title: Text(AppLocalizations.of(context)
+                .settingsMaxConcurrentCurrent(n)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Slider(
+                  value: n.toDouble(),
+                  min: 1,
+                  max: cap.toDouble(),
+                  divisions: cap - 1,
+                  label: n.toString(),
+                  onChanged: (v) {
+                    setState(() =>
+                        settings.maxConcurrentTranscriptions = v.round());
+                  },
+                ),
+                Text(AppLocalizations.of(context)
+                    .settingsMaxConcurrentSubtitle),
+              ],
+            ),
+          );
+        }),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsHfToken),
           subtitle: Text(settings.hfToken.isEmpty

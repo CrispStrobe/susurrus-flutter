@@ -8,18 +8,26 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
+import 'audio_prefetch_service.dart';
 import 'log_service.dart';
 import 'settings_service.dart';
 
 /// Singleton-per-ProviderScope. Lives alongside [AudioService] so
 /// downstream services (BatchQueueNotifier, transcription pipeline)
 /// can wire to it without depending on main.dart's provider graph.
-final audioServiceProvider =
-    Provider<AudioService>((ref) => AudioService());
+final audioServiceProvider = Provider<AudioService>((ref) {
+  // Read the prefetch service eagerly so loadAudioFile can probe its
+  // cache before falling through to a synchronous decode (§5.23 Q2).
+  final prefetch = ref.read(audioPrefetchServiceProvider);
+  return AudioService(prefetch: prefetch);
+});
 
 class AudioService {
+  AudioService({AudioPrefetchService? prefetch}) : _prefetch = prefetch;
+
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
+  final AudioPrefetchService? _prefetch;
 
   bool get isRecording => _isRecording;
   bool _isRecording = false;
@@ -167,15 +175,40 @@ class AudioService {
     }
   }
 
-  /// Convert audio file to the required format for transcription
+  /// Convert audio file to the required format for transcription.
+  ///
+  /// §5.23 Q2 fast path: consult [AudioPrefetchService] for an
+  /// already-decoded sample buffer first. The drain loop calls
+  /// `prefetch(nextPath)` while the current file is mid-
+  /// transcription, so by the time we reach loadAudioFile for the
+  /// next file the decode work has already happened in a worker
+  /// isolate. Cache miss falls through to the synchronous FFI
+  /// decode below — same behaviour as v0.4 single-file runs.
   Future<AudioData> loadAudioFile(File audioFile) async {
     try {
-      // Load with just_audio to get duration and sample rate info
+      // Load with just_audio to get duration and sample rate info.
+      // This is also cheap (header-only) and runs in parallel with
+      // the prefetch consume below.
       await _player.setFilePath(audioFile.path);
       final duration = _player.duration?.inMilliseconds ?? 0;
 
-      // Convert to WAV format if needed
-      final wavData = await _convertToWav(audioFile);
+      WavData wavData;
+      final prefetched = await _prefetch?.consume(audioFile.path);
+      if (prefetched != null) {
+        Log.instance.d('audio', 'load: served from prefetch',
+            fields: {
+              'file': path.basename(audioFile.path),
+              'samples': prefetched.samples.length,
+            });
+        wavData = WavData(
+          samples: prefetched.samples,
+          sampleRate: prefetched.sampleRate,
+          channels: 1, // decodeAudioFile always returns mono
+        );
+      } else {
+        // Cache miss or prefetch failed — synchronous decode path.
+        wavData = await _convertToWav(audioFile);
+      }
 
       return AudioData(
         samples: wavData.samples,

@@ -25,6 +25,11 @@ void main() {
 
     tearDown(() async {
       queue.dispose();
+      // Drain in-flight unawaited persist writes — _persist is fired
+      // fire-and-forget from every state mutation; without this
+      // settle the tempDir delete races them and fails with
+      // FileSystemException on POSIX or sharing-violation on Windows.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }

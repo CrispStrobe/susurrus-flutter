@@ -35,6 +35,10 @@ void main() {
     });
 
     tearDown(() async {
+      // Settle in-flight unawaited writes (the service's per-id
+      // serializer chain still has pending whenComplete callbacks
+      // when a test ends mid-stream).
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }

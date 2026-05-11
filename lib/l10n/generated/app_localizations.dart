@@ -1112,6 +1112,24 @@ abstract class AppLocalizations {
   /// **'Reorder queued files so consecutive jobs reuse the same model session'**
   String get settingsGroupBatchByBackendSubtitle;
 
+  /// No description provided for @settingsMaxConcurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Concurrent transcriptions'**
+  String get settingsMaxConcurrent;
+
+  /// No description provided for @settingsMaxConcurrentCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Concurrent transcriptions: {n}'**
+  String settingsMaxConcurrentCurrent(int n);
+
+  /// No description provided for @settingsMaxConcurrentSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'1 = serial (current behaviour). 2+ pre-decodes the next file\'s audio in a worker isolate while the current file is being transcribed — extra parallelism without extra model copies in RAM.'**
+  String get settingsMaxConcurrentSubtitle;
+
   /// No description provided for @settingsOpenLogViewer.
   ///
   /// In en, this message translates to:

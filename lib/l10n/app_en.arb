@@ -255,6 +255,12 @@
   "settingsSkipChecksumSubtitle": "Accept downloaded models even if SHA-1 does not match",
   "settingsGroupBatchByBackend": "Group batch by backend",
   "settingsGroupBatchByBackendSubtitle": "Reorder queued files so consecutive jobs reuse the same model session",
+  "settingsMaxConcurrent": "Concurrent transcriptions",
+  "settingsMaxConcurrentCurrent": "Concurrent transcriptions: {n}",
+  "@settingsMaxConcurrentCurrent": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsMaxConcurrentSubtitle": "1 = serial (current behaviour). 2+ pre-decodes the next file's audio in a worker isolate while the current file is being transcribed — extra parallelism without extra model copies in RAM.",
   "settingsOpenLogViewer": "Open log viewer",
   "settingsSystemInfo": "System information",
   "settingsAbout": "About",

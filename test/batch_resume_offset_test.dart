@@ -127,6 +127,9 @@ void main() {
     });
 
     tearDown(() async {
+      // Settle in-flight unawaited persist writes before deleting
+      // the dir — fixes the same race the queue/grouping tests had.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }

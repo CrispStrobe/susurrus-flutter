@@ -255,6 +255,12 @@
   "settingsSkipChecksumSubtitle": "Heruntergeladene Modelle auch bei SHA-1-Abweichung akzeptieren",
   "settingsGroupBatchByBackend": "Stapel nach Backend gruppieren",
   "settingsGroupBatchByBackendSubtitle": "Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden",
+  "settingsMaxConcurrent": "Gleichzeitige Transkriptionen",
+  "settingsMaxConcurrentCurrent": "Gleichzeitige Transkriptionen: {n}",
+  "@settingsMaxConcurrentCurrent": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsMaxConcurrentSubtitle": "1 = seriell (bisheriges Verhalten). 2+ dekodiert die Audio-Daten der nächsten Datei in einem Worker-Isolate, während die aktuelle Datei transkribiert wird — zusätzliche Parallelität ohne weitere Modell-Kopien im RAM.",
   "settingsOpenLogViewer": "Protokoll-Ansicht öffnen",
   "settingsSystemInfo": "Systeminformation",
   "settingsAbout": "Über",

@@ -597,6 +597,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reorder queued files so consecutive jobs reuse the same model session';
 
   @override
+  String get settingsMaxConcurrent => 'Concurrent transcriptions';
+
+  @override
+  String settingsMaxConcurrentCurrent(int n) {
+    return 'Concurrent transcriptions: $n';
+  }
+
+  @override
+  String get settingsMaxConcurrentSubtitle =>
+      '1 = serial (current behaviour). 2+ pre-decodes the next file\'s audio in a worker isolate while the current file is being transcribed — extra parallelism without extra model copies in RAM.';
+
+  @override
   String get settingsOpenLogViewer => 'Open log viewer';
 
   @override

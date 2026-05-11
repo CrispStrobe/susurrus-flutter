@@ -415,10 +415,27 @@ launch-blocker; the rest are quality issues that surface in use.
   `BatchQueueNotifier` so unit tests stay hermetic. Queue card shows
   the sum as a "~ Xm" badge — "~" prefix when some probes haven't
   returned, exact when all measured. 12 new tests.
-* ⏳ **Q2 (parallel workers)** — Settings slider
-  `Concurrent transcriptions: 1–4`, per-isolate
-  `DynamicLibrary.open` + `CrispasrSession`; iOS clamp to 2 for
-  memory budget. ~1–2 days.
+* ✅ **Q2 v1 (pipeline parallelism)** — shipped.
+  `SettingsService.maxConcurrentTranscriptions` slider (1-4
+  desktop/Android, 1-2 iOS, persisted+clamped); when > 1 the drain
+  loop kicks off `AudioPrefetchService.prefetch(nextFilePath)` —
+  an `Isolate.run` worker decodes the audio in parallel with the
+  current file's GPU transcription. `AudioService.loadAudioFile`
+  consumes the cached PCM (or falls through to a synchronous
+  decode on cache miss). One session, one model copy, real win on
+  batches of compressed audio where decode is non-trivial wall
+  time. 9 new tests covering slider clamping + per-platform cap +
+  prefetch cache API.
+
+* ⏳ **Q2 v2 (true N-way session pool)** — deferred. The big
+  variant from the original design: N parallel `CrispasrSession`
+  instances each in its own isolate, true GPU-concurrent
+  transcription. Cost is N × model size in RAM (4× voxtral-4B is
+  ~12 GB — OOM on a 16 GB Mac), and Metal queue contention
+  serializes a lot of the win on Apple silicon anyway. Gate
+  behind a future "I have RAM to burn" affordance + a memory-
+  pressure pre-flight check. Maintained design notes in the
+  original §5.23 block below.
 
 **Q3 deferred sub-items:**
 

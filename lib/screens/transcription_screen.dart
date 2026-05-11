@@ -14,6 +14,7 @@ import '../utils/audio_utils.dart';
 import '../main.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/audio_prefetch_service.dart';
 import '../services/batch_queue_service.dart';
 import '../services/log_service.dart';
 import '../services/transcription_service.dart';
@@ -1165,19 +1166,44 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     }
 
     final persistence = queue.persistence;
+    final settings = ref.read(settingsServiceProvider);
     // §5.23 Q1: reorder queued jobs into (backend, modelId, language)
     // bundles when the setting is on so consecutive same-bundle jobs
     // reuse the loaded session. Stable within each bundle, so the
     // user's drag-and-drop order within one model still holds. Done /
     // error / running rows stay in place.
-    if (ref.read(settingsServiceProvider).groupBatchByBackend) {
+    if (settings.groupBatchByBackend) {
       queue.reorderByGrouping();
     }
+
+    // §5.23 Q2 pipeline parallelism: pre-decode the next queued
+    // file's audio in a worker isolate while the current file is
+    // mid-GPU. AudioService.loadAudioFile consumes the cached
+    // result if it's ready by the time we get there. Setting > 1
+    // enables; setting == 1 keeps the v0.4 serial behaviour.
+    final concurrent = settings.maxConcurrentTranscriptions;
+    final prefetchEnabled = concurrent > 1;
+    final prefetchService = prefetchEnabled
+        ? ref.read(audioPrefetchServiceProvider)
+        : null;
 
     while (true) {
       final next = queue.nextQueued();
       if (next == null) break;
       queue.setRunning(next.id);
+      // Kick off prefetch for the file AFTER the current one. The
+      // current file's loadAudioFile call may also consume an
+      // already-pending prefetch from the previous iteration.
+      // Reads `batchQueueProvider` (the public list view) rather
+      // than `queue.state` so we don't poke at StateNotifier
+      // internals from outside.
+      if (prefetchService != null) {
+        final lookahead = _peekNextQueuedAfter(
+            ref.read(batchQueueProvider), next.id);
+        if (lookahead != null) {
+          prefetchService.prefetch(lookahead.filePath);
+        }
+      }
       // §5.23 Q3 resume: replay any checkpointed segments into the
       // appState before dispatch so the user sees the partial
       // transcript that survived the crash, then the new run picks
@@ -1290,6 +1316,22 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         appStateNotifier.setError(e.toString());
       }
     }
+  }
+
+  /// Returns the first job after [currentId] that's still queued, or
+  /// null when [currentId] is the last queued row. Used by the §5.23
+  /// Q2 prefetch hook to kick off the next file's audio decode.
+  static BatchJob? _peekNextQueuedAfter(
+      List<BatchJob> jobs, String currentId) {
+    var passedCurrent = false;
+    for (final j in jobs) {
+      if (!passedCurrent) {
+        if (j.id == currentId) passedCurrent = true;
+        continue;
+      }
+      if (j.status == BatchJobStatus.queued) return j;
+    }
+    return null;
   }
 
   void _clearTranscription() {

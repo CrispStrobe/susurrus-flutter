@@ -601,6 +601,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden';
 
   @override
+  String get settingsMaxConcurrent => 'Gleichzeitige Transkriptionen';
+
+  @override
+  String settingsMaxConcurrentCurrent(int n) {
+    return 'Gleichzeitige Transkriptionen: $n';
+  }
+
+  @override
+  String get settingsMaxConcurrentSubtitle =>
+      '1 = seriell (bisheriges Verhalten). 2+ dekodiert die Audio-Daten der nächsten Datei in einem Worker-Isolate, während die aktuelle Datei transkribiert wird — zusätzliche Parallelität ohne weitere Modell-Kopien im RAM.';
+
+  @override
   String get settingsOpenLogViewer => 'Protokoll-Ansicht öffnen';
 
   @override

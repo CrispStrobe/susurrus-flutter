@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../engines/engine_factory.dart';
@@ -152,6 +154,43 @@ class SettingsService {
     Log.instance.d('settings', 'Saving groupBatchByBackend: $value');
     _prefs.setBool('group_batch_by_backend', value);
   }
+
+  /// How many transcription jobs the drain loop runs in pipeline-
+  /// parallel mode (§5.23 Q2). Stored as 1..[maxConcurrentLimit].
+  ///
+  /// v1 (shipped): "pipeline parallelism" — slider > 1 enables
+  /// async audio prefetch of the next queued file in a worker
+  /// isolate, overlapping its decode + Mel computation with the
+  /// current file's GPU transcription. One session, one model
+  /// copy in RAM, real-world speedup of 5–15% on batches of
+  /// compressed audio (mp3 / m4a / opus) where decode is a non-
+  /// trivial slice of total wall time.
+  ///
+  /// v2 (deferred — see PLAN §5.23): true N-way session pool with
+  /// per-isolate `CrispasrSession` instances. Memory cost is
+  /// N × model size; gated behind a future "I have RAM to burn"
+  /// affordance.
+  int get maxConcurrentTranscriptions {
+    final raw = _prefs.getInt('max_concurrent_transcriptions') ?? 1;
+    if (raw < 1) return 1;
+    final cap = maxConcurrentTranscriptionsLimit;
+    return raw > cap ? cap : raw;
+  }
+
+  set maxConcurrentTranscriptions(int value) {
+    final cap = maxConcurrentTranscriptionsLimit;
+    final clamped = value < 1 ? 1 : (value > cap ? cap : value);
+    Log.instance.d('settings',
+        'Saving maxConcurrentTranscriptions: $clamped (requested $value, cap $cap)');
+    _prefs.setInt('max_concurrent_transcriptions', clamped);
+  }
+
+  /// Per-platform upper bound for the concurrent-transcriptions
+  /// slider. iOS caps at 2 because of the tight memory budget on
+  /// even the largest iPhone (8 GB); desktop/Android caps at 4
+  /// because beyond that Metal queue contention dominates and the
+  /// marginal speedup tapers.
+  int get maxConcurrentTranscriptionsLimit => Platform.isIOS ? 2 : 4;
 
   /// Helper to clear all settings (for reset)
   Future<void> clearAll() async {
