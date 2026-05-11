@@ -231,5 +231,170 @@ void main() {
       expect(tuned.vadMinSilenceMs, opts.vadMinSilenceMs);
       expect(tuned.bestOf, opts.bestOf);
     });
+
+    group('vocabulary (§5.1.2)', () {
+      test('default vocabulary is empty', () {
+        expect(const AdvancedOptions().vocabulary, isEmpty);
+      });
+
+      test('copyWith roundtrips the vocabulary list', () {
+        const o = AdvancedOptions();
+        final next = o.copyWith(vocabulary: const ['API', 'gRPC']);
+        expect(next.vocabulary, ['API', 'gRPC']);
+        // Other fields untouched.
+        expect(next.bestOf, o.bestOf);
+        expect(next.initialPrompt, o.initialPrompt);
+      });
+
+      test('capability sets cover the documented backends', () {
+        // Whisper-style — initial_prompt mechanism.
+        expect(
+            AdvancedOptions.vocabularyViaInitialPromptBackends,
+            containsAll(['whisper', 'moonshine']));
+        // LLM backends — askPrompt mechanism.
+        expect(
+            AdvancedOptions.vocabularyViaAskPromptBackends,
+            containsAll([
+              'voxtral',
+              'voxtral4b',
+              'qwen3',
+              'granite',
+              'granite-4.1',
+              'glm-asr',
+              'kyutai-stt',
+              'gemma4-e2b',
+              'omniasr-llm',
+              'mimo-asr',
+            ]));
+        // The union (vocabularyCapableBackends) must include both
+        // halves.
+        expect(
+            AdvancedOptions.vocabularyCapableBackends,
+            containsAll([
+              ...AdvancedOptions.vocabularyViaInitialPromptBackends,
+              ...AdvancedOptions.vocabularyViaAskPromptBackends,
+            ]));
+      });
+
+      test('CTC backends are deliberately excluded', () {
+        // These backends have no token-prefill point — biasing
+        // would require an external LM rescoring pass which
+        // CrisperWeaver doesn't ship.
+        for (final ctc in [
+          'parakeet',
+          'canary',
+          'cohere',
+          'fastconformer-ctc',
+          'wav2vec2',
+          'firered-asr',
+        ]) {
+          expect(AdvancedOptions.vocabularyCapableBackends.contains(ctc),
+              isFalse,
+              reason:
+                  '$ctc is CTC-style and must not appear in the vocab set');
+        }
+      });
+    });
+
+    group('mergeVocabularyIntoPrompt (§5.1.2)', () {
+      test('empty vocabulary returns existing unchanged', () {
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'whisper',
+            vocabulary: const [],
+            existing: 'some prompt',
+          ),
+          'some prompt',
+        );
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'whisper',
+            vocabulary: const [],
+            existing: '',
+          ),
+          '',
+        );
+      });
+
+      test('CTC backend returns existing unchanged regardless of vocab',
+          () {
+        // Defense-in-depth: even if the caller forgot to gate on
+        // vocabularyCapableBackends, the helper refuses to merge.
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'parakeet',
+            vocabulary: const ['API'],
+            existing: '',
+          ),
+          '',
+        );
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'parakeet',
+            vocabulary: const ['API'],
+            existing: 'foo',
+          ),
+          'foo',
+        );
+      });
+
+      test('whisper: vocab prepended to existing prompt', () {
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'whisper',
+            vocabulary: const ['API', 'gRPC'],
+            existing: 'tech talk',
+          ),
+          'Vocabulary: API, gRPC. tech talk',
+        );
+      });
+
+      test('whisper: empty existing → standalone hint with trailing space',
+          () {
+        final out = AdvancedOptions.mergeVocabularyIntoPrompt(
+          backend: 'whisper',
+          vocabulary: const ['kubectl'],
+          existing: '',
+        );
+        expect(out, 'Vocabulary: kubectl. ');
+        // Trailing space matters — leaves room for the decoder
+        // to continue cleanly without running into the period.
+        expect(out.endsWith(' '), isTrue);
+      });
+
+      test('LLM-backend: same shape — merge into askPrompt', () {
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'voxtral',
+            vocabulary: const ['Anthropic'],
+            existing: 'What is being discussed?',
+          ),
+          'Vocabulary: Anthropic. What is being discussed?',
+        );
+      });
+
+      test('whitespace-only terms are filtered out', () {
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'whisper',
+            vocabulary: const ['  ', 'API', '\t'],
+            existing: '',
+          ),
+          'Vocabulary: API. ',
+        );
+      });
+
+      test('all whitespace = effectively empty', () {
+        // After filtering all terms are empty → existing unchanged.
+        expect(
+          AdvancedOptions.mergeVocabularyIntoPrompt(
+            backend: 'whisper',
+            vocabulary: const ['  ', '\t', ''],
+            existing: 'user prompt',
+          ),
+          'user prompt',
+        );
+      });
+    });
   });
 }

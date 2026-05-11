@@ -1074,6 +1074,31 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         asrNGpuLayers: adv.asrNGpuLayers,
       );
 
+      // §5.1.2 vocabulary merge — resolve the active backend
+      // once, then ask AdvancedOptions to merge the vocabulary
+      // list into the right prompt field per the per-backend
+      // capability matrix. CTC backends fall through to the
+      // existing user-typed prompts unchanged.
+      final activeBackend = _resolveBackend(_modelName);
+      final mergedInitialPrompt =
+          AdvancedOptions.vocabularyViaInitialPromptBackends
+                  .contains(activeBackend)
+              ? AdvancedOptions.mergeVocabularyIntoPrompt(
+                  backend: activeBackend,
+                  vocabulary: adv.vocabulary,
+                  existing: adv.initialPrompt,
+                )
+              : adv.initialPrompt;
+      final mergedAskPrompt =
+          AdvancedOptions.vocabularyViaAskPromptBackends
+                  .contains(activeBackend)
+              ? AdvancedOptions.mergeVocabularyIntoPrompt(
+                  backend: activeBackend,
+                  vocabulary: adv.vocabulary,
+                  existing: adv.askPrompt,
+                )
+              : adv.askPrompt;
+
       if (filePath != null) {
         segments = await transcriptionService.transcribeFile(
           File(filePath),
@@ -1081,12 +1106,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           enableDiarization: _enableDiarization,
           translate: adv.translate,
           beamSearch: adv.beamSearch,
-          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          initialPrompt:
+              mergedInitialPrompt.isEmpty ? null : mergedInitialPrompt,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
-          askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          askPrompt: mergedAskPrompt.isEmpty ? null : mergedAskPrompt,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
           advanced: advancedRun,
@@ -1100,12 +1126,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           enableDiarization: _enableDiarization,
           translate: adv.translate,
           beamSearch: adv.beamSearch,
-          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          initialPrompt:
+              mergedInitialPrompt.isEmpty ? null : mergedInitialPrompt,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
-          askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          askPrompt: mergedAskPrompt.isEmpty ? null : mergedAskPrompt,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
           advanced: advancedRun,
@@ -1378,18 +1405,42 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           appStateNotifier.startTranscription();
         }
         final started = DateTime.now();
+        // §5.1.2 — merge per-job. `next.modelId` is the
+        // snapshotted model at enqueue; falls back to the
+        // currently-loaded model if missing.
+        final perJobBackend =
+            _resolveBackend(next.modelId ?? _modelName);
+        final perJobInitial = AdvancedOptions
+                .vocabularyViaInitialPromptBackends
+                .contains(perJobBackend)
+            ? AdvancedOptions.mergeVocabularyIntoPrompt(
+                backend: perJobBackend,
+                vocabulary: adv.vocabulary,
+                existing: adv.initialPrompt,
+              )
+            : adv.initialPrompt;
+        final perJobAsk = AdvancedOptions
+                .vocabularyViaAskPromptBackends
+                .contains(perJobBackend)
+            ? AdvancedOptions.mergeVocabularyIntoPrompt(
+                backend: perJobBackend,
+                vocabulary: adv.vocabulary,
+                existing: adv.askPrompt,
+              )
+            : adv.askPrompt;
         final segments = await transcriptionService.transcribeFile(
           File(next.filePath),
           language: language,
           enableDiarization: _enableDiarization,
           translate: adv.translate,
           beamSearch: adv.beamSearch,
-          initialPrompt: adv.initialPrompt.isEmpty ? null : adv.initialPrompt,
+          initialPrompt:
+              perJobInitial.isEmpty ? null : perJobInitial,
           vad: adv.vad,
           restorePunctuation: adv.restorePunctuation,
           targetLanguage:
               adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
-          askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+          askPrompt: perJobAsk.isEmpty ? null : perJobAsk,
           temperature: adv.temperature,
           bestOf: adv.bestOf,
           advanced: advancedRun,
@@ -1585,13 +1636,27 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final started = DateTime.now();
     try {
       final audioData = await audioService.loadAudioFile(File(job.filePath));
+      // §5.1.2 — vocabulary biasing merges into whichever prompt
+      // field the active backend uses (initial_prompt or askPrompt).
+      // Pool workers consume both via their sticky setter
+      // protocol, so we just pass the merged strings here.
+      final poolBackend = _resolveBackend(job.modelId ?? _modelName);
+      final poolAsk = AdvancedOptions
+              .vocabularyViaAskPromptBackends
+              .contains(poolBackend)
+          ? AdvancedOptions.mergeVocabularyIntoPrompt(
+              backend: poolBackend,
+              vocabulary: adv.vocabulary,
+              existing: adv.askPrompt,
+            )
+          : adv.askPrompt;
       var segments = await pool.dispatch(
         samples: audioData.samples,
         language: language,
         targetLanguage:
             adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
         translate: adv.translate,
-        askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+        askPrompt: poolAsk.isEmpty ? null : poolAsk,
         temperature: adv.temperature,
         bestOf: adv.bestOf,
         // Beam search: when the user toggled it ON we pass whisper's
@@ -1681,6 +1746,18 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       if (j.status == BatchJobStatus.queued) return j;
     }
     return null;
+  }
+
+  /// §5.1.2 — resolve a modelId to its backend identifier. Looks
+  /// up `crispasrBackendModels` first (session backends), then
+  /// `whisperCppModels`; falls back to "whisper" when the model
+  /// isn't catalogued (custom GGUFs loaded by path). The backend
+  /// string is what the per-backend capability sets in
+  /// AdvancedOptions key on.
+  static String _resolveBackend(String modelId) {
+    return ModelService.crispasrBackendModels[modelId]?.backend ??
+        ModelService.whisperCppModels[modelId]?.backend ??
+        'whisper';
   }
 
   void _clearTranscription() {

@@ -195,33 +195,48 @@ is what's missing — ranked by impact ÷ effort.
     invasive direct path. New permission:
     `FOREGROUND_SERVICE_MEDIA_PROJECTION` in manifest.
 
-* **5.1.2 Custom vocabulary / dictionary boost** — Persistent
-  list of "always-recognize-these" terms (brand names, acronyms,
-  technical jargon, people's names). The biasing mechanism
-  differs by backend class — same UI for the user, three
-  different paths under the hood:
+* ✅ **5.1.2 Custom vocabulary / dictionary boost** (May 2026)
+  — Persistent chip list in Advanced Options. The biasing
+  mechanism is per-backend-class:
 
-  | Backend class | Mechanism | Supported? |
+  | Class | Mechanism | Models |
   |---|---|---|
-  | **Whisper / Moonshine** (encoder-decoder autoregressive) | `initial_prompt` — already plumbed via `AdvancedOptions.initialPrompt`. Decoder uses it to prefill the token-context window before decode. | ✅ Native |
-  | **LLM-backend** (voxtral / voxtral4b / qwen3 / granite-4.1 / glm-asr / kyutai-stt / gemma4-e2b / omniasr-llm / mimo-asr) | `setAsk(prompt)` — same field as the Audio-Q&A power-user flow. Vocabulary biasing prepends a "vocabulary hint" prefix before the user's actual prompt (or stands alone when no Q&A is active). | ✅ via prompt-prefix merging |
-  | **CTC-style** (parakeet / canary / cohere / fastconformer-ctc / wav2vec2 / firered-asr / omniasr-CTC) | None natively — CTC decodes greedy/beam over acoustic frames with no token-prefill point. Would need an external LM rescoring pass. | ❌ Backend-incompatible |
+  | Whisper-style | `initial_prompt` prefill | whisper, moonshine |
+  | LLM-backend | `setAsk(prompt)` prefix | voxtral, voxtral4b, qwen3, granite, granite-4.1{,-plus}, glm-asr, kyutai-stt, gemma4-e2b, omniasr-llm{,-unlimited}, mimo-asr |
+  | CTC-style | Not supported (no token-prefill point) | parakeet, canary, cohere, fastconformer-ctc, wav2vec2, firered-asr, omniasr-CTC |
 
-  v1 design: a `vocabulary: List<String>` field in
-  `AdvancedOptions` (managed by a UI list with add/remove
-  chips). At dispatch time the engine joins terms comma-
-  separated into whichever prompt field the active backend
-  honors:
-    - whisper / moonshine → prepend to `initial_prompt`
-    - LLM-backend → prepend to `askPrompt` with a sentinel
-      separator so the user's actual ask still works
-    - CTC → ignored (UI surfaces a "this backend can't bias
-      vocabulary" hint)
+  How it works: new `AdvancedOptions.vocabulary: List<String>`
+  field with copyWith roundtrip; new
+  `AdvancedOptions.vocabularyViaInitialPromptBackends` and
+  `vocabularyViaAskPromptBackends` capability sets; new
+  static `mergeVocabularyIntoPrompt(backend, vocab, existing)`
+  helper that prepends `"Vocabulary: term1, term2, …. "` to
+  the existing prompt iff the backend supports it (else
+  returns existing unchanged — defense-in-depth against the
+  caller forgetting to gate on the capability set).
 
-  MacWhisper Pro sells this as a paid feature; in CrisperWeaver
-  the plumbing for the whisper path is already there, so v1
-  cost is essentially "build the UI list + the per-backend
-  prompt-merge logic." ~1 day end-to-end.
+  The drain loop's three call sites (single-file, batch
+  serial, batch pool) all resolve the active backend via a
+  new `_resolveBackend(modelId)` helper and call the merge
+  separately for `initial_prompt` vs `askPrompt` per the
+  capability set. CTC-class backends silently get the user's
+  original prompts unchanged.
+
+  UI: `_buildVocabularyRow` adds a TextField + add-button +
+  Wrap of InputChips. Helper text changes between three
+  variants per backend class:
+    - "Biases the decoder via Whisper's initial_prompt …" for
+      whisper / moonshine
+    - "Biases the LLM by prepending … Combined with Q&A — your
+      question still runs." for LLM backends
+    - "The active backend is CTC-style and can't bias
+      vocabulary at the decoder. Switch to …" for CTC, with the
+      input + chip-delete disabled.
+
+  11 new tests pin the capability-set membership, the
+  CTC exclusion, copyWith roundtrip, and the merge formatter's
+  6 edge cases (empty vocab, CTC backend, whisper+existing,
+  whisper-alone, LLM, whitespace-filter, all-whitespace).
 
 * ✅ **5.1.3 Inline transcript editing** (May 2026) — long-press
   on a segment in `transcription_output_widget.dart` opens a

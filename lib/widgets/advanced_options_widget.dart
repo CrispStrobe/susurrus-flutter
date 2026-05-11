@@ -162,6 +162,28 @@ class AdvancedOptions {
   /// dylibs ignore the value.
   final int asrNGpuLayers;
 
+  /// §5.1.2 — Custom-vocabulary boost list. Persistent across runs;
+  /// the user manages it in Advanced Options as removable chips
+  /// (brand names, acronyms, technical jargon, people's names).
+  ///
+  /// How it biases decoding depends on the active backend class:
+  ///   • Whisper / Moonshine → prepended to `initial_prompt` as
+  ///     "Vocabulary: term1, term2, …. " before any user-supplied
+  ///     prompt text, so the autoregressive decoder sees the
+  ///     terms in its prefill context.
+  ///   • LLM-backend (voxtral / qwen3 / granite / glm-asr / kyutai-
+  ///     stt / gemma4-e2b / omniasr-llm / mimo-asr) → prepended to
+  ///     `askPrompt` the same way; the LLM "knows" these terms
+  ///     are likely to occur.
+  ///   • CTC backends (parakeet / canary / cohere / firered /
+  ///     wav2vec2 / fastconformer-ctc / omniasr-CTC) → ignored.
+  ///     CTC has no token-prefill point; biasing would need an
+  ///     external LM rescoring pass which we don't ship.
+  ///
+  /// The UI surfaces a "this backend can't bias vocabulary"
+  /// note when the active model is CTC-class.
+  final List<String> vocabulary;
+
   const AdvancedOptions({
     this.translate = false,
     this.beamSearch = false,
@@ -189,6 +211,7 @@ class AdvancedOptions {
     this.asrUseGpu = true,
     this.asrFlashAttn = true,
     this.asrNGpuLayers = -1,
+    this.vocabulary = const [],
   });
 
   AdvancedOptions copyWith({
@@ -218,6 +241,7 @@ class AdvancedOptions {
     bool? asrUseGpu,
     bool? asrFlashAttn,
     int? asrNGpuLayers,
+    List<String>? vocabulary,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -246,6 +270,7 @@ class AdvancedOptions {
         asrUseGpu: asrUseGpu ?? this.asrUseGpu,
         asrFlashAttn: asrFlashAttn ?? this.asrFlashAttn,
         asrNGpuLayers: asrNGpuLayers ?? this.asrNGpuLayers,
+        vocabulary: vocabulary ?? this.vocabulary,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -340,6 +365,76 @@ class AdvancedOptions {
     'omniasr-llm',
     'omniasr-llm-unlimited',
   };
+
+  /// §5.1.2 — Backends whose vocabulary bias is delivered via the
+  /// whisper-style `initial_prompt` field (encoder-decoder
+  /// autoregressive). Decoder sees the vocabulary terms as
+  /// prefill context before any audio tokens.
+  static const Set<String> vocabularyViaInitialPromptBackends = {
+    'whisper',
+    'moonshine',
+  };
+
+  /// §5.1.2 — Backends whose vocabulary bias is delivered via the
+  /// LLM `askPrompt` (`setAsk`) field. These are audio-LLM
+  /// backends — the prompt prefixes the user's actual question
+  /// (or stands alone if no question was supplied) so the LLM
+  /// knows which terms to expect.
+  static const Set<String> vocabularyViaAskPromptBackends = {
+    'voxtral',
+    'voxtral4b',
+    'qwen3',
+    'granite',
+    'granite-4.1',
+    'granite-4.1-plus',
+    'glm-asr',
+    'kyutai-stt',
+    'gemma4-e2b',
+    'omniasr-llm',
+    'omniasr-llm-unlimited',
+    'mimo-asr',
+  };
+
+  /// Convenience union — every backend that supports vocabulary
+  /// biasing via SOME mechanism. UI uses this to enable / disable
+  /// the vocabulary chip-list. CTC-style backends (parakeet,
+  /// canary, cohere, fastconformer-ctc, wav2vec2, firered-asr,
+  /// omniasr-CTC) are deliberately excluded — no token-prefill
+  /// point in greedy/beam CTC decoding.
+  static Set<String> get vocabularyCapableBackends => {
+        ...vocabularyViaInitialPromptBackends,
+        ...vocabularyViaAskPromptBackends,
+      };
+
+  /// §5.1.2 prompt-merge: render the user-managed vocabulary list
+  /// + an existing user prompt into a single string the active
+  /// backend can consume. Returns `existing` unchanged when the
+  /// vocabulary is empty OR the backend is CTC (caller should
+  /// gate, but we double-check here so a stale capability set
+  /// can't cause a stray prefix to leak through).
+  ///
+  /// Format: `"Vocabulary: term1, term2, …. <existing>"`
+  ///   • Empty existing → just `"Vocabulary: …. "` (the trailing
+  ///     space leaves room for the model's decode to continue
+  ///     cleanly without running into the period).
+  ///   • Empty vocabulary → existing unchanged.
+  ///
+  /// Pure function; trivially unit-testable.
+  static String mergeVocabularyIntoPrompt({
+    required String backend,
+    required List<String> vocabulary,
+    required String existing,
+  }) {
+    if (vocabulary.isEmpty) return existing;
+    final trimmedTerms = vocabulary
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList(growable: false);
+    if (trimmedTerms.isEmpty) return existing;
+    if (!vocabularyCapableBackends.contains(backend)) return existing;
+    final hint = 'Vocabulary: ${trimmedTerms.join(', ')}. ';
+    return existing.isEmpty ? hint : '$hint$existing';
+  }
 }
 
 final advancedOptionsProvider =
@@ -361,6 +456,7 @@ class _AdvancedDecodingSectionState
   bool _expanded = false;
   late final TextEditingController _promptController;
   late final TextEditingController _askController;
+  late final TextEditingController _vocabAddController;
 
   @override
   void initState() {
@@ -368,12 +464,14 @@ class _AdvancedDecodingSectionState
     final initial = ref.read(advancedOptionsProvider);
     _promptController = TextEditingController(text: initial.initialPrompt);
     _askController = TextEditingController(text: initial.askPrompt);
+    _vocabAddController = TextEditingController();
   }
 
   @override
   void dispose() {
     _promptController.dispose();
     _askController.dispose();
+    _vocabAddController.dispose();
     super.dispose();
   }
 
@@ -482,6 +580,10 @@ class _AdvancedDecodingSectionState
                 opts.copyWith(initialPrompt: v),
           ),
         ),
+        // §5.1.2 — Custom vocabulary chip list. Always visible;
+        // the helper text changes to a "backend can't bias
+        // vocabulary" note when the active backend is CTC-class.
+        _buildVocabularyRow(context, opts),
         // LID method picker — visible only when the global language
         // dropdown is "auto" + active backend lacks native LID. We
         // can't see those preconditions here, so always show it; the
@@ -962,6 +1064,94 @@ class _AdvancedDecodingSectionState
         ),
         onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
             opts.copyWith(askPrompt: v),
+      ),
+    );
+  }
+
+  /// §5.1.2 — Custom vocabulary chip list. Always visible; the
+  /// helper text changes when the active backend is CTC-class
+  /// (i.e. not in [AdvancedOptions.vocabularyCapableBackends]).
+  /// The user types a term, hits Enter or the + button, the
+  /// term becomes a removable chip in a Wrap above the input.
+  Widget _buildVocabularyRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    final backend = _activeBackend();
+    final supported =
+        AdvancedOptions.vocabularyCapableBackends.contains(backend);
+    final mechanism = AdvancedOptions
+            .vocabularyViaInitialPromptBackends
+            .contains(backend)
+        ? l.advancedVocabularyHelperPrompt
+        : AdvancedOptions.vocabularyViaAskPromptBackends.contains(backend)
+            ? l.advancedVocabularyHelperAsk
+            : l.advancedVocabularyHelperUnsupported;
+
+    void addTerm(String raw) {
+      final term = raw.trim();
+      if (term.isEmpty) return;
+      // Don't dedupe — users sometimes WANT case variants
+      // ("API" + "Api") to bias the decoder both ways.
+      final next = [...opts.vocabulary, term];
+      ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(vocabulary: next);
+      _vocabAddController.clear();
+    }
+
+    void removeTerm(int index) {
+      final next = [...opts.vocabulary]..removeAt(index);
+      ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(vocabulary: next);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _vocabAddController,
+                  decoration: InputDecoration(
+                    labelText: l.advancedVocabulary,
+                    hintText: l.advancedVocabularyHint,
+                    helperText: mechanism,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                  ),
+                  enabled: supported,
+                  onSubmitted: addTerm,
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: l.advancedVocabularyAdd,
+                icon: const Icon(Icons.add),
+                onPressed: supported
+                    ? () => addTerm(_vocabAddController.text)
+                    : null,
+              ),
+            ],
+          ),
+          if (opts.vocabulary.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (var i = 0; i < opts.vocabulary.length; i++)
+                  InputChip(
+                    label: Text(opts.vocabulary[i]),
+                    onDeleted: supported ? () => removeTerm(i) : null,
+                    isEnabled: supported,
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

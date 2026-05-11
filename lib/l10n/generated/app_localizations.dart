@@ -1946,6 +1946,42 @@ abstract class AppLocalizations {
   /// **'Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.'**
   String get advancedAskPromptHelper;
 
+  /// No description provided for @advancedVocabulary.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom vocabulary'**
+  String get advancedVocabulary;
+
+  /// No description provided for @advancedVocabularyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a term and press Enter (e.g. API, kubectl, Alice)'**
+  String get advancedVocabularyHint;
+
+  /// No description provided for @advancedVocabularyAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add term'**
+  String get advancedVocabularyAdd;
+
+  /// No description provided for @advancedVocabularyHelperPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Biases the decoder via Whisper\'s initial_prompt. Useful for brand names, acronyms, technical jargon and people\'s names that the model otherwise mishears.'**
+  String get advancedVocabularyHelperPrompt;
+
+  /// No description provided for @advancedVocabularyHelperAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Biases the LLM by prepending these terms to its prompt. Combined with Q&A — your question still runs.'**
+  String get advancedVocabularyHelperAsk;
+
+  /// No description provided for @advancedVocabularyHelperUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The active backend is CTC-style and can\'t bias vocabulary at the decoder. Switch to Whisper / Moonshine / an LLM-backend (Voxtral, Qwen3, Granite, …) to enable.'**
+  String get advancedVocabularyHelperUnsupported;
+
   /// No description provided for @synthTitle.
   ///
   /// In en, this message translates to:

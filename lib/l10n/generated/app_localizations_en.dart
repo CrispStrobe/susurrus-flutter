@@ -1095,6 +1095,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.';
 
   @override
+  String get advancedVocabulary => 'Custom vocabulary';
+
+  @override
+  String get advancedVocabularyHint =>
+      'Type a term and press Enter (e.g. API, kubectl, Alice)';
+
+  @override
+  String get advancedVocabularyAdd => 'Add term';
+
+  @override
+  String get advancedVocabularyHelperPrompt =>
+      'Biases the decoder via Whisper\'s initial_prompt. Useful for brand names, acronyms, technical jargon and people\'s names that the model otherwise mishears.';
+
+  @override
+  String get advancedVocabularyHelperAsk =>
+      'Biases the LLM by prepending these terms to its prompt. Combined with Q&A — your question still runs.';
+
+  @override
+  String get advancedVocabularyHelperUnsupported =>
+      'The active backend is CTC-style and can\'t bias vocabulary at the decoder. Switch to Whisper / Moonshine / an LLM-backend (Voxtral, Qwen3, Granite, …) to enable.';
+
+  @override
   String get synthTitle => 'Synthesize';
 
   @override
