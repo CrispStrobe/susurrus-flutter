@@ -1,40 +1,45 @@
 // SystemAudioCaptureService — PLAN §5.1.1 system-audio capture.
 //
 // "Transcribe what's playing in Zoom / YouTube / a podcast app."
-// Cross-platform interface; v1 implementation supports macOS only
-// (via ScreenCaptureKit, requires macOS 12.3+). Linux / Windows /
-// Android implementations are platform-specific TODOs tracked in
-// PLAN.md §5.1.1; the Dart side surfaces a clean
-// [SystemAudioUnsupportedException] on those for now.
+// Cross-platform interface with three implementation strategies:
 //
-// Wire-level protocol with the native side (macOS Swift today):
+//   • **macOS 13+**: native via MethodChannel +
+//     ScreenCaptureKit (see `macos/Runner/SystemAudioCapture.swift`).
+//     Bidirectional protocol; native side handles resampling +
+//     mono mix; Dart receives 16 kHz mono Float32 frames.
+//   • **Linux**: subprocess to `parec` (PulseAudio's record tool;
+//     also provided by pipewire-pulse on Pipewire-based distros).
+//     Captures from the default sink's `.monitor` source, asking
+//     parec to emit raw 16 kHz mono float32-le PCM directly so we
+//     don't have to resample in Dart. Ships with `pulseaudio-utils`
+//     on every major Linux distro out of the box.
+//   • **Windows**: subprocess to `ffmpeg` with the
+//     `-f dshow / -i audio=...` (or `-f wasapi`) loopback path.
+//     Requires the user to have ffmpeg on PATH — we surface a
+//     clean error when it's not. A native WASAPI plugin would
+//     remove that dependency at the cost of a custom Windows
+//     plugin (deferred follow-up).
+//   • **iOS**: permanently unsupported — Apple sandbox forbids
+//     system audio capture entirely.
+//   • **Android**: not wired yet (MediaProjection — separate
+//     piece of work with its own UI permission flow).
 //
-//   MethodChannel `crisperweaver/system_audio_capture` — control:
-//     • method `start()` → bool — returns true on success, throws
-//       PlatformException with code `'unsupported'`,
-//       `'permission_denied'`, or `'os_too_old'` on failure
-//     • method `stop()` → null
-//     • method `isSupported()` → bool
-//
-//   EventChannel `crisperweaver/system_audio_capture/stream` —
-//     a stream of `Float32List` PCM frames, always 16 kHz mono.
-//     Native side handles resampling + mono mix; Dart receives
-//     decoder-ready buffers. Native may chunk frames at any size
-//     (currently ~25ms = 400 samples).
-//
-// Cross-platform: the `MethodChannel` boundary is wire-stable; the
-// Dart caller treats `start() → Stream<Float32List>` identically
-// on every platform. Unsupported platforms (iOS / Linux / Windows
-// / Android in v1) throw [SystemAudioUnsupportedException].
+// Cross-platform: the `start() → Stream<Float32List>` API is
+// identical on every supported platform; the implementation
+// chooses subprocess vs MethodChannel internally. Unsupported
+// platforms (iOS, Android in v1, Windows without ffmpeg, Linux
+// without parec) throw [SystemAudioUnsupportedException].
 //
 // Permission model: macOS prompts for Screen Recording permission
-// (TCC) on first start() call. If the user declines we get a
-// `permission_denied` PlatformException; the caller should
-// surface a localized "open System Settings → Privacy → Screen
-// Recording" hint. On macOS 11 the SCStream APIs aren't
-// available — `os_too_old`.
+// (TCC) on first start() call. Linux + Windows just spawn the
+// subprocess — the OS handles any virtual-microphone permission
+// requirements via the subprocess's own UI. Caller should
+// surface a localized hint for `permission_denied` separately
+// from `unsupported` so the user knows to open System Settings
+// vs. install a missing tool.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -71,23 +76,71 @@ class SystemAudioCaptureService {
 
   StreamSubscription<dynamic>? _activeSub;
   StreamController<Float32List>? _activeController;
+  // Linux / Windows subprocess capture: the spawned ffmpeg / parec
+  // process and the subscription that pumps its stdout into the
+  // controller's Float32List sink. Kept null on macOS (which
+  // uses the native MethodChannel path instead).
+  Process? _subprocess;
+  StreamSubscription<List<int>>? _subprocessStdoutSub;
+  // Quick probe of which subprocess tool we'll use, set by the
+  // first isSupported() call so the start() path doesn't have to
+  // re-which the tool name. Null until the probe has run.
+  String? _linuxTool; // 'parec' (PulseAudio) — only one supported in v1
+  String? _windowsTool; // 'ffmpeg' (WASAPI loopback via dshow / wasapi)
 
   /// Quick capability probe — returns true when the active platform
   /// can capture system audio. UI uses this to enable / disable the
   /// "Capture system audio" toggle without having to attempt a
   /// start() and catch the error.
   ///
-  /// Conservative defaults: returns false on platforms we haven't
-  /// wired yet, true on macOS where the native side can do a
-  /// runtime version probe (returns false on macOS < 12.3).
+  /// Platform results:
+  ///   • macOS → native MethodChannel `isSupported` (returns
+  ///     false on macOS < 13 because SCStream audio capture
+  ///     needs macOS 13+).
+  ///   • Linux → true when `parec` is on PATH (PulseAudio or
+  ///     pipewire-pulse). Result cached for the next start().
+  ///   • Windows → true when `ffmpeg` is on PATH.
+  ///   • iOS → always false (Apple sandbox restriction).
+  ///   • Android → always false in v1 (MediaProjection not wired).
   Future<bool> isSupported() async {
-    if (!Platform.isMacOS) return false;
+    if (Platform.isIOS || Platform.isAndroid) return false;
+    if (Platform.isMacOS) {
+      try {
+        final ok = await _control.invokeMethod<bool>('isSupported') ?? false;
+        return ok;
+      } catch (e) {
+        Log.instance.d('sysaudio', 'isSupported probe failed: $e');
+        return false;
+      }
+    }
+    if (Platform.isLinux) {
+      _linuxTool ??= await _whichOnPath('parec');
+      return _linuxTool != null;
+    }
+    if (Platform.isWindows) {
+      _windowsTool ??= await _whichOnPath('ffmpeg');
+      return _windowsTool != null;
+    }
+    return false;
+  }
+
+  /// Cross-platform `which / where` for the [tool] binary. Returns
+  /// the absolute path on success, null when the tool isn't on
+  /// PATH or the probe fails. Used by the subprocess-capture
+  /// platforms (Linux + Windows) to detect tool availability
+  /// before start() throws.
+  Future<String?> _whichOnPath(String tool) async {
     try {
-      final ok = await _control.invokeMethod<bool>('isSupported') ?? false;
-      return ok;
-    } catch (e) {
-      Log.instance.d('sysaudio', 'isSupported probe failed: $e');
-      return false;
+      final cmd = Platform.isWindows ? 'where' : 'which';
+      final r = await Process.run(cmd, [tool], runInShell: false);
+      if (r.exitCode != 0) return null;
+      final out = (r.stdout as String).trim();
+      if (out.isEmpty) return null;
+      // `where` on Windows returns newline-separated matches; take
+      // the first. `which` always returns exactly one line.
+      return out.split('\n').first.trim();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -95,19 +148,39 @@ class SystemAudioCaptureService {
   /// PCM chunks. Caller listens; calling [stop] closes the stream.
   ///
   /// Throws [SystemAudioUnsupportedException] when the platform
-  /// doesn't support it (or when macOS < 12.3 is running), and
+  /// doesn't support it (iOS / Android v1, macOS < 13, Linux
+  /// without parec, Windows without ffmpeg), and
   /// [SystemAudioPermissionException] when the user has declined
-  /// Screen Recording permission.
+  /// the OS-level capture permission (currently only macOS
+  /// surfaces a typed permission denial; Linux + Windows let the
+  /// subprocess fail with whatever exit code their underlying
+  /// stack produces).
   Future<Stream<Float32List>> start() async {
-    if (!Platform.isMacOS) {
+    if (Platform.isIOS) {
       throw SystemAudioUnsupportedException(
-          'System audio capture is not yet implemented on '
-          '${Platform.operatingSystem}. Tracked in PLAN §5.1.1.');
+          'System audio capture is not supported on iOS — Apple '
+          'sandbox restriction.');
+    }
+    if (Platform.isAndroid) {
+      throw SystemAudioUnsupportedException(
+          'System audio capture on Android is not yet implemented. '
+          'Tracked in PLAN §5.1.1 (MediaProjection).');
     }
     if (_activeController != null) {
       // Already running — reuse the existing stream. Cheap idempotency.
       return _activeController!.stream;
     }
+
+    if (Platform.isMacOS) return _startMacOSNative();
+    if (Platform.isLinux) return _startLinuxParec();
+    if (Platform.isWindows) return _startWindowsFfmpeg();
+    throw SystemAudioUnsupportedException(
+        'Unknown platform: ${Platform.operatingSystem}');
+  }
+
+  /// macOS — MethodChannel + ScreenCaptureKit (see
+  /// macos/Runner/SystemAudioCapture.swift).
+  Future<Stream<Float32List>> _startMacOSNative() async {
     try {
       final ok = await _control.invokeMethod<bool>('start') ?? false;
       if (!ok) {
@@ -121,7 +194,7 @@ class SystemAudioCaptureService {
               e.message ?? 'Screen Recording permission denied');
         case 'os_too_old':
           throw SystemAudioUnsupportedException(
-              e.message ?? 'macOS 12.3 or later required');
+              e.message ?? 'macOS 13 or later required');
         case 'unsupported':
         default:
           throw SystemAudioUnsupportedException(
@@ -129,28 +202,17 @@ class SystemAudioCaptureService {
       }
     }
 
-    final controller = StreamController<Float32List>.broadcast(
-      onCancel: () {
-        // Last listener gone — keep the native side running until
-        // explicit stop() so callers can re-listen without paying
-        // the SCStream startup cost twice. Mirrors how
-        // AudioRecorder treats stream subscriptions.
-      },
-    );
+    final controller = StreamController<Float32List>.broadcast();
     _activeController = controller;
 
     _activeSub = _stream.receiveBroadcastStream().listen(
       (event) {
         if (event is Uint8List) {
-          // Native passes Float32 as a raw byte buffer; reinterpret.
-          // `Uint8List.buffer.asFloat32List()` is zero-copy on every
-          // platform Flutter ships on.
           final f = event.buffer
               .asFloat32List(event.offsetInBytes, event.length ~/ 4);
           if (controller.isClosed) return;
           controller.add(f);
         } else if (event is Float32List) {
-          // Some bridges pre-cast for us; respect either form.
           if (controller.isClosed) return;
           controller.add(event);
         }
@@ -164,7 +226,145 @@ class SystemAudioCaptureService {
       },
     );
 
-    Log.instance.i('sysaudio', 'capture started');
+    Log.instance.i('sysaudio', 'capture started (macOS native)');
+    return controller.stream;
+  }
+
+  /// Linux — `parec` subprocess against the default sink's
+  /// `.monitor` source, asking for 16 kHz mono float32-le PCM
+  /// directly so we don't have to resample in Dart.
+  Future<Stream<Float32List>> _startLinuxParec() async {
+    _linuxTool ??= await _whichOnPath('parec');
+    final parec = _linuxTool;
+    if (parec == null) {
+      throw SystemAudioUnsupportedException(
+          'parec not found on PATH. Install `pulseaudio-utils` '
+          '(Ubuntu/Debian) or `pipewire-pulse` (Fedora) to enable '
+          'system audio capture.');
+    }
+    return _startSubprocessCapture(
+      executable: parec,
+      arguments: [
+        // Default sink's monitor source — captures whatever's
+        // currently playing through the system mixer.
+        '--device=@DEFAULT_SINK@.monitor',
+        '--rate=16000',
+        '--channels=1',
+        '--format=float32le',
+        // --raw is the default for parec; pass explicitly to be
+        // bulletproof against alias differences.
+        '--raw',
+        // No latency cap — parec uses sensible defaults.
+      ],
+      label: 'parec',
+    );
+  }
+
+  /// Windows — `ffmpeg` subprocess via the `audio=virtual-audio-capturer`
+  /// dshow source. Requires the user to have ffmpeg on PATH; we
+  /// surface a typed "missing tool" error if not.
+  Future<Stream<Float32List>> _startWindowsFfmpeg() async {
+    _windowsTool ??= await _whichOnPath('ffmpeg');
+    final ffmpeg = _windowsTool;
+    if (ffmpeg == null) {
+      throw SystemAudioUnsupportedException(
+          'ffmpeg not found on PATH. Install ffmpeg (e.g. '
+          '`winget install Gyan.FFmpeg` or `choco install ffmpeg`) '
+          'to enable system audio capture.');
+    }
+    return _startSubprocessCapture(
+      executable: ffmpeg,
+      arguments: [
+        // WASAPI loopback: captures the system default output
+        // ("what you hear"). No virtual audio device install
+        // needed — ffmpeg's `wasapi` muxer handles it natively
+        // from FFmpeg 5+. The `audio="..."` quoting is required.
+        '-loglevel', 'error',
+        '-f', 'wasapi',
+        '-i', 'default',
+        '-ac', '1',
+        '-ar', '16000',
+        '-f', 'f32le',
+        '-',
+      ],
+      label: 'ffmpeg',
+    );
+  }
+
+  /// Shared subprocess driver — spawns [executable] with
+  /// [arguments], pipes stdout into a broadcast Float32List
+  /// stream. Stderr is logged but not surfaced as stream errors
+  /// (most ffmpeg / parec stderr is informational, not fatal).
+  Future<Stream<Float32List>> _startSubprocessCapture({
+    required String executable,
+    required List<String> arguments,
+    required String label,
+  }) async {
+    final controller = StreamController<Float32List>.broadcast();
+    _activeController = controller;
+
+    Process proc;
+    try {
+      proc = await Process.start(executable, arguments,
+          runInShell: false);
+    } catch (e) {
+      _activeController = null;
+      throw SystemAudioUnsupportedException(
+          'Failed to spawn $label: $e');
+    }
+    _subprocess = proc;
+
+    // PCM stdout: raw float32-le bytes. We buffer odd-length
+    // residues across `add()` calls so a Float32List reinterpret
+    // is always 4-byte aligned.
+    final residue = BytesBuilder();
+    _subprocessStdoutSub = proc.stdout.listen(
+      (chunk) {
+        if (controller.isClosed) return;
+        residue.add(chunk);
+        final all = residue.takeBytes();
+        final aligned = all.length - (all.length % 4);
+        if (aligned == 0) {
+          // not enough bytes yet — keep residue
+          residue.add(all);
+          return;
+        }
+        final usable = Uint8List.fromList(all.sublist(0, aligned));
+        final rest = all.sublist(aligned);
+        if (rest.isNotEmpty) residue.add(rest);
+        final f =
+            usable.buffer.asFloat32List(usable.offsetInBytes, aligned ~/ 4);
+        controller.add(f);
+      },
+      onError: (Object e, StackTrace st) {
+        Log.instance.w('sysaudio', '$label stdout error',
+            error: e, stack: st);
+        if (!controller.isClosed) controller.addError(e, st);
+      },
+      onDone: () {
+        if (!controller.isClosed) controller.close();
+      },
+    );
+
+    // Drain stderr to the log so a misconfigured subprocess
+    // doesn't hang on a full pipe.
+    proc.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      if (line.trim().isEmpty) return;
+      Log.instance.d('sysaudio', '$label stderr: $line');
+    });
+
+    // When the subprocess exits, close the stream.
+    proc.exitCode.then((code) {
+      Log.instance.i('sysaudio', '$label exited',
+          fields: {'code': code});
+      if (!controller.isClosed) controller.close();
+    });
+
+    Log.instance.i('sysaudio', 'capture started ($label)',
+        fields: {'pid': proc.pid});
     return controller.stream;
   }
 
@@ -173,6 +373,15 @@ class SystemAudioCaptureService {
   Future<void> stop() async {
     await _activeSub?.cancel();
     _activeSub = null;
+    await _subprocessStdoutSub?.cancel();
+    _subprocessStdoutSub = null;
+    final p = _subprocess;
+    _subprocess = null;
+    if (p != null) {
+      try {
+        p.kill(ProcessSignal.sigterm);
+      } catch (_) {}
+    }
     final c = _activeController;
     _activeController = null;
     if (c != null && !c.isClosed) {

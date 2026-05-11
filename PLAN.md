@@ -159,16 +159,21 @@ is what's missing — ranked by impact ÷ effort.
     (`SystemAudioPermissionException`,
     `SystemAudioUnsupportedException`) with localised
     snackbar messages in en + de.
-  - ⏳ **Windows** — WASAPI loopback. The native
-    `IAudioClient::Initialize` with `AUDCLNT_STREAMFLAGS_LOOPBACK`
-    captures the default render device. Either via a small
-    custom C++ plugin or a Process.run subprocess to ffmpeg
-    (`-f dshow -i audio=...` / `-f wasapi -i ...`). ~2–3 days.
-  - ⏳ **Linux** — PulseAudio / PipeWire monitor source. The
-    `<default-sink>.monitor` source is captureable via
-    `parec -d @DEFAULT_SINK@.monitor`, libpulse, or libpipewire.
-    Subprocess to `parec` is the path of least resistance.
-    ~1–2 days.
+  - ✅ **Linux** (May 2026) — `parec` subprocess against
+    `@DEFAULT_SINK@.monitor`, asking PulseAudio for 16 kHz mono
+    float32-le PCM directly so no Dart-side resampling. `parec`
+    ships with `pulseaudio-utils` (Ubuntu/Debian/Fedora default
+    install) or `pipewire-pulse` (Pipewire-based distros).
+    Service does a one-shot `which parec` probe in `isSupported`
+    and caches the answer; missing-tool case surfaces a typed
+    `SystemAudioUnsupportedException` with an install hint.
+  - ✅ **Windows** (May 2026) — `ffmpeg` subprocess using the
+    `-f wasapi -i default` loopback (FFmpeg 5+). Requires the
+    user to have ffmpeg on PATH; `where ffmpeg` probe caches
+    the answer in `isSupported`. Missing-tool case surfaces a
+    typed exception with `winget` / `choco` install hints.
+    Native WASAPI plugin (~2 days) would remove the install
+    dependency but isn't blocking — deferred follow-up.
   - ❌ **iOS** — Apple sandbox forbids system audio capture
     entirely. Throws `SystemAudioUnsupportedException`
     permanently.

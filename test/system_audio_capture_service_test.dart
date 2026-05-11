@@ -36,34 +36,37 @@ void main() {
       expect(permission.toString(), contains('user said no'));
     });
 
-    test('isSupported returns false on non-macOS platforms without '
-        'invoking a MethodChannel', () async {
-      // We can't easily fake `Platform.isMacOS` from a test, but if
-      // we ARE on macOS the native side may not be registered in the
-      // test harness — accept either outcome with the rationale that
-      // the platform branch in the source is what we're pinning.
+    test('isSupported returns a clean bool on every supported '
+        'platform without throwing', () async {
+      // Per-platform behaviour pinned in the source:
+      //   • macOS: MethodChannel probe (false on macOS < 13).
+      //   • Linux: `which parec` (false when PulseAudio utils
+      //     missing — caches the answer for later start()).
+      //   • Windows: `where ffmpeg` (false when ffmpeg not on
+      //     PATH — caches).
+      //   • iOS / Android: hard false, short-circuit.
+      // The test asserts only that no exception escapes; the
+      // actual bool depends on the test machine.
       final svc = SystemAudioCaptureService();
       final ok = await svc.isSupported();
-      if (!Platform.isMacOS) {
-        expect(ok, isFalse,
-            reason: 'non-macOS platforms must short-circuit '
-                'before calling the MethodChannel');
-      } else {
-        // macOS: result depends on macOS version + whether the
-        // harness loaded our SystemAudioCapture.swift handler.
-        // Accept either bool; pin only that no exception escapes.
-        expect(ok, anyOf(isTrue, isFalse));
+      expect(ok, anyOf(isTrue, isFalse),
+          reason: 'isSupported must always return a bool, never throw');
+      // On iOS / Android the source short-circuits to false
+      // without any system call.
+      if (Platform.isIOS || Platform.isAndroid) {
+        expect(ok, isFalse);
       }
     });
 
-    test('start() throws SystemAudioUnsupportedException on non-macOS',
+    test('start() on iOS throws SystemAudioUnsupportedException', () async {
+      if (!Platform.isIOS) return;
+      final svc = SystemAudioCaptureService();
+      expect(svc.start, throwsA(isA<SystemAudioUnsupportedException>()));
+    });
+
+    test('start() on Android throws SystemAudioUnsupportedException',
         () async {
-      if (Platform.isMacOS) {
-        // Skip on macOS — the native side might actually be
-        // wired here and a real Start would prompt for Screen
-        // Recording permission, which we don't want from a test.
-        return;
-      }
+      if (!Platform.isAndroid) return;
       final svc = SystemAudioCaptureService();
       expect(svc.start, throwsA(isA<SystemAudioUnsupportedException>()));
     });
