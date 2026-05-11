@@ -1842,6 +1842,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcriptionSaveAsWts => 'Save as WTS (debug)';
 
   @override
+  String get transcriptionSaveAsMarkdown => 'Save as Markdown';
+
+  @override
+  String get transcriptionShareAudioAndTranscript => 'Share audio + transcript';
+
+  @override
+  String get transcriptionShareAudioAndTranscriptHelp =>
+      'Sends the audio file and the SRT transcript as a single share — useful for archiving or handing off to a colleague.';
+
+  @override
+  String get transcriptionShareAudioMissing =>
+      'Select an audio file first to share both together.';
+
+  @override
   String get synthAdvancedSection => 'Advanced synthesis';
 
   @override

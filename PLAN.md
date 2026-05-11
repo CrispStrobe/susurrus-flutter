@@ -187,6 +187,32 @@ Open items only below.
   same form-widget body with the wide-layout dialogs. See
   CHANGELOG → "Responsive UI — Settings sub-screens on mobile".
 
+* **Platform-native share / receive — remaining tail** — the
+  May 2026 pass shipped tiered transcript shares (MD + audio
+  bundle), multi-file inbound enqueue, transcript-file intake
+  (.srt / .vtt), Linux `.desktop` integration with argv intake,
+  and iOS Share Extension *template files* + setup doc. What's
+  still pending:
+
+  - **iOS Share Extension target wiring** — the Swift / plist /
+    entitlements files are checked in under
+    `ios/ShareExtension/`; the one-time Xcode target creation
+    + App Group capability + scheme wiring is described in
+    `docs/ios-share-extension-setup.md`. Run that once on a
+    dev machine to land the extension; no further code changes
+    needed.
+  - **macOS Open-With / Services menu handler** — the
+    `CFBundleDocumentTypes` registration already makes
+    CrisperWeaver appear in Finder's Open With list, but the
+    Swift `application(_:openFile:)` bridge that forwards the
+    file path into `ShareIntakeService.acceptPaths` isn't yet
+    wired. Same shape as the Linux argv intake, but via a
+    `MethodChannel` from `AppDelegate.swift`. ~2 h.
+  - **Windows file association** — best done at install time
+    via an MSIX manifest (`uap:Extension Category=
+    "windows.fileTypeAssociation"`). Out of scope until an
+    MSIX packaging step exists.
+
 * **5.1.9 Subtitle burning into video** — User selects a video
   file + transcript, gets a video with hardcoded subs. FFmpeg
   subprocess. ~1 day desktop-only. Misaligned with the

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Group identifier shared with the Share Extension.
+         The extension drops inbound files into the shared
+         container under this group; this app reads them back
+         on next launch / resume via receive_sharing_intent.
+         Must match ShareExtension/ShareExtension.entitlements. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.crispstrobe.crisperweaver</string>
+    </array>
+</dict>
+</plist>

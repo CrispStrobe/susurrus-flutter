@@ -1083,6 +1083,26 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                         ),
                       ),
                       PopupMenuItem(
+                        value: 'save_md',
+                        child: ListTile(
+                          leading: const Icon(Icons.code, size: 20),
+                          title: Text(l.transcriptionSaveAsMarkdown),
+                          dense: true,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'share_bundle',
+                        child: ListTile(
+                          leading: const Icon(Icons.attach_file, size: 20),
+                          title: Text(l.transcriptionShareAudioAndTranscript),
+                          subtitle: Text(
+                              l.transcriptionShareAudioAndTranscriptHelp,
+                              style: const TextStyle(fontSize: 10)),
+                          dense: true,
+                        ),
+                      ),
+                      PopupMenuItem(
                         value: 'save_wts',
                         child: ListTile(
                           leading: const Icon(Icons.timer_outlined),
@@ -1994,6 +2014,45 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       case 'save_wts':
         _saveAs(appState, TranscriptFormat.wts);
         break;
+      case 'save_md':
+        _saveAs(appState, TranscriptFormat.md);
+        break;
+      case 'share_bundle':
+        _shareAudioAndTranscript(appState);
+        break;
+    }
+  }
+
+  /// Share the currently-selected audio file alongside an SRT
+  /// transcript as a 2-file bundle. No-op with a snackbar when
+  /// no audio is selected (e.g. the user transcribed via the
+  /// microphone and hasn't saved the recording).
+  Future<void> _shareAudioAndTranscript(AppState appState) async {
+    final l = AppLocalizations.of(context);
+    final selected = ref.read(selectedAudioPathProvider);
+    final audioPath = _selectedFilePath ?? selected;
+    if (audioPath == null || audioPath.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l.transcriptionShareAudioMissing),
+      ));
+      return;
+    }
+    try {
+      await FileUtils.shareAudioAndTranscript(
+        audioPath: audioPath,
+        segments: appState.segments,
+        plainText: appState.currentTranscription ?? '',
+        // SRT is the universal subtitle / transcript format —
+        // every player + editor recognises it. The user can
+        // still pick a different format via the dedicated
+        // Save-as entries.
+        transcriptFormat: TranscriptFormat.srt,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l.transcriptionSaveFailed(e.toString())),
+      ));
     }
   }
 

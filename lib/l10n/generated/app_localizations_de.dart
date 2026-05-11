@@ -1853,6 +1853,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get transcriptionSaveAsWts => 'Als WTS speichern (Debug)';
 
   @override
+  String get transcriptionSaveAsMarkdown => 'Als Markdown speichern';
+
+  @override
+  String get transcriptionShareAudioAndTranscript =>
+      'Audio + Transkript teilen';
+
+  @override
+  String get transcriptionShareAudioAndTranscriptHelp =>
+      'Versendet die Audio-Datei zusammen mit dem SRT-Transkript als gemeinsame Freigabe — praktisch für Archivierung oder Übergabe an Kolleg·innen.';
+
+  @override
+  String get transcriptionShareAudioMissing =>
+      'Erst eine Audio-Datei auswählen, um beides zusammen zu teilen.';
+
+  @override
   String get synthAdvancedSection => 'Erweiterte Synthese';
 
   @override

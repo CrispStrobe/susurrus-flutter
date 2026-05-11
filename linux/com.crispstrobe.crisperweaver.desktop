@@ -1,0 +1,26 @@
+[Desktop Entry]
+# Linux desktop integration manifest for CrisperWeaver.
+#
+# Install location:
+#   System-wide:  /usr/share/applications/com.crispstrobe.crisperweaver.desktop
+#   Per-user:     ~/.local/share/applications/com.crispstrobe.crisperweaver.desktop
+#
+# After install, run `update-desktop-database` so the file-manager
+# picks up the new "Open With" entry.
+#
+# %F passes the list of files the user selected — CrisperWeaver
+# receives them as positional argv on launch, and the argv intake
+# in main.dart's bootstrap routes them through ShareIntakeService
+# the same way Android/iOS shares are.
+
+Type=Application
+Name=CrisperWeaver
+Comment=On-device audio transcription with speaker diarization
+GenericName=Transcription
+Exec=crisper_weaver %F
+Icon=com.crispstrobe.crisperweaver
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+MimeType=audio/mpeg;audio/wav;audio/x-wav;audio/mp4;audio/aac;audio/flac;audio/ogg;audio/x-aiff;audio/x-m4a;audio/webm;application/x-subrip;text/vtt;
+StartupWMClass=crisper_weaver
+Keywords=transcribe;subtitles;whisper;speech-to-text;dictation;

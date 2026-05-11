@@ -3212,6 +3212,30 @@ abstract class AppLocalizations {
   /// **'Save as WTS (debug)'**
   String get transcriptionSaveAsWts;
 
+  /// No description provided for @transcriptionSaveAsMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as Markdown'**
+  String get transcriptionSaveAsMarkdown;
+
+  /// No description provided for @transcriptionShareAudioAndTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Share audio + transcript'**
+  String get transcriptionShareAudioAndTranscript;
+
+  /// No description provided for @transcriptionShareAudioAndTranscriptHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends the audio file and the SRT transcript as a single share — useful for archiving or handing off to a colleague.'**
+  String get transcriptionShareAudioAndTranscriptHelp;
+
+  /// No description provided for @transcriptionShareAudioMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an audio file first to share both together.'**
+  String get transcriptionShareAudioMissing;
+
   /// No description provided for @synthAdvancedSection.
   ///
   /// In en, this message translates to:

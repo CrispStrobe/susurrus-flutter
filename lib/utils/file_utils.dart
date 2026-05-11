@@ -115,6 +115,9 @@ class FileUtils {
       case TranscriptFormat.wts:
         content = generateWtsContent(segments ?? []);
         break;
+      case TranscriptFormat.md:
+        content = generateMarkdownContent(segments ?? [], plainText: text);
+        break;
     }
 
     await file.writeAsString(content, encoding: utf8);
@@ -278,6 +281,41 @@ class FileUtils {
     ));
   }
 
+  /// Share the audio file and a chosen-format transcript as a
+  /// two-attachment bundle. The recipient gets both files in one
+  /// message — useful for sending a recording + its captions to
+  /// a colleague, or archiving in email.
+  ///
+  /// Writes the transcript to a temp file (in the standard
+  /// transcriptions directory) so it has a real path on disk
+  /// for SharePlus to wrap as an XFile. Returns the transcript
+  /// file path so callers can show "saved to …" in a snackbar.
+  static Future<String> shareAudioAndTranscript({
+    required String audioPath,
+    required List<TranscriptionSegment> segments,
+    required String plainText,
+    TranscriptFormat transcriptFormat = TranscriptFormat.srt,
+    String? subject,
+  }) async {
+    final audio = File(audioPath);
+    if (!await audio.exists()) {
+      throw FileSystemException('Audio file not found', audioPath);
+    }
+    final baseName =
+        'transcript-${DateTime.now().millisecondsSinceEpoch}';
+    final transcript = await saveTranscription(
+      plainText,
+      baseName,
+      format: transcriptFormat,
+      segments: segments,
+    );
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(audioPath), XFile(transcript.path)],
+      subject: subject ?? path.basenameWithoutExtension(audioPath),
+    ));
+    return transcript.path;
+  }
+
   /// Clear cache directory
   static Future<void> clearCache() async {
     final cacheDir = await getCacheDirectory();
@@ -348,6 +386,8 @@ class FileUtils {
         return 'lrc';
       case TranscriptFormat.wts:
         return 'wts';
+      case TranscriptFormat.md:
+        return 'md';
     }
   }
 
@@ -476,6 +516,34 @@ class FileUtils {
     }
     return buffer.toString();
   }
+
+  /// Markdown — bullet-list with timestamps + bold speaker
+  /// labels, ready to paste into Slack / Discord / Notion /
+  /// GitHub. Falls back to [plainText] (a single paragraph) when
+  /// no segments are available — keeps the format usable even
+  /// when the caller has only `currentTranscription` to hand.
+  static String generateMarkdownContent(
+    List<TranscriptionSegment> segments, {
+    String plainText = '',
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('# Transcript');
+    buffer.writeln();
+    if (segments.isEmpty) {
+      if (plainText.isNotEmpty) buffer.writeln(plainText);
+      return buffer.toString();
+    }
+    for (final s in segments) {
+      // Strip millis from the timestamp — for a chat-message
+      // context, `00:01:23` reads better than `00:01:23,456`.
+      final t0 = formatSrtTime(s.startTime).split(',').first;
+      final t1 = formatSrtTime(s.endTime).split(',').first;
+      final speaker = (s.speaker ?? '').trim();
+      final speakerMd = speaker.isEmpty ? '' : '**$speaker**: ';
+      buffer.writeln('- `$t0 → $t1` $speakerMd${s.text.trim()}');
+    }
+    return buffer.toString();
+  }
 }
 
 enum TranscriptFormat {
@@ -486,6 +554,11 @@ enum TranscriptFormat {
   csv,
   lrc,
   wts,
+  /// Markdown — verbatim transcript laid out as a bulleted list
+  /// with timestamps and speaker labels. Renders beautifully in
+  /// Slack / Discord / Notion / GitHub gists, which is the
+  /// common "share to chat" destination.
+  md,
 }
 
 class FileInfo {

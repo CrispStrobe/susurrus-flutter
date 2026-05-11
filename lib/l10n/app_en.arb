@@ -802,6 +802,10 @@
   "transcriptionSaveAsCsv": "Save as CSV",
   "transcriptionSaveAsLrc": "Save as LRC (lyrics)",
   "transcriptionSaveAsWts": "Save as WTS (debug)",
+  "transcriptionSaveAsMarkdown": "Save as Markdown",
+  "transcriptionShareAudioAndTranscript": "Share audio + transcript",
+  "transcriptionShareAudioAndTranscriptHelp": "Sends the audio file and the SRT transcript as a single share — useful for archiving or handing off to a colleague.",
+  "transcriptionShareAudioMissing": "Select an audio file first to share both together.",
 
   "synthAdvancedSection": "Advanced synthesis",
   "synthRefText": "Reference transcript (voice cloning)",

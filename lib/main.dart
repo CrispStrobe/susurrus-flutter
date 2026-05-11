@@ -42,7 +42,17 @@ import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
 
-void main() async {
+/// Desktop-side argv intake — populated in [main] from the args
+/// Flutter passes after the executable name. Linux `.desktop`
+/// launches with `Exec=crisper_weaver %F` feed file paths here;
+/// macOS `Open With` (when fully wired in a future pass) will
+/// route through the same list. The CrisperWeaverApp's
+/// postFrameCallback drains this into ShareIntakeService.acceptPaths
+/// once the provider graph is up.
+List<String> _bootArgs = const [];
+
+void main(List<String> args) async {
+  _bootArgs = List<String>.unmodifiable(args);
   WidgetsFlutterBinding.ensureInitialized();
 
   // just_audio ships native code for iOS/Android/macOS/web only. On
@@ -172,7 +182,19 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
     // Kick off OS-level share intake after the first frame so Riverpod's
     // provider graph is fully built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(shareIntakeServiceProvider).start();
+      final intake = ref.read(shareIntakeServiceProvider);
+      intake.start();
+      // Desktop argv intake — Linux `.desktop` launches with
+      // `Exec=crisper_weaver %F`, so the file paths arrive as
+      // positional args. The intake service triages them the
+      // same way Android / iOS shares are routed; non-audio,
+      // non-transcript args (e.g. flutter-tool flags) drop
+      // silently. We only run this on desktop platforms — on
+      // mobile the args list is always empty and forwarding
+      // would be a no-op anyway.
+      if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+        intake.acceptPaths(_bootArgs);
+      }
       // Hydrate the batch queue from disk so jobs survive restarts
       // (§5.23 Q1). Running-when-killed jobs are demoted back to
       // queued so the next drain pass picks them up; a separate

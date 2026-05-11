@@ -138,6 +138,82 @@ conventions. Wide layouts still see the original dialogs.
 (value rendering, save-time trimming, clear-and-fire, hotkey
 validation gating). Full test suite: 333 pass (was 325, +8).
 
+### Platform-native share / receive (May 2026)
+
+Filled out the OS-level send/receive surfaces so CrisperWeaver
+talks to neighbouring apps on every platform.
+
+**Outbound — share transcripts to other apps:**
+
+- New **Share as Markdown** entry in the transcript Share menu
+  — bullet-list with `HH:MM:SS → HH:MM:SS` timestamps and bold
+  speaker labels, ready to paste into Slack / Discord / Notion /
+  GitHub. Adds `TranscriptFormat.md` to the export enum.
+- New **Share audio + transcript** entry — sends the source
+  audio AND an SRT transcript as a two-file bundle in a single
+  share. Wraps both files with `SharePlus.share(files: [...])`.
+- Pre-existing **Save as SRT / VTT / TXT / JSON / CSV / LRC / WTS**
+  entries already auto-open the share sheet after saving — no
+  change to those paths.
+
+**Inbound — receive shares into CrisperWeaver:**
+
+- **Multi-file share intake** — `ShareIntakeService` no longer
+  drops everything past the first file. First usable audio goes
+  to the selected-source slot, subsequent audio files enqueue
+  into the batch queue. Closes a silent data-loss bug for
+  Android `SEND_MULTIPLE` and macOS multi-file drag-drop.
+- **Transcript-file intake** — sharing a `.srt` or `.vtt` (or
+  opening one with CrisperWeaver) parses it into segments and
+  loads "review mode". New `TranscriptParsers` module handles
+  SubRip + WebVTT grammars (CRLF tolerant, optional cue
+  identifiers, NOTE/STYLE/REGION skipping, speaker-prefix
+  extraction). 13 unit tests pin the grammar handling.
+- **Android intent-filters** for `application/x-subrip` and
+  `text/vtt` on both VIEW (Open With) and SEND (Share Sheet)
+  intents. `.txt` is intentionally left off the VIEW filter to
+  avoid CrisperWeaver appearing for every random plaintext file.
+- **iOS / macOS UTI declarations** — proper exported UTIs for
+  `com.crispstrobe.crisperweaver.srt` (conforms to
+  public.plain-text, extension `srt`, MIME
+  `application/x-subrip` + `text/srt`) and `…vtt` (extension
+  `vtt`, MIME `text/vtt`). A new "Subtitle Files" entry in
+  `CFBundleDocumentTypes` references those UTIs so Finder /
+  Files Open With surfaces CrisperWeaver for them.
+
+**Desktop integration:**
+
+- **Linux `.desktop` file** — `linux/com.crispstrobe.crisperweaver.desktop`
+  with audio + subtitle MimeTypes, `Exec=crisper_weaver %F` so
+  `Open With CrisperWeaver` passes files as positional argv.
+- **Argv-based intake on desktop** — `main()` now takes
+  `List<String> args` and forwards them to
+  `ShareIntakeService.acceptPaths` after the provider graph is
+  up. Audio + transcript triage happens in the same code path
+  as Android / iOS shares.
+
+**iOS Share Extension (template files only, target wiring is
+the tracked follow-up):**
+
+- Swift / Info.plist / entitlements template under
+  `ios/ShareExtension/` plus the matching
+  `ios/Runner/Runner.entitlements` with the
+  `group.com.crispstrobe.crisperweaver` App Group identifier.
+- Step-by-step Xcode target-creation guide in
+  `docs/ios-share-extension-setup.md`. Once the target is wired
+  in `Runner.xcodeproj`, CrisperWeaver appears in iOS's system
+  Share Sheet from Voice Memos / Mail / Files etc. with no
+  further code changes.
+
+Tracked PLAN.md follow-ups: macOS NSServices / Open-With wiring
+(needs an NSPasteboard → MethodChannel bridge in
+`AppDelegate.swift`), Windows file association (installer /
+MSIX work), and the iOS Share Extension Xcode target setup
+itself.
+
+Tests: +13 transcript-parser tests. Full suite: 346 pass (was
+333, +13).
+
 ### Performance — Metal cold start (CrispASR upstream)
 
 * **38× faster ASR / TTS cold starts** via the persistent

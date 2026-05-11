@@ -135,6 +135,21 @@
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Subtitle Files</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleTypeIconFiles</key>
+			<array/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.crispstrobe.crisperweaver.srt</string>
+				<string>com.crispstrobe.crisperweaver.vtt</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+		</dict>
 	</array>
 
 	<!-- URL Schemes -->
@@ -182,6 +197,49 @@
 				<key>public.mime-type</key>
 				<array>
 					<string>application/x-crisperweaver-transcription</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.crispstrobe.crisperweaver.srt</string>
+			<key>UTTypeDescription</key>
+			<string>SubRip Subtitle</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>srt</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-subrip</string>
+					<string>text/srt</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.crispstrobe.crisperweaver.vtt</string>
+			<key>UTTypeDescription</key>
+			<string>WebVTT Subtitle</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vtt</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>text/vtt</string>
 				</array>
 			</dict>
 		</dict>

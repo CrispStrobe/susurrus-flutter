@@ -50,6 +50,73 @@
 				<string>org.xiph.ogg-vorbis</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Subtitle</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.crispstrobe.crisperweaver.srt</string>
+				<string>com.crispstrobe.crisperweaver.vtt</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>srt</string>
+				<string>vtt</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Subtitle UTI declarations — same identifiers the iOS
+	     side declares, so a file originating from one platform
+	     opens on the other without UTI mismatch. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.crispstrobe.crisperweaver.srt</string>
+			<key>UTTypeDescription</key>
+			<string>SubRip Subtitle</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>srt</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-subrip</string>
+					<string>text/srt</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.crispstrobe.crisperweaver.vtt</string>
+			<key>UTTypeDescription</key>
+			<string>WebVTT Subtitle</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vtt</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>text/vtt</string>
+				</array>
+			</dict>
+		</dict>
 	</array>
 </dict>
 </plist>

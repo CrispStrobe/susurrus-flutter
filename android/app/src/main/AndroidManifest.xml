@@ -67,6 +67,29 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="audio/*" />
             </intent-filter>
+
+            <!-- Open-in: VIEW transcript files (SRT / VTT) from
+                 another app or file manager. Plain text is left
+                 off the VIEW filter to avoid CrisperWeaver
+                 appearing as an option for every random .txt
+                 the user opens; SRT / VTT are subtitle-specific
+                 enough that the OS suggesting CrisperWeaver is
+                 actively helpful. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/x-subrip" />
+                <data android:mimeType="text/vtt" />
+            </intent-filter>
+
+            <!-- Share-to-CrisperWeaver: receive a transcript file from the share sheet -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/x-subrip" />
+                <data android:mimeType="text/vtt" />
+            </intent-filter>
         </activity>
         
         <!-- Don't delete the meta-data below.
