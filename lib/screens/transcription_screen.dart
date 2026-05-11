@@ -473,6 +473,22 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                   label: Text(l.browse),
                   onPressed: _selectAudioFile,
                 ),
+                // §5.1.5 — Open the audio editor (waveform +
+                // trim / cut / split) for the currently-loaded
+                // file. Hidden when no file is loaded so the
+                // affordance only shows up when it's actionable.
+                if (displayPath != null && displayPath.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: l.editAudioOpen,
+                    icon: const Icon(Icons.graphic_eq),
+                    onPressed: () {
+                      context.push(
+                        '/edit-audio?path=${Uri.encodeQueryComponent(displayPath)}',
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
 

@@ -497,6 +497,40 @@
   "advancedTargetLanguage": "Übersetzen in (Zielsprache)",
   "advancedTargetLanguageNone": "Keine Übersetzung (wörtlich)",
   "advancedTargetLanguageHelper": "Nur sichtbar für übersetzungsfähige Backends (Canary, Voxtral, Qwen3, Cohere, Whisper). „Keine Übersetzung\" für wortgetreue Transkription.",
+  "editAudioOpen": "Im Audio-Editor öffnen",
+  "editAudioTitle": "Audio bearbeiten",
+  "editAudioLoadFailed": "Audio konnte nicht dekodiert werden: {error}",
+  "@editAudioLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "editAudioSaveAs": "Bearbeitetes Audio speichern unter…",
+  "editAudioSavedTo": "Gespeichert unter {path}",
+  "@editAudioSavedTo": {
+    "placeholders": { "path": { "type": "String" } }
+  },
+  "editAudioTrim": "Zuschneiden",
+  "editAudioCut": "Mitte ausschneiden",
+  "editAudioAddSplitMark": "Splitmarke setzen",
+  "editAudioRunSplit": "In {n} Dateien aufteilen",
+  "@editAudioRunSplit": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "editAudioClearMarks": "Marken löschen",
+  "editAudioClearSelection": "Auswahl löschen",
+  "editAudioNeedSelection": "Bitte zuerst auf der Wellenform einen Bereich auswählen (ziehen).",
+  "editAudioNeedSplitMarks": "Bitte mindestens eine Splitmarke setzen.",
+  "editAudioSelectionLabel": "Auswahl: {start} – {end}",
+  "@editAudioSelectionLabel": {
+    "placeholders": {
+      "start": { "type": "String" },
+      "end": { "type": "String" }
+    }
+  },
+  "editAudioSplitSaved": "{n} Dateien gespeichert.",
+  "@editAudioSplitSaved": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "editAudioHowto": "Tippe auf die Wellenform, um zu springen. Ziehe, um einen Bereich auszuwählen. „Zuschneiden“ behält [Start, Ende]; „Mitte ausschneiden“ entfernt [Start, Ende] und fügt den Rest zusammen; „Splitmarke“ setzt einen Punkt an der aktuellen Position, dann „Aufteilen“ schreibt pro Bereich eine WAV-Datei.",
   "advancedVocabulary": "Benutzerdefiniertes Vokabular",
   "advancedVocabularyHint": "Begriff eingeben und Enter drücken (z. B. API, kubectl, Alice)",
   "advancedVocabularyAdd": "Begriff hinzufügen",

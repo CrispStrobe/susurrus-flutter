@@ -1946,6 +1946,102 @@ abstract class AppLocalizations {
   /// **'Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.'**
   String get advancedAskPromptHelper;
 
+  /// No description provided for @editAudioOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in audio editor'**
+  String get editAudioOpen;
+
+  /// No description provided for @editAudioTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit audio'**
+  String get editAudioTitle;
+
+  /// No description provided for @editAudioLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t decode audio: {error}'**
+  String editAudioLoadFailed(String error);
+
+  /// No description provided for @editAudioSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save edited audio as…'**
+  String get editAudioSaveAs;
+
+  /// No description provided for @editAudioSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String editAudioSavedTo(String path);
+
+  /// No description provided for @editAudioTrim.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim'**
+  String get editAudioTrim;
+
+  /// No description provided for @editAudioCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut middle'**
+  String get editAudioCut;
+
+  /// No description provided for @editAudioAddSplitMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Add split mark'**
+  String get editAudioAddSplitMark;
+
+  /// No description provided for @editAudioRunSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split into {n} files'**
+  String editAudioRunSplit(int n);
+
+  /// No description provided for @editAudioClearMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear marks'**
+  String get editAudioClearMarks;
+
+  /// No description provided for @editAudioClearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get editAudioClearSelection;
+
+  /// No description provided for @editAudioNeedSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag on the waveform to select a region first.'**
+  String get editAudioNeedSelection;
+
+  /// No description provided for @editAudioNeedSplitMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one split mark first.'**
+  String get editAudioNeedSplitMarks;
+
+  /// No description provided for @editAudioSelectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection: {start} – {end}'**
+  String editAudioSelectionLabel(String start, String end);
+
+  /// No description provided for @editAudioSplitSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {n} files.'**
+  String editAudioSplitSaved(int n);
+
+  /// No description provided for @editAudioHowto.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap waveform to seek. Drag to select a region. Use Trim to keep [start, end]; Cut middle to remove [start, end] and splice the rest; Add split mark to drop a split point at the current playhead, then Split to write one WAV per region.'**
+  String get editAudioHowto;
+
   /// No description provided for @advancedVocabulary.
   ///
   /// In en, this message translates to:

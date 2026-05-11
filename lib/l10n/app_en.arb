@@ -500,6 +500,40 @@
   "advancedAskPrompt": "Ask the audio (Q&A mode)",
   "advancedAskPromptHint": "e.g. \"Summarize\" or \"What's the speaker's tone?\"",
   "advancedAskPromptHelper": "Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.",
+  "editAudioOpen": "Open in audio editor",
+  "editAudioTitle": "Edit audio",
+  "editAudioLoadFailed": "Couldn't decode audio: {error}",
+  "@editAudioLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "editAudioSaveAs": "Save edited audio as…",
+  "editAudioSavedTo": "Saved to {path}",
+  "@editAudioSavedTo": {
+    "placeholders": { "path": { "type": "String" } }
+  },
+  "editAudioTrim": "Trim",
+  "editAudioCut": "Cut middle",
+  "editAudioAddSplitMark": "Add split mark",
+  "editAudioRunSplit": "Split into {n} files",
+  "@editAudioRunSplit": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "editAudioClearMarks": "Clear marks",
+  "editAudioClearSelection": "Clear selection",
+  "editAudioNeedSelection": "Drag on the waveform to select a region first.",
+  "editAudioNeedSplitMarks": "Add at least one split mark first.",
+  "editAudioSelectionLabel": "Selection: {start} – {end}",
+  "@editAudioSelectionLabel": {
+    "placeholders": {
+      "start": { "type": "String" },
+      "end": { "type": "String" }
+    }
+  },
+  "editAudioSplitSaved": "Saved {n} files.",
+  "@editAudioSplitSaved": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "editAudioHowto": "Tap waveform to seek. Drag to select a region. Use Trim to keep [start, end]; Cut middle to remove [start, end] and splice the rest; Add split mark to drop a split point at the current playhead, then Split to write one WAV per region.",
   "advancedVocabulary": "Custom vocabulary",
   "advancedVocabularyHint": "Type a term and press Enter (e.g. API, kubectl, Alice)",
   "advancedVocabularyAdd": "Add term",

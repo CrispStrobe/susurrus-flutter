@@ -23,6 +23,7 @@ import 'screens/storage_screen.dart';
 import 'screens/synthesize_screen.dart';
 import 'screens/translate_screen.dart';
 import 'screens/voice_bake_screen.dart';
+import 'screens/edit_audio_screen.dart';
 import 'services/audio_service.dart';
 import 'services/batch_queue_service.dart';
 import 'services/history_service.dart';
@@ -250,6 +251,17 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
         path: '/voice-bake',
         name: 'voice-bake',
         builder: (context, state) => const VoiceBakeScreen(),
+      ),
+      GoRoute(
+        path: '/edit-audio',
+        name: 'edit-audio',
+        builder: (context, state) {
+          // Source path arrives as a query parameter rather than a
+          // path segment so it survives URL-encoding cleanly on
+          // platforms where the path may contain spaces/specials.
+          final src = state.uri.queryParameters['path'] ?? '';
+          return EditAudioScreen(sourcePath: src);
+        },
       ),
     ],
   );

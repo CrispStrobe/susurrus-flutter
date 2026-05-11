@@ -1095,6 +1095,66 @@ class AppLocalizationsEn extends AppLocalizations {
       'Voxtral / Qwen3-ASR only. When set, the LLM ANSWERS your question instead of producing a verbatim transcript. Leave empty for normal transcription.';
 
   @override
+  String get editAudioOpen => 'Open in audio editor';
+
+  @override
+  String get editAudioTitle => 'Edit audio';
+
+  @override
+  String editAudioLoadFailed(String error) {
+    return 'Couldn\'t decode audio: $error';
+  }
+
+  @override
+  String get editAudioSaveAs => 'Save edited audio as…';
+
+  @override
+  String editAudioSavedTo(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get editAudioTrim => 'Trim';
+
+  @override
+  String get editAudioCut => 'Cut middle';
+
+  @override
+  String get editAudioAddSplitMark => 'Add split mark';
+
+  @override
+  String editAudioRunSplit(int n) {
+    return 'Split into $n files';
+  }
+
+  @override
+  String get editAudioClearMarks => 'Clear marks';
+
+  @override
+  String get editAudioClearSelection => 'Clear selection';
+
+  @override
+  String get editAudioNeedSelection =>
+      'Drag on the waveform to select a region first.';
+
+  @override
+  String get editAudioNeedSplitMarks => 'Add at least one split mark first.';
+
+  @override
+  String editAudioSelectionLabel(String start, String end) {
+    return 'Selection: $start – $end';
+  }
+
+  @override
+  String editAudioSplitSaved(int n) {
+    return 'Saved $n files.';
+  }
+
+  @override
+  String get editAudioHowto =>
+      'Tap waveform to seek. Drag to select a region. Use Trim to keep [start, end]; Cut middle to remove [start, end] and splice the rest; Add split mark to drop a split point at the current playhead, then Split to write one WAV per region.';
+
+  @override
   String get advancedVocabulary => 'Custom vocabulary';
 
   @override

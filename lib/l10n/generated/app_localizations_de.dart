@@ -1103,6 +1103,67 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nur Voxtral / Qwen3-ASR. Wenn gesetzt, ANTWORTET das LLM auf deine Frage, statt eine wortgetreue Transkription zu liefern. Leer lassen für normale Transkription.';
 
   @override
+  String get editAudioOpen => 'Im Audio-Editor öffnen';
+
+  @override
+  String get editAudioTitle => 'Audio bearbeiten';
+
+  @override
+  String editAudioLoadFailed(String error) {
+    return 'Audio konnte nicht dekodiert werden: $error';
+  }
+
+  @override
+  String get editAudioSaveAs => 'Bearbeitetes Audio speichern unter…';
+
+  @override
+  String editAudioSavedTo(String path) {
+    return 'Gespeichert unter $path';
+  }
+
+  @override
+  String get editAudioTrim => 'Zuschneiden';
+
+  @override
+  String get editAudioCut => 'Mitte ausschneiden';
+
+  @override
+  String get editAudioAddSplitMark => 'Splitmarke setzen';
+
+  @override
+  String editAudioRunSplit(int n) {
+    return 'In $n Dateien aufteilen';
+  }
+
+  @override
+  String get editAudioClearMarks => 'Marken löschen';
+
+  @override
+  String get editAudioClearSelection => 'Auswahl löschen';
+
+  @override
+  String get editAudioNeedSelection =>
+      'Bitte zuerst auf der Wellenform einen Bereich auswählen (ziehen).';
+
+  @override
+  String get editAudioNeedSplitMarks =>
+      'Bitte mindestens eine Splitmarke setzen.';
+
+  @override
+  String editAudioSelectionLabel(String start, String end) {
+    return 'Auswahl: $start – $end';
+  }
+
+  @override
+  String editAudioSplitSaved(int n) {
+    return '$n Dateien gespeichert.';
+  }
+
+  @override
+  String get editAudioHowto =>
+      'Tippe auf die Wellenform, um zu springen. Ziehe, um einen Bereich auszuwählen. „Zuschneiden“ behält [Start, Ende]; „Mitte ausschneiden“ entfernt [Start, Ende] und fügt den Rest zusammen; „Splitmarke“ setzt einen Punkt an der aktuellen Position, dann „Aufteilen“ schreibt pro Bereich eine WAV-Datei.';
+
+  @override
   String get advancedVocabulary => 'Benutzerdefiniertes Vokabular';
 
   @override

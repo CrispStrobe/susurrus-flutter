@@ -341,6 +341,17 @@ is what's missing — ranked by impact ÷ effort.
   RIFF/WAVE/fmt/data header. 5 tests pin header bytes +
   clipping + DecodedSource.secondsToSample math.
 
+  **No FFmpeg dependency anywhere in the editor flow.** Decoding
+  is via miniaudio (bundled inside libcrispasr — handles WAV /
+  MP3 / FLAC / Ogg / Opus natively across every supported
+  platform); editing is pure Dart on Float32 buffers; encoding
+  is the hand-rolled WAV encoder above; rendering is a Flutter
+  `CustomPainter`. All five platforms (macOS / Linux / Windows /
+  Android / iOS) run the identical code path. The one place
+  CrisperWeaver shells out to FFmpeg is Windows-only system
+  audio capture (§5.1.1), which is a separate feature and
+  tracked for replacement with a native WASAPI plugin.
+
 * **5.1.6 LLM post-editing pass** — "Clean up this transcript"
   button that runs segments through a local LLM (capitalize,
   remove "um"s, fix obvious mishearings) OR via
