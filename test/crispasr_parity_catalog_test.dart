@@ -144,6 +144,18 @@ void main() {
         expect(ModelService.backendRepos.containsKey(b), isTrue,
             reason: 'BackendRepo "$b" missing — HF probe will skip it');
       }
+      // WMT21 ships two HF repos (en-x + x-en) — both must be probed
+      // or users see only one direction's quants in the auto-
+      // discovered list.
+      expect(ModelService.backendRepos.containsKey('m2m100-wmt21-x-en'),
+          isTrue,
+          reason: 'WMT21 x-en sibling repo missing — HF probe will only '
+              'surface en→X quants');
+      final wmt21XEn = ModelService.backendRepos['m2m100-wmt21-x-en']!;
+      expect(wmt21XEn.backend, 'm2m100-wmt21',
+          reason: 'sibling row routes to the same C backend as en-x');
+      expect(wmt21XEn.repoId, contains('wmt21-dense-24-wide-x-en'),
+          reason: 'sibling row points at the x-en HF repo');
     });
   });
 }

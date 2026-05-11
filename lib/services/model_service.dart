@@ -1248,14 +1248,30 @@ class ModelService {
       description: 'Text-to-text translation (100 languages, any-to-any)',
     ),
     // WMT21 Dense — Facebook's News-competition winner. Two
-    // directional checkpoints; the HF probe surfaces quants from the
-    // en-x repo. The x-en variant is a separate hardcoded entry.
+    // directional checkpoints, each in its own HF repo. Both ship
+    // under the same C-side backend `m2m100-wmt21`; CrispASR picks
+    // the direction from the model's pre/suffix at session-open
+    // time. Keep both BackendRepo rows so the live HF probe
+    // surfaces quants from both repos — without the x-en entry
+    // users see only en-x quants in the auto-discovered list.
+    //
+    // The canonical key `m2m100-wmt21` (en-x) is required by the
+    // parity catalog test; the `-x-en` sibling key is iteration-
+    // only (probe walks `.values`, so the key doesn't have to
+    // match the backend id).
     'm2m100-wmt21': BackendRepo(
       backend: 'm2m100-wmt21',
       repoId: 'cstr/wmt21-dense-24-wide-en-x-GGUF',
       baseName: 'wmt21-dense-24-wide-en-x',
       displayPrefix: 'WMT21 Dense 24-wide en→X',
       description: 'WMT21 News winner — English to 7 target languages',
+    ),
+    'm2m100-wmt21-x-en': BackendRepo(
+      backend: 'm2m100-wmt21',
+      repoId: 'cstr/wmt21-dense-24-wide-x-en-GGUF',
+      baseName: 'wmt21-dense-24-wide-x-en',
+      displayPrefix: 'WMT21 Dense 24-wide X→en',
+      description: 'WMT21 News winner — 7 source languages to English',
     ),
     // MADLAD-400 — Google's 419-language T5 translator.
     'madlad': BackendRepo(
