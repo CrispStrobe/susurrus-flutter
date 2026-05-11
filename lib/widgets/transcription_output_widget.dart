@@ -17,6 +17,7 @@ import '../services/local_llm_cleanup_service.dart';
 import '../services/settings_service.dart';
 import '../services/transcript_cleanup_service.dart';
 import '../services/transcript_summarize_service.dart';
+import '../utils/responsive.dart';
 
 class TranscriptionOutputWidget extends ConsumerStatefulWidget {
   final List<TranscriptionSegment> segments;
@@ -660,7 +661,7 @@ class _TranscriptionOutputWidgetState
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(ctx).outputRenameSpeakerTitle),
         content: SizedBox(
-          width: 320,
+          width: responsiveDialogWidth(ctx, designed: 320),
           child: TextField(
             controller: controller,
             autofocus: true,
@@ -819,7 +820,7 @@ class _TranscriptionOutputWidgetState
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(ctx).outputEditSegment),
         content: SizedBox(
-          width: 480,
+          width: responsiveDialogWidth(ctx, designed: 480),
           child: TextField(
             controller: controller,
             maxLines: 6,
@@ -1241,7 +1242,7 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
     return AlertDialog(
       title: Text(l.outputCleanupTitle),
       content: SizedBox(
-        width: 560,
+        width: responsiveDialogWidth(context, designed: 560),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1349,26 +1350,23 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
                     const SizedBox(height: 4),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SegmentedButton<LlmCleanupMode>(
+                      child: AdaptiveSegmentedButton<LlmCleanupMode>(
                         segments: [
-                          ButtonSegment(
-                            value: LlmCleanupMode.off,
-                            label: Text(l.outputCleanupLlmModeOff),
-                          ),
-                          ButtonSegment(
-                            value: LlmCleanupMode.cloud,
-                            enabled: hasCloud,
-                            label: Text(l.outputCleanupLlmModeCloud),
-                          ),
-                          ButtonSegment(
-                            value: LlmCleanupMode.local,
-                            enabled: hasLocal,
-                            label: Text(l.outputCleanupLlmModeLocal),
-                          ),
+                          AdaptiveSegment(
+                              value: LlmCleanupMode.off,
+                              label: l.outputCleanupLlmModeOff),
+                          AdaptiveSegment(
+                              value: LlmCleanupMode.cloud,
+                              enabled: hasCloud,
+                              label: l.outputCleanupLlmModeCloud),
+                          AdaptiveSegment(
+                              value: LlmCleanupMode.local,
+                              enabled: hasLocal,
+                              label: l.outputCleanupLlmModeLocal),
                         ],
-                        selected: <LlmCleanupMode>{_llmMode},
-                        onSelectionChanged: (sel) =>
-                            setState(() => _llmMode = sel.first),
+                        selected: _llmMode,
+                        onChanged: (v) =>
+                            setState(() => _llmMode = v),
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -1602,8 +1600,8 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
     return AlertDialog(
       title: Text(l.outputSummarizeTitle),
       content: SizedBox(
-        width: 620,
-        height: 560,
+        width: responsiveDialogWidth(context, designed: 620),
+        height: responsiveDialogHeight(context, designed: 560),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1624,30 +1622,26 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
             if (hasAny) ...[
               const SizedBox(height: 8),
               Center(
-                child: SegmentedButton<LlmCleanupMode>(
+                child: AdaptiveSegmentedButton<LlmCleanupMode>(
                   segments: [
-                    ButtonSegment(
+                    AdaptiveSegment(
                       value: LlmCleanupMode.cloud,
                       enabled: hasCloud && !_running,
-                      label: Text(l.outputCleanupLlmModeCloud),
+                      label: l.outputCleanupLlmModeCloud,
                     ),
-                    ButtonSegment(
+                    AdaptiveSegment(
                       value: LlmCleanupMode.local,
                       enabled: hasLocal && !_running,
-                      label: Text(l.outputCleanupLlmModeLocal),
+                      label: l.outputCleanupLlmModeLocal,
                     ),
                   ],
-                  selected: <LlmCleanupMode>{
-                    if (_mode == LlmCleanupMode.cloud ||
-                        _mode == LlmCleanupMode.local)
-                      _mode
-                    else if (hasLocal)
-                      LlmCleanupMode.local
-                    else
-                      LlmCleanupMode.cloud,
-                  },
-                  onSelectionChanged: (sel) =>
-                      setState(() => _mode = sel.first),
+                  selected: (_mode == LlmCleanupMode.cloud ||
+                          _mode == LlmCleanupMode.local)
+                      ? _mode
+                      : (hasLocal
+                          ? LlmCleanupMode.local
+                          : LlmCleanupMode.cloud),
+                  onChanged: (v) => setState(() => _mode = v),
                 ),
               ),
             ],

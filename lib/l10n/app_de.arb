@@ -11,6 +11,11 @@
   "menuTranslate": "Text übersetzen",
   "menuLogs": "Protokoll",
   "menuAbout": "Über",
+  "menuOpenMore": "Mehr",
+  "tabInput": "Eingabe",
+  "tabRun": "Start",
+  "tabOutput": "Ausgabe",
+  "navHome": "Transkribieren",
 
   "engineReady": "Engine bereit",
   "engineStarting": "Engine wird gestartet…",

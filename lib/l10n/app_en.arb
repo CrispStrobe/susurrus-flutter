@@ -11,6 +11,11 @@
   "menuTranslate": "Translate text",
   "menuLogs": "Logs",
   "menuAbout": "About",
+  "menuOpenMore": "More",
+  "tabInput": "Input",
+  "tabRun": "Run",
+  "tabOutput": "Output",
+  "navHome": "Transcribe",
 
   "engineReady": "Engine ready",
   "engineStarting": "Engine starting…",

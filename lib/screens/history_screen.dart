@@ -7,6 +7,7 @@ import '../main.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/history_service.dart';
 import '../utils/file_utils.dart';
+import '../utils/responsive.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -197,6 +198,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           );
         },
       ),
+      bottomNavigationBar: isPhoneWidth(context)
+          ? const PhoneNavBar(current: PhoneNavDestination.history)
+          : null,
     );
   }
 }

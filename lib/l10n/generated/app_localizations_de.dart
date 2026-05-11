@@ -36,6 +36,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get menuAbout => 'Über';
 
   @override
+  String get menuOpenMore => 'Mehr';
+
+  @override
+  String get tabInput => 'Eingabe';
+
+  @override
+  String get tabRun => 'Start';
+
+  @override
+  String get tabOutput => 'Ausgabe';
+
+  @override
+  String get navHome => 'Transkribieren';
+
+  @override
   String get engineReady => 'Engine bereit';
 
   @override

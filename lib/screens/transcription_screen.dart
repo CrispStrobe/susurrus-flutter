@@ -26,6 +26,7 @@ import '../services/model_service.dart';
 import '../services/settings_service.dart';
 import '../services/transcription_worker_pool.dart';
 import '../utils/file_utils.dart';
+import '../utils/responsive.dart';
 import '../widgets/advanced_options_widget.dart';
 import '../widgets/audio_recorder_widget.dart';
 import '../widgets/batch_queue_card.dart';
@@ -221,53 +222,142 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final locale = Localizations.localeOf(context);
     Log.instance.t('ui', 'TranscriptionScreen.build locale=$locale');
 
+    // Responsive AppBar — three-tier behaviour:
+    //   wide   (≥600): full 2-line title + every action as an icon
+    //   compact(<600): single-line title, drop the tagline
+    //   phone  (<480): keep only Settings as a visible icon; move
+    //                   History / Models / Synthesize / Translate /
+    //                   Presets into a PopupMenuButton overflow.
+    final compact = isCompactWidth(context);
+    final phone = isPhoneWidth(context);
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l.appName),
-            Text(
-              l.appTagline,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: l.menuHistory,
-            onPressed: () => context.push('/history'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: l.menuSettings,
-            onPressed: () => context.push('/settings'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            tooltip: l.menuModels,
-            onPressed: () => context.push('/models'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.record_voice_over),
-            tooltip: l.menuSynthesize,
-            onPressed: () => context.push('/synthesize'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.translate),
-            tooltip: l.menuTranslate,
-            onPressed: () => context.push('/translate'),
-          ),
-          // §5.1.7 — Presets: save / load (backend, modelId,
-          // language, AdvancedOptions) bundles.
-          IconButton(
-            icon: const Icon(Icons.bookmarks_outlined),
-            tooltip: l.presetsTooltip,
-            onPressed: _openPresetsDialog,
-          ),
-        ],
+        title: compact
+            ? Text(l.appName)
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l.appName),
+                  Text(
+                    l.appTagline,
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w400),
+                  ),
+                ],
+              ),
+        actions: phone
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: l.menuSettings,
+                  onPressed: () => context.push('/settings'),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: l.menuOpenMore,
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'history':
+                        context.push('/history');
+                        break;
+                      case 'models':
+                        context.push('/models');
+                        break;
+                      case 'synthesize':
+                        context.push('/synthesize');
+                        break;
+                      case 'translate':
+                        context.push('/translate');
+                        break;
+                      case 'presets':
+                        _openPresetsDialog();
+                        break;
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'history',
+                      child: ListTile(
+                        leading: const Icon(Icons.history),
+                        title: Text(l.menuHistory),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'models',
+                      child: ListTile(
+                        leading: const Icon(Icons.download),
+                        title: Text(l.menuModels),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'synthesize',
+                      child: ListTile(
+                        leading: const Icon(Icons.record_voice_over),
+                        title: Text(l.menuSynthesize),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'translate',
+                      child: ListTile(
+                        leading: const Icon(Icons.translate),
+                        title: Text(l.menuTranslate),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'presets',
+                      child: ListTile(
+                        leading: const Icon(Icons.bookmarks_outlined),
+                        title: Text(l.presetsTooltip),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  tooltip: l.menuHistory,
+                  onPressed: () => context.push('/history'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: l.menuSettings,
+                  onPressed: () => context.push('/settings'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.download),
+                  tooltip: l.menuModels,
+                  onPressed: () => context.push('/models'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.record_voice_over),
+                  tooltip: l.menuSynthesize,
+                  onPressed: () => context.push('/synthesize'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.translate),
+                  tooltip: l.menuTranslate,
+                  onPressed: () => context.push('/translate'),
+                ),
+                // §5.1.7 — Presets: save / load (backend,
+                // modelId, language, AdvancedOptions) bundles.
+                IconButton(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  tooltip: l.presetsTooltip,
+                  onPressed: _openPresetsDialog,
+                ),
+              ],
       ),
       body: DropTarget(
         onDragEntered: (_) => setState(() => _dropHover = true),
@@ -276,6 +366,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         child: Stack(
             children: [_buildBody(), if (_dropHover) _buildDropOverlay()]),
       ),
+      bottomNavigationBar: phone
+          ? const PhoneNavBar(current: PhoneNavDestination.transcribe)
+          : null,
     );
   }
 
@@ -367,11 +460,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final transcriptionService = ref.watch(transcriptionServiceProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Three tiers:
-        //   - narrow (<700)  : single stacked column, all panes scroll.
-        //     Suited to phones and very-tight desktop windows.
-        //   - wide   (≥700)  : 2-column input|output.
-        //   - extra-wide (≥1300) : 3-column input | queue+controls | output.
+        // Four tiers:
+        //   - phone (<600)        : TabBar (Input / Run / Output).
+        //     One pane at a time, full viewport each. Phone-native.
+        //   - narrow (600..699)   : single stacked column, all panes
+        //     scroll. Suited to small tablets and tight desktop windows.
+        //   - wide   (700..1299)  : 2-column input|output.
+        //   - extra-wide (≥1300)  : 3-column input | queue+controls | output.
         //     Batch queue gets its own middle column so the left stays
         //     compact and the output pane is unaffected.
         final w = constraints.maxWidth;
@@ -418,16 +513,32 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             ],
           );
         }
-        // Narrow: stack vertically. Output is most important → flex 3.
-        return Column(
-          children: [
-            Expanded(
-              flex: 2,
-              child: SingleChildScrollView(child: input),
-            ),
-            controls,
-            Expanded(flex: 3, child: output),
-          ],
+        if (w >= Breakpoints.compact) {
+          // Narrow (600..699): stack vertically. Output is most
+          // important → flex 3.
+          return Column(
+            children: [
+              Expanded(
+                flex: 2,
+                child: SingleChildScrollView(child: input),
+              ),
+              controls,
+              Expanded(flex: 3, child: output),
+            ],
+          );
+        }
+        // Phone (<600): one pane at a time via TabBar. Default-
+        // open the tab that matches the user's current intent —
+        // Output when there are segments to read, Input
+        // otherwise. The DefaultTabController only reads
+        // initialIndex once; subsequent rebuilds don't yank the
+        // user off whichever tab they switched to.
+        final hasSegments = appState.segments.isNotEmpty;
+        return _NarrowTabbedBody(
+          input: input,
+          controls: controls,
+          output: output,
+          initialIndex: hasSegments ? 2 : 0,
         );
       },
     );
@@ -2184,8 +2295,8 @@ class _PresetsDialogState extends ConsumerState<_PresetsDialog> {
     return AlertDialog(
       title: Text(l.presetsTitle),
       content: SizedBox(
-        width: 560,
-        height: 480,
+        width: responsiveDialogWidth(context, designed: 560),
+        height: responsiveDialogHeight(context, designed: 480),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -2281,5 +2392,92 @@ class _PresetsDialogState extends ConsumerState<_PresetsDialog> {
       parts.add('→${p.options.targetLanguage}');
     }
     return parts.isEmpty ? '—' : parts.join(' · ');
+  }
+}
+
+/// Layer-3 narrow layout — three tabs (Input / Run / Output)
+/// each filling the viewport one at a time. Stateful only so
+/// the TabController persists across rebuilds; the tab content
+/// itself is just whatever the caller passes in.
+class _NarrowTabbedBody extends StatefulWidget {
+  const _NarrowTabbedBody({
+    required this.input,
+    required this.controls,
+    required this.output,
+    required this.initialIndex,
+  });
+
+  final Widget input;
+  final Widget controls;
+  final Widget output;
+  final int initialIndex;
+
+  @override
+  State<_NarrowTabbedBody> createState() => _NarrowTabbedBodyState();
+}
+
+class _NarrowTabbedBodyState extends State<_NarrowTabbedBody>
+    with SingleTickerProviderStateMixin {
+  late final TabController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialIndex,
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      children: [
+        Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: TabBar(
+            controller: _ctrl,
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.input, size: 20),
+                child: Text(l.tabInput),
+              ),
+              Tab(
+                icon: const Icon(Icons.play_arrow, size: 20),
+                child: Text(l.tabRun),
+              ),
+              Tab(
+                icon: const Icon(Icons.subtitles_outlined, size: 20),
+                child: Text(l.tabOutput),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _ctrl,
+            // The transcript view inside `output` does its own
+            // scrolling. Input is naturally tall and uses a
+            // SingleChildScrollView. Controls is short and
+            // benefits from being scrollable on tiny phones
+            // where the row of action buttons + progress
+            // indicator may grow.
+            children: [
+              SingleChildScrollView(child: widget.input),
+              SingleChildScrollView(child: widget.controls),
+              widget.output,
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

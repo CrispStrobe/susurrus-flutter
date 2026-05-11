@@ -152,6 +152,36 @@ abstract class AppLocalizations {
   /// **'About'**
   String get menuAbout;
 
+  /// No description provided for @menuOpenMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get menuOpenMore;
+
+  /// No description provided for @tabInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get tabInput;
+
+  /// No description provided for @tabRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get tabRun;
+
+  /// No description provided for @tabOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Output'**
+  String get tabOutput;
+
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe'**
+  String get navHome;
+
   /// No description provided for @engineReady.
   ///
   /// In en, this message translates to:

@@ -17,6 +17,7 @@ import '../services/memory_estimator.dart';
 import '../services/model_service.dart';
 import '../services/server_service.dart';
 import '../services/settings_service.dart';
+import '../utils/responsive.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -61,6 +62,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildAboutSection(),
         ],
       ),
+      bottomNavigationBar: isPhoneWidth(context)
+          ? const PhoneNavBar(current: PhoneNavDestination.settings)
+          : null,
     );
   }
 
@@ -721,7 +725,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return AlertDialog(
           title: Text(l.settingsCloudLlmCleanup),
           content: SizedBox(
-            width: 520,
+            width: responsiveDialogWidth(ctx, designed: 520),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -829,7 +833,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           return AlertDialog(
             title: Text(l.settingsLocalLlmCleanup),
             content: SizedBox(
-              width: 560,
+              width: responsiveDialogWidth(ctx, designed: 560),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1033,7 +1037,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           return AlertDialog(
             title: Text(l.settingsHotkey),
             content: SizedBox(
-              width: 480,
+              width: responsiveDialogWidth(ctx, designed: 480),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,

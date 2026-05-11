@@ -72,6 +72,49 @@ Twelve features land in this batch; full write-ups in
   Options rows: tokens-per-segment cap + split-on-word-boundary.
   Yields SRT-friendly short subtitle lines.
 
+### Responsive UI — phone / narrow-window fit (May 2026)
+
+The app was designed-for-desktop primary and had no first-class
+phone story. This pass adds four layers of mobile-fit polish
+without rewriting the existing layouts:
+
+- **Responsive dialog widths** — every `showDialog` call clamps
+  to `min(designedWidth, screenWidth - 32)` via a new
+  `responsiveDialogWidth(context)` helper. Same for height where
+  bounded. Dialogs no longer overflow on 360-wide phones; the
+  Tidy / Summarize / Local LLM / Cloud LLM / Hotkey / Presets /
+  inline-edit / rename-speaker dialogs all now adapt. Bonus:
+  optional fullscreen-on-phone `showResponsiveDialog` helper for
+  future dialogs that want to feel native on mobile.
+- **AppBar tightening** — home screen drops the tagline subtitle
+  below 600 px width; below 480 px it keeps only Settings as a
+  visible action and folds History / Models / Synthesize /
+  Translate / Presets into a `PopupMenuButton` overflow.
+- **`AdaptiveSegmentedButton<T>`** — drop-in replacement for
+  `SegmentedButton` that falls back to `DropdownButtonFormField`
+  on compact widths. Applied to the new Tidy + Summarize
+  three-mode selectors so localised long labels don't overflow.
+- **Tabs in the main screen on phones** — below 600 px the
+  transcription screen renders a 3-tab `TabBar` (Input / Run /
+  Output) instead of the stacked-column layout, so each pane
+  gets the full viewport one at a time. Tabs default to Output
+  when the transcript already has segments, Input otherwise; the
+  existing wide / extra-wide reflows (≥700, ≥1300) are
+  untouched.
+- **Bottom `NavigationBar` on phones** — Home / History /
+  Settings get a Material 3 NavigationBar at the bottom when
+  width < 480. Uses `context.go()` so bouncing between primary
+  destinations doesn't pile up the back stack. Secondary
+  destinations (Models / Synthesize / Translate / Logs / About)
+  stay reachable via the AppBar overflow menu.
+
+Tracked follow-up: convert the Cloud LLM / Local LLM / Hotkey
+*dialogs* into pushable sub-screens on phones (Settings →
+sub-page model that matches iOS / Android native conventions).
+Left for a future pass — the dialog-width clamp already makes
+them functional on phones, and the sub-screen lift is
+larger-impact than the rest of this batch put together.
+
 ### Performance — Metal cold start (CrispASR upstream)
 
 * **38× faster ASR / TTS cold starts** via the persistent
