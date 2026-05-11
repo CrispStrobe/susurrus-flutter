@@ -637,6 +637,14 @@
       "end": { "type": "String" }
     }
   },
+  "advancedMaxLen": "Max tokens per segment: {n}",
+  "@advancedMaxLen": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "advancedMaxLenOff": "off",
+  "advancedMaxLenSubtitle": "Whisper-only soft cap. 0 = no cap (default). Pair with \"Split on word\" for SRT-friendly short subtitle lines.",
+  "advancedSplitOnWord": "Split on word boundaries",
+  "advancedSplitOnWordSubtitle": "When the segment cap is hit, break on the next word boundary instead of mid-word. Yields more readable subtitle output.",
   "advancedVocabulary": "Custom vocabulary",
   "advancedVocabularyHint": "Type a term and press Enter (e.g. API, kubectl, Alice)",
   "advancedVocabularyAdd": "Add term",

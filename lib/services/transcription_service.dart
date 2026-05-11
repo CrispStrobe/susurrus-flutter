@@ -92,6 +92,18 @@ class AdvancedTranscribeOptions {
   /// CPU; >0 = explicit bound. Pre-0.6.2 dylibs ignore the value.
   final int asrNGpuLayers;
 
+  /// §5.8 whisper subtitle formatting — soft cap on tokens per
+  /// segment. 0 = whisper's default (no cap). Pairs with
+  /// [splitOnWord] to produce SRT-friendly short lines instead
+  /// of one-long-paragraph segments. Whisper-only; CTC / LLM
+  /// session backends ignore the value.
+  final int maxLen;
+
+  /// §5.8 — when [maxLen] is set, split on word boundaries
+  /// instead of mid-word. Yields readable subtitle lines.
+  /// Whisper-only; no-op when [maxLen] = 0.
+  final bool splitOnWord;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -109,6 +121,8 @@ class AdvancedTranscribeOptions {
     this.asrUseGpu = true,
     this.asrFlashAttn = true,
     this.asrNGpuLayers = -1,
+    this.maxLen = 0,
+    this.splitOnWord = false,
   });
 }
 

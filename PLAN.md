@@ -630,9 +630,15 @@ completeness — May 2026"](HISTORY.md). What's still pending:
     `--no-fallback`, `--temperature-inc`) — already in the Dart
     binding, just not in the UI. ~half day to surface as
     Advanced Options rows + localised strings.
-  - Subtitle line formatting (`--max-len`, `--split-on-word`,
-    `--split-on-punct`) — already in whisper context-params;
-    CrisperWeaver post-formats instead. ~1 day to wire through.
+  - Subtitle line formatting (`--max-len`, `--split-on-word`)
+    **— shipped May 2026** as two new whisper-only Advanced
+    Options rows. `maxLen` is a slider 0..200 (0 = whisper
+    default, no cap); `splitOnWord` is a switch that's gated
+    on `maxLen > 0` so the user can't fiddle with a no-op.
+    Both fields round-trip through PresetService JSON and
+    pass through to `crispasr.TranscribeOptions` on the
+    whisper file path. `--split-on-punct` would be a third
+    knob — needs upstream Dart-binding work first.
   - Token suppression (`--suppress-nst`, `--suppress-regex`),
     `--carry-initial-prompt`, `--print-confidence` — niche edge
     cases. ~1 hour each.

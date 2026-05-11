@@ -1004,6 +1004,10 @@ class CrispASREngine implements TranscriptionEngine {
         vadMinSilenceMs: advanced.vadMinSilenceMs,
         // Whisper tinydiarize speaker-turn markers (requires .tdrz finetune).
         tdrz: advanced.tdrz,
+        // §5.8 — subtitle-friendly segment length cap. 0 keeps
+        // whisper's default; >0 produces SRT-shaped short lines.
+        maxLen: advanced.maxLen,
+        splitOnWord: advanced.splitOnWord,
       ),
     );
   }

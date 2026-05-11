@@ -2498,6 +2498,36 @@ abstract class AppLocalizations {
   /// **'Selection set: {start} – {end}.'**
   String editAudioSegmentSelected(String start, String end);
 
+  /// No description provided for @advancedMaxLen.
+  ///
+  /// In en, this message translates to:
+  /// **'Max tokens per segment: {n}'**
+  String advancedMaxLen(int n);
+
+  /// No description provided for @advancedMaxLenOff.
+  ///
+  /// In en, this message translates to:
+  /// **'off'**
+  String get advancedMaxLenOff;
+
+  /// No description provided for @advancedMaxLenSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper-only soft cap. 0 = no cap (default). Pair with \"Split on word\" for SRT-friendly short subtitle lines.'**
+  String get advancedMaxLenSubtitle;
+
+  /// No description provided for @advancedSplitOnWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Split on word boundaries'**
+  String get advancedSplitOnWord;
+
+  /// No description provided for @advancedSplitOnWordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When the segment cap is hit, break on the next word boundary instead of mid-word. Yields more readable subtitle output.'**
+  String get advancedSplitOnWordSubtitle;
+
   /// No description provided for @advancedVocabulary.
   ///
   /// In en, this message translates to:

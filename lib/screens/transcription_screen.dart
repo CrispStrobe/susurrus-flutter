@@ -1151,6 +1151,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         asrUseGpu: adv.asrUseGpu,
         asrFlashAttn: adv.asrFlashAttn,
         asrNGpuLayers: adv.asrNGpuLayers,
+        maxLen: adv.maxLen,
+        splitOnWord: adv.splitOnWord,
       );
 
       // §5.1.2 vocabulary merge — resolve the active backend
@@ -1287,6 +1289,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       asrUseGpu: adv.asrUseGpu,
       asrFlashAttn: adv.asrFlashAttn,
       asrNGpuLayers: adv.asrNGpuLayers,
+      maxLen: adv.maxLen,
+      splitOnWord: adv.splitOnWord,
     );
 
     // Load the model once for the whole batch.

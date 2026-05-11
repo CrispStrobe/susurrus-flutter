@@ -634,6 +634,14 @@
       "end": { "type": "String" }
     }
   },
+  "advancedMaxLen": "Max. Tokens pro Segment: {n}",
+  "@advancedMaxLen": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "advancedMaxLenOff": "aus",
+  "advancedMaxLenSubtitle": "Nur Whisper. 0 = kein Limit (Standard). Kombiniere mit „An Wortgrenze trennen\" für SRT-taugliche kurze Untertitelzeilen.",
+  "advancedSplitOnWord": "An Wortgrenze trennen",
+  "advancedSplitOnWordSubtitle": "Wenn das Segmentlimit erreicht ist, an der nächsten Wortgrenze umbrechen statt mitten im Wort. Liefert lesbarere Untertitel.",
   "advancedVocabulary": "Benutzerdefiniertes Vokabular",
   "advancedVocabularyHint": "Begriff eingeben und Enter drücken (z. B. API, kubectl, Alice)",
   "advancedVocabularyAdd": "Begriff hinzufügen",

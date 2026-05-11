@@ -1430,6 +1430,25 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String advancedMaxLen(int n) {
+    return 'Max. Tokens pro Segment: $n';
+  }
+
+  @override
+  String get advancedMaxLenOff => 'aus';
+
+  @override
+  String get advancedMaxLenSubtitle =>
+      'Nur Whisper. 0 = kein Limit (Standard). Kombiniere mit „An Wortgrenze trennen\" für SRT-taugliche kurze Untertitelzeilen.';
+
+  @override
+  String get advancedSplitOnWord => 'An Wortgrenze trennen';
+
+  @override
+  String get advancedSplitOnWordSubtitle =>
+      'Wenn das Segmentlimit erreicht ist, an der nächsten Wortgrenze umbrechen statt mitten im Wort. Liefert lesbarere Untertitel.';
+
+  @override
   String get advancedVocabulary => 'Benutzerdefiniertes Vokabular';
 
   @override

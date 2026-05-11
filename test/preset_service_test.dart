@@ -49,6 +49,8 @@ void main() {
       expect(restored.asrFlashAttn, opts.asrFlashAttn);
       expect(restored.asrNGpuLayers, opts.asrNGpuLayers);
       expect(restored.vocabulary, opts.vocabulary);
+      expect(restored.maxLen, opts.maxLen);
+      expect(restored.splitOnWord, opts.splitOnWord);
     });
 
     test('non-default values round-trip', () {
@@ -80,6 +82,8 @@ void main() {
         asrFlashAttn: false,
         asrNGpuLayers: 16,
         vocabulary: ['API', 'kubectl', 'Alice'],
+        maxLen: 80,
+        splitOnWord: true,
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -92,6 +96,8 @@ void main() {
       expect(restored.askPrompt, 'Summarize');
       expect(restored.temperature, 0.7);
       expect(restored.vocabulary, ['API', 'kubectl', 'Alice']);
+      expect(restored.maxLen, 80);
+      expect(restored.splitOnWord, true);
     });
 
     test('missing keys fall through to ctor defaults', () {

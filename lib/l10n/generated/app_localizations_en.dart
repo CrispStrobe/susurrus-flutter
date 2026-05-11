@@ -1420,6 +1420,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String advancedMaxLen(int n) {
+    return 'Max tokens per segment: $n';
+  }
+
+  @override
+  String get advancedMaxLenOff => 'off';
+
+  @override
+  String get advancedMaxLenSubtitle =>
+      'Whisper-only soft cap. 0 = no cap (default). Pair with \"Split on word\" for SRT-friendly short subtitle lines.';
+
+  @override
+  String get advancedSplitOnWord => 'Split on word boundaries';
+
+  @override
+  String get advancedSplitOnWordSubtitle =>
+      'When the segment cap is hit, break on the next word boundary instead of mid-word. Yields more readable subtitle output.';
+
+  @override
   String get advancedVocabulary => 'Custom vocabulary';
 
   @override

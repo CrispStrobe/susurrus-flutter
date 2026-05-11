@@ -162,6 +162,15 @@ class AdvancedOptions {
   /// dylibs ignore the value.
   final int asrNGpuLayers;
 
+  /// §5.8 — soft cap on tokens per whisper segment. 0 = no
+  /// cap (whisper default). Pairs with [splitOnWord] for SRT-
+  /// friendly short subtitle lines. Whisper-only.
+  final int maxLen;
+
+  /// §5.8 — split on word boundaries when [maxLen] is set.
+  /// Whisper-only; no-op for CTC / LLM-session backends.
+  final bool splitOnWord;
+
   /// §5.1.2 — Custom-vocabulary boost list. Persistent across runs;
   /// the user manages it in Advanced Options as removable chips
   /// (brand names, acronyms, technical jargon, people's names).
@@ -212,6 +221,8 @@ class AdvancedOptions {
     this.asrFlashAttn = true,
     this.asrNGpuLayers = -1,
     this.vocabulary = const [],
+    this.maxLen = 0,
+    this.splitOnWord = false,
   });
 
   AdvancedOptions copyWith({
@@ -242,6 +253,8 @@ class AdvancedOptions {
     bool? asrFlashAttn,
     int? asrNGpuLayers,
     List<String>? vocabulary,
+    int? maxLen,
+    bool? splitOnWord,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -271,6 +284,8 @@ class AdvancedOptions {
         asrFlashAttn: asrFlashAttn ?? this.asrFlashAttn,
         asrNGpuLayers: asrNGpuLayers ?? this.asrNGpuLayers,
         vocabulary: vocabulary ?? this.vocabulary,
+        maxLen: maxLen ?? this.maxLen,
+        splitOnWord: splitOnWord ?? this.splitOnWord,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -600,6 +615,12 @@ class _AdvancedDecodingSectionState
         // Token-level timestamps (whisper DTW). Useful when subtitle
         // tooling consumes per-token timing instead of segments.
         _buildTokenTimestampsRow(context, opts),
+        // §5.8 — whisper subtitle formatting (tokens-per-segment
+        // cap + split-on-word). Pair is whisper-only; collapses
+        // on session-style backends. SplitOnWord additionally
+        // hides itself when maxLen == 0 to avoid a no-op toggle.
+        _buildMaxLenRow(context, opts),
+        _buildSplitOnWordRow(context, opts),
         // Punctuation family picker — only visible when "Restore
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
@@ -920,6 +941,67 @@ class _AdvancedDecodingSectionState
       value: opts.tdrz,
       onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
           opts.copyWith(tdrz: v),
+    );
+  }
+
+  /// §5.8 subtitle formatting — soft cap on tokens per
+  /// segment + split-on-word toggle. Whisper-only; the entire
+  /// pair collapses on non-whisper backends because the
+  /// session-style decoders ignore the flags.
+  Widget _buildMaxLenRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.advancedMaxLen(opts.maxLen),
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            min: 0,
+            max: 200,
+            divisions: 40,
+            value: opts.maxLen.clamp(0, 200).toDouble(),
+            label: opts.maxLen == 0
+                ? l.advancedMaxLenOff
+                : opts.maxLen.toString(),
+            onChanged: (v) => ref
+                .read(advancedOptionsProvider.notifier)
+                .state = opts.copyWith(maxLen: v.round()),
+          ),
+          Text(l.advancedMaxLenSubtitle,
+              style:
+                  const TextStyle(fontSize: 11, color: Colors.black54)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSplitOnWordRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    // Pointless toggle when maxLen=0 — gate on it so the user
+    // doesn't fiddle with a no-op switch.
+    if (opts.maxLen == 0) return const SizedBox.shrink();
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(l.advancedSplitOnWord),
+      subtitle: Text(l.advancedSplitOnWordSubtitle,
+          style: const TextStyle(fontSize: 11)),
+      value: opts.splitOnWord,
+      onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(splitOnWord: v),
     );
   }
 
