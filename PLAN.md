@@ -134,9 +134,10 @@ write-ups. What follows is only the work that's still pending.
 
 ### 5.1 Competitor-gap features
 
-Audited against MacWhisper, Buzz, Aiko, Whisper Transcription
-(local GUI peers) plus Otter.ai / Fireflies.ai / Descript (cloud)
-in May 2026. CrisperWeaver already does most of what they do AND
+Audited against the common feature set of comparable local
+GUI tools (whisper-based desktop apps for macOS / Linux /
+Windows) plus the cloud meeting-transcription category, in
+May 2026. CrisperWeaver already does most of what they do AND
 several things they don't (engine breadth, cross-platform, free /
 OSS, multilingual UI, text translation, OpenAI-compatible HTTP
 server, parallel batch pool with OOM pre-flight). The list below
@@ -267,11 +268,78 @@ is what's missing — ranked by impact ÷ effort.
 
 #### Tier B — high impact, higher cost
 
-* **5.1.5 Audio waveform visualization with segment sync** —
-  Click a segment, waveform highlights; click waveform, scrubs.
-  `waveform_flutter` exists but isn't great; might need a custom
-  CustomPainter on top of `just_audio`'s PositionStream. ~3 days.
-  Standard in Descript / MacWhisper.
+* **5.1.5 Audio waveform + editor with bidirectional transcript
+  sync** — A dedicated `EditAudioScreen` with a waveform
+  painter, transport (play/pause/scrub), three editing
+  operations (trim / cut middle / split into chapters), AND an
+  optional collapsible transcript pane on the same screen so
+  bidirectional sync stays visible without overlay-stacking.
+
+  Output is 16 kHz mono PCM WAV (matches the transcription
+  input format so "crop then transcribe" is a single
+  hand-off). Reached from the transcription screen's "more
+  actions" menu.
+
+  **Layout:**
+
+  ```
+  +-------------------------------------------------------+
+  |  Edit audio              [Save as] [Show transcript ▾] |
+  +-------------------------------------------------------+
+  |  [waveform — playhead + markers + selection band]     |
+  |  |xx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| |
+  |  ▶ ⏸ ⏹        00:12 / 04:32                           |
+  |  [Trim] [Cut middle] [Split] [Selection: 12s – 48s]  |
+  +-------------------------------------------------------+
+  | ▼ Transcript (collapsible — toggle in AppBar)         |
+  |   [00:00] Speaker 1: foo bar baz                      |
+  |   [00:12] Speaker 2: hello world ← currently playing  |
+  |   [00:24] Speaker 1: another segment                  |
+  +-------------------------------------------------------+
+  ```
+
+  **Cross-sync (bidirectional):**
+    - Click a segment in the transcript pane → seek the
+      waveform playhead to that timecode.
+    - Drag-select multi-segment passage in the transcript →
+      that range becomes the active selection in the waveform
+      editor (drives trim / cut-to-this-region / export).
+    - Mark segments for cutting in the transcript → cut markers
+      populate with the corresponding audio timecodes.
+    - Click on the waveform → scroll the transcript to + highlight
+      the segment whose `[start, end]` contains that time;
+      the currently-playing segment is always highlighted as
+      the playhead moves.
+
+  Why one screen instead of separate-views-with-nav-args: the
+  bidirectional click-sync workflow is too noisy if the user
+  has to navigate back-and-forth to see the other side. The
+  collapsible transcript pane keeps the editor uncluttered for
+  pure-audio editing (collapse the pane) and stays useful when
+  the user wants both views (expand). Pane state persists
+  across navigation via Settings.
+
+  Implementation phases:
+    A. ✅ `AudioEditService` + WAV encoder + tests (Dart-only,
+       no UI) — May 2026.
+    B. ⏳ Waveform `CustomPainter` + `EditAudioScreen` shell
+       with transport + the three ops (no transcript pane
+       yet) — next.
+    C. ⏳ Collapsible transcript pane on the same screen +
+       both directions of click-sync. Pane visibility persists
+       via `Settings.editAudioShowTranscript`.
+    D. ⏳ Transcript-screen entry points: "Open in audio
+       editor" actions in the long-press menu (pre-populates
+       editor's initial selection + cut markers from the
+       transcript context).
+
+  Phase A is shipped — pure-Dart service supporting trim() /
+  cut() / split() with sample-accurate slicing of the source
+  audio via the existing `crispasr.decodeAudioFile` FFI
+  decoder. WAV output is bit-perfect at the boundary: Float32
+  PCM clipped to ±1.0, encoded as Int16 little-endian, standard
+  RIFF/WAVE/fmt/data header. 5 tests pin header bytes +
+  clipping + DecodedSource.secondsToSample math.
 
 * **5.1.6 LLM post-editing pass** — "Clean up this transcript"
   button that runs segments through a local LLM (capitalize,
