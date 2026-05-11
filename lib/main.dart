@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'dart:ui' show AppExitResponse;
@@ -23,6 +24,7 @@ import 'screens/synthesize_screen.dart';
 import 'screens/translate_screen.dart';
 import 'screens/voice_bake_screen.dart';
 import 'services/audio_service.dart';
+import 'services/batch_queue_service.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
 import 'services/native_licenses.dart';
@@ -154,6 +156,13 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
     // provider graph is fully built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(shareIntakeServiceProvider).start();
+      // Hydrate the batch queue from disk so jobs survive restarts
+      // (§5.23 Q1). Running-when-killed jobs are demoted back to
+      // queued so the next drain pass picks them up; a separate
+      // Q3 path will look for matching .ckpt.jsonl files and stamp
+      // resumeOffsetSec onto each before dispatch (commit 2 of the
+      // batch slice).
+      unawaited(ref.read(batchQueueProvider.notifier).load());
     });
 
     // On desktop, the user clicking the red close button fires
