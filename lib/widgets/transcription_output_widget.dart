@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegment
@@ -861,37 +862,90 @@ class _TranscriptionOutputWidgetState
   }
 
   void _showSegmentOptions(TranscriptionSegment segment) {
+    // §5.1.5 Phase D — only show audio-editor entries when we
+    // actually have an audio file to open. URL-only transcripts
+    // (in-flight from a remote / mic stream that wasn't saved)
+    // get the play/copy/edit-text trio without the editor links.
+    final audioPath = ref.read(selectedAudioPathProvider);
+    final hasAudio = audioPath != null && audioPath.isNotEmpty;
     showModalBottomSheet<void>(
       context: context,
-      builder: (context) => Column(
+      builder: (sheetCtx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
             leading: const Icon(Icons.play_arrow),
-            title: Text(AppLocalizations.of(context).outputPlaySegment),
+            title: Text(AppLocalizations.of(sheetCtx).outputPlaySegment),
             onTap: () {
-              Navigator.of(context).pop();
+              Navigator.of(sheetCtx).pop();
               _playSegment(segment);
             },
           ),
           ListTile(
             leading: const Icon(Icons.copy),
-            title: Text(AppLocalizations.of(context).outputCopyText),
+            title: Text(AppLocalizations.of(sheetCtx).outputCopyText),
             onTap: () {
-              Navigator.of(context).pop();
+              Navigator.of(sheetCtx).pop();
               _copySegmentText(segment);
             },
           ),
           ListTile(
             leading: const Icon(Icons.edit),
-            title: Text(AppLocalizations.of(context).outputEditSegment),
+            title: Text(AppLocalizations.of(sheetCtx).outputEditSegment),
             onTap: () {
-              Navigator.of(context).pop();
+              Navigator.of(sheetCtx).pop();
               _editSegment(segment);
             },
           ),
+          if (hasAudio) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.content_cut),
+              title: Text(AppLocalizations.of(sheetCtx)
+                  .outputEditSegmentInAudioEditor),
+              onTap: () {
+                Navigator.of(sheetCtx).pop();
+                _openInAudioEditor(audioPath,
+                    startSec: segment.startTime,
+                    endSec: segment.endTime);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_location),
+              title: Text(AppLocalizations.of(sheetCtx)
+                  .outputMarkSegmentInAudioEditor),
+              onTap: () {
+                Navigator.of(sheetCtx).pop();
+                _openInAudioEditor(audioPath,
+                    markSec: segment.startTime);
+              },
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Push the audio-editor route with pre-populated selection
+  /// or cut-mark query params. Either pass [startSec] + [endSec]
+  /// (to land with that range selected) or [markSec] (to drop a
+  /// single cut marker there) — caller picks the flow.
+  void _openInAudioEditor(
+    String audioPath, {
+    double? startSec,
+    double? endSec,
+    double? markSec,
+  }) {
+    final qp = <String, String>{
+      'path': audioPath,
+      if (startSec != null) 'start': startSec.toStringAsFixed(3),
+      if (endSec != null) 'end': endSec.toStringAsFixed(3),
+      if (markSec != null) 'mark': markSec.toStringAsFixed(3),
+    };
+    final query = qp.entries
+        .map((e) =>
+            '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+    context.push('/edit-audio?$query');
   }
 }

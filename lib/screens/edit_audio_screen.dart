@@ -33,13 +33,32 @@ import '../services/settings_service.dart';
 import '../widgets/waveform_painter.dart';
 
 class EditAudioScreen extends ConsumerStatefulWidget {
-  const EditAudioScreen({super.key, required this.sourcePath});
+  const EditAudioScreen({
+    super.key,
+    required this.sourcePath,
+    this.initialSelectionStartSec,
+    this.initialSelectionEndSec,
+    this.initialCutMarkSec,
+  });
 
   /// Absolute path to the audio file being edited. Required —
   /// the editor has no "open file" picker of its own; the user
   /// reaches this screen from the transcription screen's "more
   /// actions" menu with an audio already loaded.
   final String sourcePath;
+
+  /// §5.1.5 Phase D — pre-populate the waveform selection on
+  /// open. Used by the transcript long-press flow ("Edit this
+  /// segment in audio editor") to land in the editor with the
+  /// segment's [start, end] already selected and the transcript
+  /// pane visible. Either both must be set or both null.
+  final double? initialSelectionStartSec;
+  final double? initialSelectionEndSec;
+
+  /// §5.1.5 Phase D — pre-drop a single cut marker on open.
+  /// Used by the "Mark for split in audio editor" transcript
+  /// long-press action.
+  final double? initialCutMarkSec;
 
   @override
   ConsumerState<EditAudioScreen> createState() => _EditAudioScreenState();
@@ -79,12 +98,35 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
   @override
   void initState() {
     super.initState();
+    // §5.1.5 Phase D — seed selection / cut markers from
+    // constructor args. These come from the transcript-screen
+    // long-press deep-links. Force the transcript pane open
+    // when arriving from that flow so the user immediately
+    // sees the segment they came in from.
+    if (widget.initialSelectionStartSec != null &&
+        widget.initialSelectionEndSec != null &&
+        widget.initialSelectionEndSec! > widget.initialSelectionStartSec!) {
+      _selection = WaveformSelection(
+        startSec: widget.initialSelectionStartSec!,
+        endSec: widget.initialSelectionEndSec!,
+      );
+    }
+    if (widget.initialCutMarkSec != null) {
+      _cutMarkers.add(WaveformCutMarker(
+        startSec: widget.initialCutMarkSec!,
+        endSec: widget.initialCutMarkSec!,
+      ));
+    }
+    final cameFromTranscript = widget.initialSelectionStartSec != null ||
+        widget.initialCutMarkSec != null;
+
     // Restore the persisted pane-visibility preference. Read in a
     // post-frame callback so we have a fully-built ref tree.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final s = ref.read(settingsServiceProvider);
-      setState(() => _showTranscript = s.editAudioShowTranscript);
+      setState(() => _showTranscript =
+          cameFromTranscript || s.editAudioShowTranscript);
     });
     _player.positionStream.listen((p) {
       if (!mounted) return;
@@ -115,6 +157,12 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
       final decoded = await decodeFuture;
       if (!mounted) return;
       setState(() => _decoded = decoded);
+      // §5.1.5 Phase D — if we arrived with an initial selection
+      // or cut mark, park the playhead at its start so the user
+      // can play-preview immediately without scrubbing.
+      final seedSec = widget.initialSelectionStartSec ??
+          widget.initialCutMarkSec;
+      if (seedSec != null) _seekTo(seedSec);
     } catch (e, st) {
       Log.instance.e('audio-edit', 'decode failed',
           fields: {'path': widget.sourcePath}, error: e, stack: st);

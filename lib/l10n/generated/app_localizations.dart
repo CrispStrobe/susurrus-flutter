@@ -2096,6 +2096,18 @@ abstract class AppLocalizations {
   /// **'Marked split point at {time}.'**
   String editAudioSegmentMarkedForCut(String time);
 
+  /// No description provided for @outputEditSegmentInAudioEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit this segment in audio editor'**
+  String get outputEditSegmentInAudioEditor;
+
+  /// No description provided for @outputMarkSegmentInAudioEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark for split in audio editor'**
+  String get outputMarkSegmentInAudioEditor;
+
   /// No description provided for @editAudioSegmentSelected.
   ///
   /// In en, this message translates to:

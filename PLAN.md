@@ -328,10 +328,14 @@ is what's missing — ranked by impact ÷ effort.
     C. ✅ Collapsible transcript pane on the same screen +
        both directions of click-sync. Pane visibility persists
        via `Settings.editAudioShowTranscript` — May 2026.
-    D. ⏳ Transcript-screen entry points: "Open in audio
-       editor" actions in the long-press menu (pre-populates
-       editor's initial selection + cut markers from the
-       transcript context) — next.
+    D. ✅ Transcript-screen entry points: "Edit this segment in
+       audio editor" + "Mark for split in audio editor" actions
+       in the segment long-press menu. Push the
+       `/edit-audio?path=…&start=…&end=…` or `…&mark=…` route;
+       the editor seeds the waveform selection / cut marker
+       from the query params, force-opens the transcript pane,
+       and parks the playhead at the seeded start so the user
+       can play-preview immediately — May 2026.
 
   Phase A is shipped — pure-Dart service supporting trim() /
   cut() / split() with sample-accurate slicing of the source

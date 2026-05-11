@@ -259,8 +259,20 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
           // Source path arrives as a query parameter rather than a
           // path segment so it survives URL-encoding cleanly on
           // platforms where the path may contain spaces/specials.
-          final src = state.uri.queryParameters['path'] ?? '';
-          return EditAudioScreen(sourcePath: src);
+          final q = state.uri.queryParameters;
+          final src = q['path'] ?? '';
+          // §5.1.5 Phase D — optional `start` + `end` (seconds)
+          // pre-populate a waveform selection on open; optional
+          // `mark` pre-drops a single cut point. Used by the
+          // transcript long-press menu's "edit / mark this segment
+          // in audio editor" actions.
+          double? parse(String? s) => s == null ? null : double.tryParse(s);
+          return EditAudioScreen(
+            sourcePath: src,
+            initialSelectionStartSec: parse(q['start']),
+            initialSelectionEndSec: parse(q['end']),
+            initialCutMarkSec: parse(q['mark']),
+          );
         },
       ),
     ],

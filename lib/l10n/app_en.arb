@@ -546,6 +546,8 @@
   "@editAudioSegmentMarkedForCut": {
     "placeholders": { "time": { "type": "String" } }
   },
+  "outputEditSegmentInAudioEditor": "Edit this segment in audio editor",
+  "outputMarkSegmentInAudioEditor": "Mark for split in audio editor",
   "editAudioSegmentSelected": "Selection set: {start} – {end}.",
   "@editAudioSegmentSelected": {
     "placeholders": {

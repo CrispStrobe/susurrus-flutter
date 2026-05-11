@@ -1195,6 +1195,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get outputEditSegmentInAudioEditor =>
+      'Dieses Segment im Audio-Editor bearbeiten';
+
+  @override
+  String get outputMarkSegmentInAudioEditor =>
+      'Im Audio-Editor als Splitmarke setzen';
+
+  @override
   String editAudioSegmentSelected(String start, String end) {
     return 'Auswahl gesetzt: $start – $end.';
   }
