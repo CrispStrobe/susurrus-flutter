@@ -27,4 +27,35 @@ class AppDelegate: FlutterAppDelegate {
       NSApp.activate(ignoringOtherApps: true)
     }
   }
+
+  // Open-With / drop-on-dock-icon / `open foo.wav` from the
+  // terminal all fire one of these three delegate methods.
+  // OpenWithReceiver triages them — buffering on cold launch
+  // until MainFlutterWindow binds the MethodChannel, then
+  // live-forwarding once Flutter is listening. The
+  // CFBundleDocumentTypes in Info.plist already controls WHICH
+  // file types macOS will offer CrisperWeaver for in the
+  // Finder Open With list; we accept anything the OS hands us
+  // here and let the Dart-side triage decide whether it's
+  // audio / transcript / drop.
+
+  override func application(_ application: NSApplication, open urls: [URL]) {
+    OpenWithReceiver.shared.enqueue(urls: urls)
+    super.application(application, open: urls)
+  }
+
+  // Legacy hooks — older macOS sometimes still uses these even
+  // when `open(_:urls:)` is implemented, depending on how the
+  // launching process opened us. FlutterAppDelegate already
+  // implements both, so we override.
+
+  override func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+    OpenWithReceiver.shared.enqueue([filename])
+    return true
+  }
+
+  override func application(_ sender: NSApplication, openFiles filenames: [String]) {
+    OpenWithReceiver.shared.enqueue(filenames)
+    sender.reply(toOpenOrPrint: .success)
+  }
 }

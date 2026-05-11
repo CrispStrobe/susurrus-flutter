@@ -214,6 +214,36 @@ itself.
 Tests: +13 transcript-parser tests. Full suite: 346 pass (was
 333, +13).
 
+### macOS Open-With bridge (May 2026)
+
+Finishing the macOS half of the share/receive story:
+
+- New `macos/Runner/OpenWithReceiver.swift` — singleton that
+  buffers incoming file paths until the Flutter side binds the
+  MethodChannel, then live-forwards subsequent opens.
+- `AppDelegate.swift` overrides `application(_:open:)` plus the
+  legacy `openFile:` / `openFiles:` hooks so every macOS
+  delegate-method entry point funnels into the receiver.
+  Finder "Open With", `open foo.wav` from the terminal, and
+  drag-onto-dock-icon all land here.
+- `MainFlutterWindow.awakeFromNib` binds the channel
+  (`crisperweaver/open_with`) alongside the existing system-
+  audio-capture channel.
+- New `DesktopOpenWithBridge` Dart service drains the Swift
+  buffer (`consumePending`) at boot and listens for live
+  `onFiles` calls afterwards; both flows feed
+  `ShareIntakeService.acceptPaths` so the existing audio /
+  transcript triage runs unchanged.
+- `OpenWithReceiver.swift` wired into `Runner.xcodeproj`'s
+  Sources build phase via four `project.pbxproj` edits
+  (PBXBuildFile + PBXFileReference + Runner group + Sources
+  phase), matching the existing `SystemAudioCapture.swift`
+  pattern.
+
+Pre-flight: 3 hermetic channel-contract tests via
+`TestDefaultBinaryMessengerBinding`. Total: 349 tests pass (was
+346, +3).
+
 ### Performance — Metal cold start (CrispASR upstream)
 
 * **38× faster ASR / TTS cold starts** via the persistent

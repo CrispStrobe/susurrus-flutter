@@ -28,6 +28,12 @@ class MainFlutterWindow: NSWindow {
     registerSystemAudioCapture(
       messenger: flutterViewController.engine.binaryMessenger)
 
+    // macOS Open-With / drag-on-dock bridge — bind the channel
+    // so the cold-launch buffer in OpenWithReceiver can be
+    // drained from Dart, and subsequent file opens live-forward.
+    OpenWithReceiver.shared.attachChannel(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     super.awakeFromNib()
   }
 }

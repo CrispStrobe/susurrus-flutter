@@ -30,6 +30,7 @@ import 'screens/voice_bake_screen.dart';
 import 'screens/edit_audio_screen.dart';
 import 'services/audio_service.dart';
 import 'services/batch_queue_service.dart';
+import 'services/desktop_open_with_bridge.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
 import 'services/native_licenses.dart';
@@ -195,6 +196,12 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
         intake.acceptPaths(_bootArgs);
       }
+      // macOS Open-With / drag-on-dock bridge — drains the
+      // Swift-side buffer of cold-launch file paths and listens
+      // for live opens after the app is up. No-op on other
+      // platforms (the channel isn't registered there).
+      unawaited(
+          DesktopOpenWithBridge(sink: intake.acceptPaths).start());
       // Hydrate the batch queue from disk so jobs survive restarts
       // (§5.23 Q1). Running-when-killed jobs are demoted back to
       // queued so the next drain pass picks them up; a separate

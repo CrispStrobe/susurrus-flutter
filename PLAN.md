@@ -201,13 +201,17 @@ Open items only below.
     `docs/ios-share-extension-setup.md`. Run that once on a
     dev machine to land the extension; no further code changes
     needed.
-  - **macOS Open-With / Services menu handler** — the
-    `CFBundleDocumentTypes` registration already makes
-    CrisperWeaver appear in Finder's Open With list, but the
-    Swift `application(_:openFile:)` bridge that forwards the
-    file path into `ShareIntakeService.acceptPaths` isn't yet
-    wired. Same shape as the Linux argv intake, but via a
-    `MethodChannel` from `AppDelegate.swift`. ~2 h.
+  - ~~**macOS Open-With handler**~~ — **shipped May 2026**.
+    `OpenWithReceiver.swift` + Dart-side `DesktopOpenWithBridge`
+    feed Finder's Open With / `open foo.wav` from the terminal
+    / dock-drop into `ShareIntakeService.acceptPaths`. The
+    `NSServices` (Services-menu) entry is a separate, lower-
+    priority follow-up — it adds a "Transcribe with
+    CrisperWeaver" entry to the Finder Services submenu via an
+    NSServices Info.plist declaration + a Swift handler that
+    reads `NSFilenamesPboardType` off the pasteboard and feeds
+    `OpenWithReceiver.shared.enqueue(_:)`. ~half-day on top of
+    what's there.
   - **Windows file association** — best done at install time
     via an MSIX manifest (`uap:Extension Category=
     "windows.fileTypeAssociation"`). Out of scope until an
