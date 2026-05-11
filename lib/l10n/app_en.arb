@@ -603,6 +603,56 @@
   },
   "outputCleanupLlmPassUnconfigured": "Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.",
   "outputCleanupLlmRunning": "Running LLM cleanup pass…",
+  "outputCleanupLlmMode": "LLM pass",
+  "outputCleanupLlmModeOff": "Off",
+  "outputCleanupLlmModeCloud": "Cloud",
+  "outputCleanupLlmModeLocal": "Local",
+  "outputCleanupLlmModeCloudHelp": "After the deterministic pass, send each segment to {model} (cloud, BYOK). Slower; uses your configured API key.",
+  "@outputCleanupLlmModeCloudHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmModeLocalHelp": "After the deterministic pass, run each segment through {model} on this device. No network, no API key; first run loads the model into memory.",
+  "@outputCleanupLlmModeLocalHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmModeCloudUnconfigured": "Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.",
+  "outputCleanupLlmModeLocalUnconfigured": "Point at a GGUF chat model in Settings → Local LLM cleanup to enable this.",
+  "settingsLocalLlmCleanup": "Local LLM cleanup (on-device)",
+  "settingsLocalLlmCleanupOff": "Off (point at a GGUF chat model to enable)",
+  "settingsLocalLlmHelp": "Optional. Loads a GGUF chat model on this device and runs every Tidy / Summarize pass against it. No network, no API key. Needs ~2–8 GB of free RAM depending on model size; Metal / CUDA acceleration is used when available.",
+  "settingsLocalLlmModelPath": "Chat model file (GGUF)",
+  "settingsLocalLlmModelPathEmpty": "No model selected",
+  "settingsLocalLlmModelPick": "Browse…",
+  "settingsLocalLlmModelClear": "Clear",
+  "settingsLocalLlmAdvanced": "Advanced parameters",
+  "settingsLocalLlmNGpuLayers": "GPU layers: {n}",
+  "@settingsLocalLlmNGpuLayers": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNGpuLayersAll": "GPU layers: all",
+  "settingsLocalLlmNGpuLayersHelp": "-1 = offload every layer to the GPU (default; Metal on macOS / CUDA on Linux+Windows when available). 0 = CPU only. Positive values are partial offload for low-VRAM machines.",
+  "settingsLocalLlmNCtx": "Context window (tokens): {n}",
+  "@settingsLocalLlmNCtx": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNCtxDefault": "Context window: model default",
+  "settingsLocalLlmNCtxHelp": "0 keeps the GGUF's baked-in default. Raise this when summarising long transcripts; lower it on memory-constrained hosts.",
+  "settingsLocalLlmNThreads": "CPU threads: {n}",
+  "@settingsLocalLlmNThreads": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNThreadsAuto": "CPU threads: auto",
+  "settingsLocalLlmMaxTokens": "Max output tokens per call: {n}",
+  "@settingsLocalLlmMaxTokens": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmTemperature": "Temperature: {t}",
+  "@settingsLocalLlmTemperature": {
+    "placeholders": { "t": { "type": "String" } }
+  },
+  "settingsLocalLlmUnsupported": "This libcrispasr build doesn't expose the chat ABI — needs CrispASR 0.7.0 or newer.",
+  "outputCleanupLocalLlmRunning": "Running local LLM cleanup pass…",
+  "outputCleanupLocalLlmLoading": "Loading local LLM (first run may take a few seconds)…",
   "settingsHotkey": "Global hotkey",
   "settingsHotkeyOff": "Off (configure a combo + behaviour to enable)",
   "settingsHotkeyHelp": "Register a system-wide keyboard shortcut so you can start / stop recording without bringing the app forward. Desktop only — iOS / Android don't expose a global-shortcut surface.",

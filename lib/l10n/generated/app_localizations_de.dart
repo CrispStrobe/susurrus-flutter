@@ -1350,6 +1350,116 @@ class AppLocalizationsDe extends AppLocalizations {
   String get outputCleanupLlmRunning => 'LLM-Bereinigung läuft…';
 
   @override
+  String get outputCleanupLlmMode => 'LLM-Durchlauf';
+
+  @override
+  String get outputCleanupLlmModeOff => 'Aus';
+
+  @override
+  String get outputCleanupLlmModeCloud => 'Cloud';
+
+  @override
+  String get outputCleanupLlmModeLocal => 'Lokal';
+
+  @override
+  String outputCleanupLlmModeCloudHelp(String model) {
+    return 'Nach dem deterministischen Durchlauf jedes Segment an $model (Cloud, BYOK) schicken. Langsamer; nutzt deinen konfigurierten API-Key.';
+  }
+
+  @override
+  String outputCleanupLlmModeLocalHelp(String model) {
+    return 'Nach dem deterministischen Durchlauf jedes Segment lokal durch $model laufen lassen. Kein Netzwerk, kein API-Key; beim ersten Aufruf wird das Modell in den Speicher geladen.';
+  }
+
+  @override
+  String get outputCleanupLlmModeCloudUnconfigured =>
+      'In Einstellungen → Cloud-LLM-Bereinigung einen Endpunkt einrichten, um diese Option zu aktivieren.';
+
+  @override
+  String get outputCleanupLlmModeLocalUnconfigured =>
+      'In Einstellungen → Lokale LLM-Bereinigung ein GGUF-Chatmodell auswählen, um diese Option zu aktivieren.';
+
+  @override
+  String get settingsLocalLlmCleanup =>
+      'Lokale LLM-Bereinigung (auf diesem Gerät)';
+
+  @override
+  String get settingsLocalLlmCleanupOff =>
+      'Aus (ein GGUF-Chatmodell auswählen, um zu aktivieren)';
+
+  @override
+  String get settingsLocalLlmHelp =>
+      'Optional. Lädt ein GGUF-Chatmodell auf diesem Gerät und nutzt es für jeden Tidy- / Summarize-Durchlauf. Kein Netzwerk, kein API-Key. Benötigt je nach Modellgröße ~2–8 GB freien RAM; Metal- / CUDA-Beschleunigung wird genutzt, wenn verfügbar.';
+
+  @override
+  String get settingsLocalLlmModelPath => 'Chatmodell-Datei (GGUF)';
+
+  @override
+  String get settingsLocalLlmModelPathEmpty => 'Kein Modell ausgewählt';
+
+  @override
+  String get settingsLocalLlmModelPick => 'Durchsuchen…';
+
+  @override
+  String get settingsLocalLlmModelClear => 'Leeren';
+
+  @override
+  String get settingsLocalLlmAdvanced => 'Erweiterte Parameter';
+
+  @override
+  String settingsLocalLlmNGpuLayers(int n) {
+    return 'GPU-Layer: $n';
+  }
+
+  @override
+  String get settingsLocalLlmNGpuLayersAll => 'GPU-Layer: alle';
+
+  @override
+  String get settingsLocalLlmNGpuLayersHelp =>
+      '-1 = alle Layer auf der GPU (Standard; Metal auf macOS / CUDA auf Linux+Windows, wenn verfügbar). 0 = nur CPU. Positive Werte sind teilweise Offload-Konfigurationen für Geräte mit wenig VRAM.';
+
+  @override
+  String settingsLocalLlmNCtx(int n) {
+    return 'Kontextfenster (Tokens): $n';
+  }
+
+  @override
+  String get settingsLocalLlmNCtxDefault => 'Kontextfenster: Modell-Standard';
+
+  @override
+  String get settingsLocalLlmNCtxHelp =>
+      '0 lässt den im GGUF eingebauten Standard. Höher setzen beim Zusammenfassen langer Transkripte; auf speicherbeschränkten Geräten reduzieren.';
+
+  @override
+  String settingsLocalLlmNThreads(int n) {
+    return 'CPU-Threads: $n';
+  }
+
+  @override
+  String get settingsLocalLlmNThreadsAuto => 'CPU-Threads: automatisch';
+
+  @override
+  String settingsLocalLlmMaxTokens(int n) {
+    return 'Max. Output-Tokens pro Aufruf: $n';
+  }
+
+  @override
+  String settingsLocalLlmTemperature(String t) {
+    return 'Temperatur: $t';
+  }
+
+  @override
+  String get settingsLocalLlmUnsupported =>
+      'Diese libcrispasr-Version stellt das Chat-ABI nicht bereit — benötigt CrispASR 0.7.0 oder neuer.';
+
+  @override
+  String get outputCleanupLocalLlmRunning => 'Lokale LLM-Bereinigung läuft…';
+
+  @override
+  String get outputCleanupLocalLlmLoading =>
+      'Lokales LLM wird geladen (der erste Aufruf kann ein paar Sekunden dauern)…';
+
+  @override
   String get settingsHotkey => 'Globaler Hotkey';
 
   @override

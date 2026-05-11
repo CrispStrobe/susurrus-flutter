@@ -2366,6 +2366,180 @@ abstract class AppLocalizations {
   /// **'Running LLM cleanup pass…'**
   String get outputCleanupLlmRunning;
 
+  /// No description provided for @outputCleanupLlmMode.
+  ///
+  /// In en, this message translates to:
+  /// **'LLM pass'**
+  String get outputCleanupLlmMode;
+
+  /// No description provided for @outputCleanupLlmModeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get outputCleanupLlmModeOff;
+
+  /// No description provided for @outputCleanupLlmModeCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get outputCleanupLlmModeCloud;
+
+  /// No description provided for @outputCleanupLlmModeLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get outputCleanupLlmModeLocal;
+
+  /// No description provided for @outputCleanupLlmModeCloudHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'After the deterministic pass, send each segment to {model} (cloud, BYOK). Slower; uses your configured API key.'**
+  String outputCleanupLlmModeCloudHelp(String model);
+
+  /// No description provided for @outputCleanupLlmModeLocalHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'After the deterministic pass, run each segment through {model} on this device. No network, no API key; first run loads the model into memory.'**
+  String outputCleanupLlmModeLocalHelp(String model);
+
+  /// No description provided for @outputCleanupLlmModeCloudUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.'**
+  String get outputCleanupLlmModeCloudUnconfigured;
+
+  /// No description provided for @outputCleanupLlmModeLocalUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Point at a GGUF chat model in Settings → Local LLM cleanup to enable this.'**
+  String get outputCleanupLlmModeLocalUnconfigured;
+
+  /// No description provided for @settingsLocalLlmCleanup.
+  ///
+  /// In en, this message translates to:
+  /// **'Local LLM cleanup (on-device)'**
+  String get settingsLocalLlmCleanup;
+
+  /// No description provided for @settingsLocalLlmCleanupOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off (point at a GGUF chat model to enable)'**
+  String get settingsLocalLlmCleanupOff;
+
+  /// No description provided for @settingsLocalLlmHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Loads a GGUF chat model on this device and runs every Tidy / Summarize pass against it. No network, no API key. Needs ~2–8 GB of free RAM depending on model size; Metal / CUDA acceleration is used when available.'**
+  String get settingsLocalLlmHelp;
+
+  /// No description provided for @settingsLocalLlmModelPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat model file (GGUF)'**
+  String get settingsLocalLlmModelPath;
+
+  /// No description provided for @settingsLocalLlmModelPathEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No model selected'**
+  String get settingsLocalLlmModelPathEmpty;
+
+  /// No description provided for @settingsLocalLlmModelPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse…'**
+  String get settingsLocalLlmModelPick;
+
+  /// No description provided for @settingsLocalLlmModelClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get settingsLocalLlmModelClear;
+
+  /// No description provided for @settingsLocalLlmAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced parameters'**
+  String get settingsLocalLlmAdvanced;
+
+  /// No description provided for @settingsLocalLlmNGpuLayers.
+  ///
+  /// In en, this message translates to:
+  /// **'GPU layers: {n}'**
+  String settingsLocalLlmNGpuLayers(int n);
+
+  /// No description provided for @settingsLocalLlmNGpuLayersAll.
+  ///
+  /// In en, this message translates to:
+  /// **'GPU layers: all'**
+  String get settingsLocalLlmNGpuLayersAll;
+
+  /// No description provided for @settingsLocalLlmNGpuLayersHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'-1 = offload every layer to the GPU (default; Metal on macOS / CUDA on Linux+Windows when available). 0 = CPU only. Positive values are partial offload for low-VRAM machines.'**
+  String get settingsLocalLlmNGpuLayersHelp;
+
+  /// No description provided for @settingsLocalLlmNCtx.
+  ///
+  /// In en, this message translates to:
+  /// **'Context window (tokens): {n}'**
+  String settingsLocalLlmNCtx(int n);
+
+  /// No description provided for @settingsLocalLlmNCtxDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Context window: model default'**
+  String get settingsLocalLlmNCtxDefault;
+
+  /// No description provided for @settingsLocalLlmNCtxHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'0 keeps the GGUF\'s baked-in default. Raise this when summarising long transcripts; lower it on memory-constrained hosts.'**
+  String get settingsLocalLlmNCtxHelp;
+
+  /// No description provided for @settingsLocalLlmNThreads.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU threads: {n}'**
+  String settingsLocalLlmNThreads(int n);
+
+  /// No description provided for @settingsLocalLlmNThreadsAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU threads: auto'**
+  String get settingsLocalLlmNThreadsAuto;
+
+  /// No description provided for @settingsLocalLlmMaxTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Max output tokens per call: {n}'**
+  String settingsLocalLlmMaxTokens(int n);
+
+  /// No description provided for @settingsLocalLlmTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature: {t}'**
+  String settingsLocalLlmTemperature(String t);
+
+  /// No description provided for @settingsLocalLlmUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This libcrispasr build doesn\'t expose the chat ABI — needs CrispASR 0.7.0 or newer.'**
+  String get settingsLocalLlmUnsupported;
+
+  /// No description provided for @outputCleanupLocalLlmRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running local LLM cleanup pass…'**
+  String get outputCleanupLocalLlmRunning;
+
+  /// No description provided for @outputCleanupLocalLlmLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading local LLM (first run may take a few seconds)…'**
+  String get outputCleanupLocalLlmLoading;
+
   /// No description provided for @settingsHotkey.
   ///
   /// In en, this message translates to:

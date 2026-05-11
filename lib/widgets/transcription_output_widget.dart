@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import '../main.dart'
     show appStateProvider, historyServiceProvider, selectedAudioPathProvider;
 import '../services/cloud_llm_cleanup_service.dart';
 import '../services/history_service.dart';
+import '../services/local_llm_cleanup_service.dart';
 import '../services/settings_service.dart';
 import '../services/transcript_cleanup_service.dart';
 import '../services/transcript_summarize_service.dart';
@@ -966,15 +968,15 @@ class _TranscriptionOutputWidgetState
       context: context,
       builder: (ctx) => _CleanupDialog(
         segments: widget.segments,
-        onApply: (opts, runLlmPass) async {
-          await _applyCleanup(opts, runLlmPass: runLlmPass);
+        onApply: (opts, llmMode) async {
+          await _applyCleanup(opts, llmMode: llmMode);
         },
       ),
     );
   }
 
   Future<void> _applyCleanup(CleanupOptions opts,
-      {bool runLlmPass = false}) async {
+      {LlmCleanupMode llmMode = LlmCleanupMode.off}) async {
     final l = AppLocalizations.of(context);
     final svc = ref.read(transcriptCleanupServiceProvider);
     final notifier = ref.read(appStateProvider.notifier);
@@ -989,13 +991,13 @@ class _TranscriptionOutputWidgetState
       }
     }
 
-    // §5.1.6 v2 — optional LLM pass over the (just-cleaned)
-    // segments. Disabled by default and silently skipped when
-    // the BYOK config is empty. Runs sequentially with a
-    // progress snackbar; per-segment failures are swallowed by
-    // the service so one rate-limited call doesn't blow up
-    // the whole batch.
-    if (runLlmPass) {
+    // §5.1.6 v2 (cloud) / v3 (local) — optional LLM pass over
+    // the (just-cleaned) segments. Off by default and silently
+    // skipped when the chosen mode is unconfigured. Runs
+    // sequentially with a progress snackbar; per-segment
+    // failures are swallowed by the underlying service so one
+    // bad call doesn't blow up the whole batch.
+    if (llmMode == LlmCleanupMode.cloud) {
       final settings = ref.read(settingsServiceProvider);
       final cfg = CloudLlmConfig(
         apiUrl: settings.cloudLlmApiUrl,
@@ -1004,6 +1006,20 @@ class _TranscriptionOutputWidgetState
       );
       if (cfg.enabled) {
         await _runLlmPass(cfg);
+      }
+    } else if (llmMode == LlmCleanupMode.local) {
+      final settings = ref.read(settingsServiceProvider);
+      final cfg = LocalLlmConfig(
+        modelPath: settings.localLlmModelPath,
+        nGpuLayers: settings.localLlmNGpuLayers,
+        nCtx: settings.localLlmNCtx == 0 ? null : settings.localLlmNCtx,
+        nThreads:
+            settings.localLlmNThreads == 0 ? null : settings.localLlmNThreads,
+        maxTokens: settings.localLlmMaxTokens,
+        temperature: settings.localLlmTemperature,
+      );
+      if (cfg.enabled) {
+        await _runLocalLlmPass(cfg);
       }
     }
 
@@ -1078,6 +1094,59 @@ class _TranscriptionOutputWidgetState
     }
   }
 
+  /// §5.1.6 v3 — local-LLM mirror of [_runLlmPass]. Same UX
+  /// (cancellable progress snackbar, per-segment fallthrough on
+  /// failure) but routes through LocalLlmCleanupService, which
+  /// holds a long-lived worker isolate so the model only loads
+  /// once per app session.
+  Future<void> _runLocalLlmPass(LocalLlmConfig cfg) async {
+    final l = AppLocalizations.of(context);
+    final llm = ref.read(localLlmCleanupServiceProvider);
+    final notifier = ref.read(appStateProvider.notifier);
+    final cancel = CleanupCancelToken();
+
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = messenger.showSnackBar(SnackBar(
+      content: Text(l.outputCleanupLocalLlmRunning),
+      duration: const Duration(minutes: 30),
+      action: SnackBarAction(
+        label: l.cancel,
+        onPressed: cancel.cancel,
+      ),
+    ));
+
+    try {
+      final st = ref.read(appStateProvider);
+      final texts = st.segments.map((s) => s.text).toList();
+      final cleaned = await llm.cleanupBatch(
+        texts: texts,
+        config: cfg,
+        cancel: cancel,
+      );
+      for (var i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] != texts[i]) {
+          notifier.editSegment(i, cleaned[i]);
+        }
+      }
+    } on LocalLlmException catch (e) {
+      // Surface the failure (e.g. "libcrispasr predates chat
+      // ABI") rather than silently failing — the user picked
+      // local explicitly and deserves to know why nothing
+      // changed.
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          e.kind == 'unsupported'
+              ? l.settingsLocalLlmUnsupported
+              : e.message,
+        ),
+        duration: const Duration(seconds: 6),
+      ));
+    } finally {
+      controller.close();
+    }
+  }
+
   /// §5.1.8 — open the meeting-summarisation dialog. Gated
   /// behind the same BYOK cloud-LLM config as §5.1.6 v2; when
   /// the config is empty the dialog explains how to enable it
@@ -1122,7 +1191,8 @@ class _CleanupDialog extends ConsumerStatefulWidget {
   const _CleanupDialog({required this.segments, required this.onApply});
 
   final List<TranscriptionSegment> segments;
-  final Future<void> Function(CleanupOptions opts, bool runLlmPass) onApply;
+  final Future<void> Function(CleanupOptions opts, LlmCleanupMode llmMode)
+      onApply;
 
   @override
   ConsumerState<_CleanupDialog> createState() => _CleanupDialogState();
@@ -1130,8 +1200,18 @@ class _CleanupDialog extends ConsumerStatefulWidget {
 
 class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
   CleanupOptions _opts = const CleanupOptions();
-  bool _runLlmPass = false;
+  // Seed with the user's persisted preference so a repeat user
+  // doesn't have to re-select the mode every time. They can
+  // still override per-dialog without writing back to prefs —
+  // intentional, the dialog is for one-shot tweaks.
+  late LlmCleanupMode _llmMode;
   final _customFillersController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _llmMode = ref.read(settingsServiceProvider).llmCleanupMode;
+  }
 
   @override
   void dispose() {
@@ -1219,26 +1299,88 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              // §5.1.6 v2 — LLM-pass toggle. Only enabled when
-              // the user has configured a BYOK endpoint in
-              // settings; otherwise we explain how to enable it.
+              // §5.1.6 v2 / v3 — three-mode LLM pass selector.
+              // Off / Cloud (BYOK HTTP) / Local (on-device chat
+              // model via CrispASR chat ABI). Modes whose
+              // settings aren't configured are disabled and the
+              // help text points the user at the right Settings
+              // section.
               const SizedBox(height: 8),
               Builder(builder: (_) {
                 final settings = ref.read(settingsServiceProvider);
-                final hasCfg = settings.cloudLlmApiUrl.isNotEmpty &&
+                final hasCloud = settings.cloudLlmApiUrl.isNotEmpty &&
                     settings.cloudLlmApiKey.isNotEmpty;
-                return SwitchListTile(
-                  title: Text(l.outputCleanupLlmPass),
-                  subtitle: Text(
-                      hasCfg
-                          ? l.outputCleanupLlmPassHelp(
-                              settings.cloudLlmModel)
-                          : l.outputCleanupLlmPassUnconfigured,
-                      style: const TextStyle(fontSize: 11)),
-                  value: hasCfg && _runLlmPass,
-                  onChanged: hasCfg
-                      ? (v) => setState(() => _runLlmPass = v)
-                      : null,
+                final hasLocal = settings.localLlmModelPath.isNotEmpty;
+                // Disabled modes can't be picked; if the current
+                // selection points at one, drop back to Off so
+                // we don't try to run an unconfigured path.
+                if (_llmMode == LlmCleanupMode.cloud && !hasCloud) {
+                  _llmMode = LlmCleanupMode.off;
+                } else if (_llmMode == LlmCleanupMode.local && !hasLocal) {
+                  _llmMode = LlmCleanupMode.off;
+                }
+                String? subtitle;
+                switch (_llmMode) {
+                  case LlmCleanupMode.off:
+                    subtitle = null;
+                    break;
+                  case LlmCleanupMode.cloud:
+                    subtitle = hasCloud
+                        ? l.outputCleanupLlmModeCloudHelp(
+                            settings.cloudLlmModel)
+                        : l.outputCleanupLlmModeCloudUnconfigured;
+                    break;
+                  case LlmCleanupMode.local:
+                    subtitle = hasLocal
+                        ? l.outputCleanupLlmModeLocalHelp(
+                            _shortModelPath(settings.localLlmModelPath))
+                        : l.outputCleanupLlmModeLocalUnconfigured;
+                    break;
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(l.outputCleanupLlmMode,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium),
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SegmentedButton<LlmCleanupMode>(
+                        segments: [
+                          ButtonSegment(
+                            value: LlmCleanupMode.off,
+                            label: Text(l.outputCleanupLlmModeOff),
+                          ),
+                          ButtonSegment(
+                            value: LlmCleanupMode.cloud,
+                            enabled: hasCloud,
+                            label: Text(l.outputCleanupLlmModeCloud),
+                          ),
+                          ButtonSegment(
+                            value: LlmCleanupMode.local,
+                            enabled: hasLocal,
+                            label: Text(l.outputCleanupLlmModeLocal),
+                          ),
+                        ],
+                        selected: <LlmCleanupMode>{_llmMode},
+                        onSelectionChanged: (sel) =>
+                            setState(() => _llmMode = sel.first),
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(subtitle,
+                            style: const TextStyle(fontSize: 11)),
+                      ),
+                    ],
+                  ],
                 );
               }),
               const SizedBox(height: 12),
@@ -1269,13 +1411,22 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
           label: Text(l.outputCleanupApply),
           onPressed: () async {
             final apply = previewOpts;
-            final runLlm = _runLlmPass;
+            final mode = _llmMode;
             Navigator.of(context).pop();
-            await widget.onApply(apply, runLlm);
+            await widget.onApply(apply, mode);
           },
         ),
       ],
     );
+  }
+
+  /// Shorten an absolute path for display under the mode
+  /// selector. Just the basename — the full path is shown in
+  /// Settings; here we just want the user to recognise which
+  /// model is going to be used.
+  static String _shortModelPath(String path) {
+    final ix = path.lastIndexOf(Platform.pathSeparator);
+    return ix == -1 ? path : path.substring(ix + 1);
   }
 }
 
@@ -1340,6 +1491,36 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
   bool _running = false;
   SummaryResult? _result;
   String? _error;
+  // Which path runs when the user clicks Summarise. Initialised
+  // in initState from the persisted setting, then mutable per
+  // dialog session. `off` is treated as "neither configured" in
+  // this surface — Summarise has no off-mode of its own.
+  LlmCleanupMode _mode = LlmCleanupMode.off;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = ref.read(settingsServiceProvider);
+    final hasCloud =
+        s.cloudLlmApiUrl.isNotEmpty && s.cloudLlmApiKey.isNotEmpty;
+    final hasLocal = s.localLlmModelPath.isNotEmpty;
+    // Honour the user's persisted preference when its path is
+    // configured; otherwise fall through to whichever path IS
+    // configured (preferring local since it doesn't burn
+    // tokens). Default `off` only when nothing is configured.
+    final pref = s.llmCleanupMode;
+    if (pref == LlmCleanupMode.local && hasLocal) {
+      _mode = LlmCleanupMode.local;
+    } else if (pref == LlmCleanupMode.cloud && hasCloud) {
+      _mode = LlmCleanupMode.cloud;
+    } else if (hasLocal) {
+      _mode = LlmCleanupMode.local;
+    } else if (hasCloud) {
+      _mode = LlmCleanupMode.cloud;
+    } else {
+      _mode = LlmCleanupMode.off;
+    }
+  }
 
   Set<SummaryKind> get _kinds => <SummaryKind>{
         if (_includeAction) SummaryKind.actionItems,
@@ -1349,12 +1530,6 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
 
   Future<void> _run() async {
     final settings = ref.read(settingsServiceProvider);
-    final cfg = CloudLlmConfig(
-      apiUrl: settings.cloudLlmApiUrl,
-      apiKey: settings.cloudLlmApiKey,
-      model: settings.cloudLlmModel,
-    );
-    if (!cfg.enabled) return;
     setState(() {
       _running = true;
       _error = null;
@@ -1362,11 +1537,37 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
     try {
       final transcript = widget.segments.map((s) => s.text).join('\n');
       final svc = ref.read(transcriptSummarizeServiceProvider);
-      final r = await svc.summarize(
-        transcript: transcript,
-        kinds: _kinds,
-        config: cfg,
-      );
+      SummaryResult r;
+      if (_mode == LlmCleanupMode.local) {
+        final cfg = LocalLlmConfig(
+          modelPath: settings.localLlmModelPath,
+          nGpuLayers: settings.localLlmNGpuLayers,
+          nCtx: settings.localLlmNCtx == 0 ? null : settings.localLlmNCtx,
+          nThreads: settings.localLlmNThreads == 0
+              ? null
+              : settings.localLlmNThreads,
+          maxTokens: settings.localLlmMaxTokens,
+          temperature: settings.localLlmTemperature,
+        );
+        if (!cfg.enabled) return;
+        r = await svc.summarizeLocal(
+          transcript: transcript,
+          kinds: _kinds,
+          config: cfg,
+        );
+      } else {
+        final cfg = CloudLlmConfig(
+          apiUrl: settings.cloudLlmApiUrl,
+          apiKey: settings.cloudLlmApiKey,
+          model: settings.cloudLlmModel,
+        );
+        if (!cfg.enabled) return;
+        r = await svc.summarize(
+          transcript: transcript,
+          kinds: _kinds,
+          config: cfg,
+        );
+      }
       if (!mounted) return;
       setState(() => _result = r);
     } catch (e) {
@@ -1391,8 +1592,13 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final settings = ref.read(settingsServiceProvider);
-    final hasCfg = settings.cloudLlmApiUrl.isNotEmpty &&
+    final hasCloud = settings.cloudLlmApiUrl.isNotEmpty &&
         settings.cloudLlmApiKey.isNotEmpty;
+    final hasLocal = settings.localLlmModelPath.isNotEmpty;
+    final hasAny = hasCloud || hasLocal;
+    final activeModel = _mode == LlmCleanupMode.local
+        ? _SummarizeDialogState._shortModelPath(settings.localLlmModelPath)
+        : settings.cloudLlmModel;
     return AlertDialog(
       title: Text(l.outputSummarizeTitle),
       content: SizedBox(
@@ -1401,7 +1607,7 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!hasCfg)
+            if (!hasAny)
               Container(
                 padding: const EdgeInsets.all(12),
                 color: Colors.orange.shade50,
@@ -1411,10 +1617,40 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
               )
             else
               Text(
-                l.outputSummarizeHelp(settings.cloudLlmModel),
+                l.outputSummarizeHelp(activeModel),
                 style: TextStyle(
                     fontSize: 12, color: Colors.grey.shade700),
               ),
+            if (hasAny) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: SegmentedButton<LlmCleanupMode>(
+                  segments: [
+                    ButtonSegment(
+                      value: LlmCleanupMode.cloud,
+                      enabled: hasCloud && !_running,
+                      label: Text(l.outputCleanupLlmModeCloud),
+                    ),
+                    ButtonSegment(
+                      value: LlmCleanupMode.local,
+                      enabled: hasLocal && !_running,
+                      label: Text(l.outputCleanupLlmModeLocal),
+                    ),
+                  ],
+                  selected: <LlmCleanupMode>{
+                    if (_mode == LlmCleanupMode.cloud ||
+                        _mode == LlmCleanupMode.local)
+                      _mode
+                    else if (hasLocal)
+                      LlmCleanupMode.local
+                    else
+                      LlmCleanupMode.cloud,
+                  },
+                  onSelectionChanged: (sel) =>
+                      setState(() => _mode = sel.first),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             CheckboxListTile(
               dense: true,
@@ -1465,7 +1701,7 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
               : const Icon(Icons.summarize_outlined, size: 18),
           label: Text(l.outputSummarizeRun),
           onPressed:
-              (!hasCfg || _running || _kinds.isEmpty) ? null : _run,
+              (!hasAny || _running || _kinds.isEmpty) ? null : _run,
         ),
       ],
     );
@@ -1513,6 +1749,11 @@ class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
           ),
       ],
     );
+  }
+
+  static String _shortModelPath(String path) {
+    final ix = path.lastIndexOf(Platform.pathSeparator);
+    return ix == -1 ? path : path.substring(ix + 1);
   }
 }
 

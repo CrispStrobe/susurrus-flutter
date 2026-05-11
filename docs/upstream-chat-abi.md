@@ -1,9 +1,19 @@
 # §5.1.6 v3 local LLM — upstream tracker
 
-PLAN §5.1.6 v3 ("Tidy transcript with local LLM") is gated on
+**Status (May 2026): SHIPPED.** Upstream CrispASR exposed the
+chat ABI (`crispasr_chat_*` + Dart binding `CrispasrChatSession`
+in `flutter/crispasr/lib/src/chat.dart`), and the CrisperWeaver
+side landed alongside as §5.1.6 v3 — `LocalLlmCleanupService` +
+worker-isolate transport, three-mode Tidy / Summarize selector,
+Settings → Local LLM cleanup. See CHANGELOG.md → "Unreleased"
+for the user-facing summary. The notes below are kept as
+historical context for the design conversation. Next steps live
+in PLAN.md → §5.1.6 v3.1 (curated chat-model catalogue).
+
+PLAN §5.1.6 v3 ("Tidy transcript with local LLM") was gated on
 upstream CrispASR work that exposes llama.cpp's chat machinery
-as a public C ABI on `libcrispasr`. Until that ships, the
-deterministic v1 + BYOK cloud v2 (already in main) are the
+as a public C ABI on `libcrispasr`. Until that shipped, the
+deterministic v1 + BYOK cloud v2 (already in main) were the
 shipped options.
 
 **Canonical brief:** [`CrispASR/docs/prompts/chat-abi.md`](../../CrispASR/docs/prompts/chat-abi.md)

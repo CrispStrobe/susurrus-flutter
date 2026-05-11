@@ -680,6 +680,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           trailing: const Icon(Icons.cloud_outlined),
           onTap: () => _showCloudLlmDialog(settings),
         ),
+        // §5.1.6 v3 — on-device chat-LLM cleanup settings.
+        ListTile(
+          title: Text(
+              AppLocalizations.of(context).settingsLocalLlmCleanup),
+          subtitle: Text(settings.localLlmModelPath.isEmpty
+              ? AppLocalizations.of(context).settingsLocalLlmCleanupOff
+              : _shortGgufLabel(settings.localLlmModelPath)),
+          trailing: const Icon(Icons.memory_outlined),
+          onTap: () => _showLocalLlmDialog(settings),
+        ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),
@@ -687,6 +697,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  /// Pretty-print a model file path for the Settings list tile.
+  /// Just the basename plus a parent-dir crumb; the full path
+  /// is visible in the picker dialog itself.
+  String _shortGgufLabel(String path) {
+    final sep = Platform.pathSeparator;
+    final parts = path.split(sep).where((p) => p.isNotEmpty).toList();
+    if (parts.length <= 1) return path;
+    return '${parts[parts.length - 2]}$sep${parts.last}';
   }
 
   void _showCloudLlmDialog(SettingsService settings) {
@@ -773,6 +793,223 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Text(l.save)),
           ],
         );
+      },
+    );
+  }
+
+  /// §5.1.6 v3 — Local LLM cleanup dialog. File picker for the
+  /// GGUF chat model, expandable advanced params. No URL / key
+  /// fields — the local path doesn't need them.
+  void _showLocalLlmDialog(SettingsService settings) {
+    final l = AppLocalizations.of(context);
+    // Local working copies of the advanced params so the user
+    // can play with sliders without committing until Save.
+    var modelPath = settings.localLlmModelPath;
+    var nGpuLayers = settings.localLlmNGpuLayers;
+    var nCtx = settings.localLlmNCtx;
+    var nThreads = settings.localLlmNThreads;
+    var maxTokens = settings.localLlmMaxTokens;
+    var temperature = settings.localLlmTemperature;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setLocal) {
+          Future<void> pickModel() async {
+            final picked = await FilePicker.pickFiles(
+              dialogTitle: l.settingsLocalLlmModelPick,
+              type: FileType.custom,
+              allowedExtensions: const ['gguf'],
+            );
+            final p = picked?.files.single.path;
+            if (p == null || p.isEmpty) return;
+            setLocal(() => modelPath = p);
+          }
+
+          return AlertDialog(
+            title: Text(l.settingsLocalLlmCleanup),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(l.settingsLocalLlmHelp,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700)),
+                    const SizedBox(height: 12),
+                    Text(l.settingsLocalLlmModelPath,
+                        style:
+                            Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            modelPath.isEmpty
+                                ? l.settingsLocalLlmModelPathEmpty
+                                : modelPath,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: modelPath.isEmpty
+                                  ? Colors.grey.shade600
+                                  : null,
+                              fontFamily: 'monospace',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.folder_open, size: 16),
+                          label: Text(l.settingsLocalLlmModelPick),
+                          onPressed: pickModel,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: Text(l.settingsLocalLlmAdvanced),
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(
+                          nGpuLayers == -1
+                              ? l.settingsLocalLlmNGpuLayersAll
+                              : l.settingsLocalLlmNGpuLayers(nGpuLayers),
+                          style:
+                              Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Slider(
+                          min: -1,
+                          max: 99,
+                          divisions: 100,
+                          value: nGpuLayers.toDouble().clamp(-1, 99),
+                          label: nGpuLayers == -1 ? 'all' : '$nGpuLayers',
+                          onChanged: (v) =>
+                              setLocal(() => nGpuLayers = v.round()),
+                        ),
+                        Text(l.settingsLocalLlmNGpuLayersHelp,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade700)),
+                        const SizedBox(height: 8),
+                        Text(
+                          nCtx == 0
+                              ? l.settingsLocalLlmNCtxDefault
+                              : l.settingsLocalLlmNCtx(nCtx),
+                          style:
+                              Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Slider(
+                          min: 0,
+                          max: 32768,
+                          divisions: 64,
+                          value: nCtx.toDouble().clamp(0, 32768),
+                          label: nCtx == 0 ? 'auto' : '$nCtx',
+                          onChanged: (v) {
+                            // Snap to multiples of 512 for the
+                            // common-case context sizes; 0 is
+                            // the "model default" anchor.
+                            final snapped = (v / 512).round() * 512;
+                            setLocal(() => nCtx = snapped);
+                          },
+                        ),
+                        Text(l.settingsLocalLlmNCtxHelp,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade700)),
+                        const SizedBox(height: 8),
+                        Text(
+                          nThreads == 0
+                              ? l.settingsLocalLlmNThreadsAuto
+                              : l.settingsLocalLlmNThreads(nThreads),
+                          style:
+                              Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Slider(
+                          min: 0,
+                          max: 32,
+                          divisions: 32,
+                          value: nThreads.toDouble().clamp(0, 32),
+                          label:
+                              nThreads == 0 ? 'auto' : '$nThreads',
+                          onChanged: (v) =>
+                              setLocal(() => nThreads = v.round()),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(l.settingsLocalLlmMaxTokens(maxTokens),
+                            style:
+                                Theme.of(context).textTheme.bodySmall),
+                        Slider(
+                          min: 64,
+                          max: 4096,
+                          divisions: 63,
+                          value: maxTokens.toDouble().clamp(64, 4096),
+                          label: '$maxTokens',
+                          onChanged: (v) =>
+                              setLocal(() => maxTokens = v.round()),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                            l.settingsLocalLlmTemperature(
+                                temperature.toStringAsFixed(2)),
+                            style:
+                                Theme.of(context).textTheme.bodySmall),
+                        Slider(
+                          min: 0.0,
+                          max: 2.0,
+                          divisions: 40,
+                          value: temperature.clamp(0.0, 2.0),
+                          label: temperature.toStringAsFixed(2),
+                          onChanged: (v) =>
+                              setLocal(() => temperature = v),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l.cancel)),
+              TextButton(
+                onPressed: () {
+                  // Reset to defaults, including clearing the
+                  // path so the feature falls back to Off.
+                  setState(() {
+                    settings.localLlmModelPath = '';
+                    settings.localLlmNGpuLayers = -1;
+                    settings.localLlmNCtx = 0;
+                    settings.localLlmNThreads = 0;
+                    settings.localLlmMaxTokens = 512;
+                    settings.localLlmTemperature = 0.0;
+                  });
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(l.settingsLocalLlmModelClear),
+              ),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    settings.localLlmModelPath = modelPath.trim();
+                    settings.localLlmNGpuLayers = nGpuLayers;
+                    settings.localLlmNCtx = nCtx;
+                    settings.localLlmNThreads = nThreads;
+                    settings.localLlmMaxTokens = maxTokens;
+                    settings.localLlmTemperature = temperature;
+                  });
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(l.save),
+              ),
+            ],
+          );
+        });
       },
     );
   }

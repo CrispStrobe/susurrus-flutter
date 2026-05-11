@@ -30,6 +30,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import 'cloud_llm_cleanup_service.dart' show CloudLlmConfig, CloudLlmHttpException, CloudLlmDisabledException;
+import 'local_llm_backend.dart';
+import 'local_llm_cleanup_service.dart'
+    show LocalLlmConfig, LocalLlmDisabledException;
 
 /// What the caller wants out of one summarisation pass. The
 /// service composes a single LLM call that asks for the union
@@ -62,10 +65,34 @@ class SummaryResult {
 }
 
 class TranscriptSummarizeService {
-  TranscriptSummarizeService({http.Client? client})
-      : _client = client ?? http.Client();
+  /// [client] — test seam for the cloud (HTTP) path.
+  /// [localBackend] — test seam for the local (FFI) path. In
+  /// production this is null and the service lazily resolves
+  /// one through the LocalLlmCleanupService provider chain;
+  /// tests pass a stub LocalLlmBackend so they can exercise
+  /// the local-summarise path without spawning real isolates
+  /// or loading a GGUF.
+  TranscriptSummarizeService({
+    http.Client? client,
+    LocalLlmBackend? localBackend,
+  })  : _client = client ?? http.Client(),
+        _injectedLocalBackend = localBackend;
 
   final http.Client _client;
+  final LocalLlmBackend? _injectedLocalBackend;
+  LocalLlmBackend? _ownedLocalBackend;
+  String? _localOpenFingerprint;
+
+  /// Returns the active local backend — the injected one when
+  /// tests provided it, otherwise a lazily-created
+  /// IsolateLocalLlmBackend owned by this service for the rest
+  /// of its lifetime. We keep it warm across summarizeLocal
+  /// calls so the model only loads once per app session;
+  /// dispose() shuts it down on app teardown.
+  LocalLlmBackend _localBackend() {
+    if (_injectedLocalBackend != null) return _injectedLocalBackend!;
+    return _ownedLocalBackend ??= IsolateLocalLlmBackend();
+  }
 
   /// Headers used to split the response. Same casing the
   /// prompt requests — the model is reliable enough at
@@ -193,6 +220,55 @@ class TranscriptSummarizeService {
     return parseMarkdown(content);
   }
 
+  /// §5.1.6 v3 — local-LLM mirror of [summarize]. Same prompt,
+  /// same Markdown shape, same parser; differs only in the
+  /// transport (FFI worker isolate via LocalLlmBackend instead
+  /// of HTTP).
+  ///
+  /// The local backend is created once and reused — the summary
+  /// pass typically takes seconds to minutes against a 3B+
+  /// GGUF, but every subsequent summary in the same session
+  /// skips the model-load cost.
+  Future<SummaryResult> summarizeLocal({
+    required String transcript,
+    required Set<SummaryKind> kinds,
+    required LocalLlmConfig config,
+  }) async {
+    if (!config.enabled) {
+      throw const LocalLlmDisabledException('modelPath is empty');
+    }
+    if (transcript.trim().isEmpty || kinds.isEmpty) {
+      return const SummaryResult();
+    }
+    final backend = _localBackend();
+    final fp = config.openFingerprint;
+    if (_localOpenFingerprint != fp || !backend.isOpen) {
+      await backend.open(config);
+      _localOpenFingerprint = fp;
+    }
+    // Clear KV before the summary turn — each summarizeLocal
+    // call is independent of any prior cleanup turn that may
+    // have shared the session.
+    await backend.reset();
+    // Headroom for summary output. Local models often need
+    // more tokens than the cloud path to produce a full
+    // structured response; honour the user's per-call cap from
+    // config, but floor at 1024 so a default config doesn't
+    // truncate mid-bullet.
+    final genParams = <String, Object?>{
+      ...config.toGenerateParamsMap(),
+      'maxTokens': config.maxTokens < 1024 ? 1024 : config.maxTokens,
+    };
+    final out = await backend.generate(
+      messages: <Map<String, String>>[
+        {'role': 'system', 'content': _buildPrompt(kinds)},
+        {'role': 'user', 'content': transcript},
+      ],
+      generateParams: genParams,
+    );
+    return parseMarkdown(out);
+  }
+
   /// Pure parser — split structured-Markdown into sections.
   /// Exposed so tests can pin the parser behaviour without
   /// going through the HTTP path.
@@ -256,7 +332,22 @@ class TranscriptSummarizeService {
     );
   }
 
-  void dispose() => _client.close();
+  void dispose() {
+    _client.close();
+    // Tear down the locally-owned backend; an injected one is
+    // the caller's responsibility (test fixtures clean up
+    // their own).
+    final owned = _ownedLocalBackend;
+    if (owned != null) {
+      // Fire-and-forget — disposal is async but the Riverpod
+      // provider that owns us doesn't expose a Future-returning
+      // dispose hook, and we don't want to block app shutdown.
+      // The worker isolate will exit when it receives shutdown.
+      // ignore: unawaited_futures
+      owned.dispose();
+      _ownedLocalBackend = null;
+    }
+  }
 }
 
 final transcriptSummarizeServiceProvider =

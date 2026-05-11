@@ -268,6 +268,92 @@ class SettingsService {
     _prefs.setString('cloud_llm_model', model);
   }
 
+  // --- §5.1.6 v3 Local-LLM cleanup ---
+
+  /// Which LLM path Tidy / Summarize routes through. Single
+  /// source of truth — the three-mode UI selector writes here,
+  /// and downstream code reads this to pick between the cloud
+  /// service, the local service, or no LLM pass at all.
+  /// Stored as the enum name so an order shuffle doesn't break
+  /// existing installs.
+  LlmCleanupMode get llmCleanupMode {
+    final raw = _prefs.getString('llm_cleanup_mode');
+    if (raw == null) return LlmCleanupMode.off;
+    for (final v in LlmCleanupMode.values) {
+      if (v.name == raw) return v;
+    }
+    return LlmCleanupMode.off;
+  }
+
+  set llmCleanupMode(LlmCleanupMode mode) {
+    Log.instance.d('settings', 'Saving llmCleanupMode: ${mode.name}');
+    _prefs.setString('llm_cleanup_mode', mode.name);
+  }
+
+  /// Absolute path to a GGUF chat model. Empty means "no model
+  /// configured" — the Tidy dialog's "Local" affordance hides /
+  /// disables until this is set. We don't curate a list of
+  /// models here; the Settings screen surfaces a file picker
+  /// and the user points at any GGUF on disk. A curated
+  /// catalogue with downloads lands in §5.1.6 v3.1.
+  String get localLlmModelPath =>
+      _prefs.getString('local_llm_model_path') ?? '';
+  set localLlmModelPath(String path) {
+    Log.instance.d('settings',
+        'Saving localLlmModelPath: ${path.isEmpty ? "EMPTY" : path}');
+    _prefs.setString('local_llm_model_path', path);
+  }
+
+  /// `-1` = all layers on GPU (default — Metal on macOS, CUDA
+  /// on Linux/Windows when present, CPU fallback otherwise).
+  /// `0` = CPU only; positive int = partial offload. Stored as
+  /// int so the user-facing slider in Settings can write it
+  /// without per-platform branching here.
+  int get localLlmNGpuLayers =>
+      _prefs.getInt('local_llm_n_gpu_layers') ?? -1;
+  set localLlmNGpuLayers(int n) {
+    Log.instance.d('settings', 'Saving localLlmNGpuLayers: $n');
+    _prefs.setInt('local_llm_n_gpu_layers', n);
+  }
+
+  /// Context window in tokens. 0 means "use the GGUF's baked-in
+  /// default" — the binding interprets that as `null` upstream
+  /// and lets the model pick. Bumping this is the lever a user
+  /// pulls when summarising long transcripts.
+  int get localLlmNCtx => _prefs.getInt('local_llm_n_ctx') ?? 0;
+  set localLlmNCtx(int n) {
+    Log.instance.d('settings', 'Saving localLlmNCtx: $n');
+    _prefs.setInt('local_llm_n_ctx', n);
+  }
+
+  /// Generation threads. 0 = upstream's default (physical-cores cap).
+  int get localLlmNThreads => _prefs.getInt('local_llm_n_threads') ?? 0;
+  set localLlmNThreads(int n) {
+    Log.instance.d('settings', 'Saving localLlmNThreads: $n');
+    _prefs.setInt('local_llm_n_threads', n);
+  }
+
+  /// Per-call output cap. Smaller than the cloud default
+  /// (1024) because per-segment cleanup typically produces
+  /// output of similar length to the input — 512 is enough
+  /// headroom while keeping a runaway generation from
+  /// dominating the pass.
+  int get localLlmMaxTokens =>
+      _prefs.getInt('local_llm_max_tokens') ?? 512;
+  set localLlmMaxTokens(int n) {
+    Log.instance.d('settings', 'Saving localLlmMaxTokens: $n');
+    _prefs.setInt('local_llm_max_tokens', n);
+  }
+
+  /// Sampling temperature. 0.0 = greedy, matches the cloud
+  /// path's default and keeps Tidy output reproducible.
+  double get localLlmTemperature =>
+      _prefs.getDouble('local_llm_temperature') ?? 0.0;
+  set localLlmTemperature(double t) {
+    Log.instance.d('settings', 'Saving localLlmTemperature: $t');
+    _prefs.setDouble('local_llm_temperature', t);
+  }
+
   // --- §5.1.11 Global hotkey ---
 
   /// Whether the global hotkey is registered at all. Off by
@@ -340,3 +426,9 @@ class SettingsService {
 final settingsServiceProvider = Provider<SettingsService>((ref) {
   throw UnimplementedError('SettingsService not initialized');
 });
+
+/// §5.1.6 v3 — which LLM cleanup path Tidy / Summarize uses.
+/// Single source of truth, persisted to prefs, read by both the
+/// cleanup pass and the summarisation pass so a user only has
+/// to pick once and both surfaces follow.
+enum LlmCleanupMode { off, cloud, local }

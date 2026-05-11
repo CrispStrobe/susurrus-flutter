@@ -45,6 +45,15 @@ Twelve features land in this batch; full write-ups in
   LLM pass against any OpenAI-compatible endpoint (OpenAI,
   Anthropic via proxy, OpenRouter, Groq, Cerebras, Together,
   local llama-server). Key stays on device.
+- **Local on-device LLM cleanup + summarisation** (§5.1.6 v3) —
+  Point at a GGUF chat model on disk and every Tidy / Summarize
+  pass routes through it via libcrispasr's chat ABI. No network,
+  no API key, no per-token billing. Metal / CUDA acceleration
+  used when available; one-time model-load amortised across
+  every pass in the session via a dedicated worker isolate. A
+  three-mode selector (Off / Cloud / Local) replaces the
+  cloud-only LLM-pass checkbox; defaults respect the
+  user's persisted preference and configured paths.
 - **Templates / presets** (§5.1.7) — Save current `(backend,
   modelId, language, AdvancedOptions)` tuple as a named preset.
   One-tap Apply restores all four atomically.

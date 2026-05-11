@@ -600,6 +600,56 @@
   },
   "outputCleanupLlmPassUnconfigured": "In Einstellungen → Cloud-LLM-Bereinigung einen Endpunkt einrichten, um diese Option zu aktivieren.",
   "outputCleanupLlmRunning": "LLM-Bereinigung läuft…",
+  "outputCleanupLlmMode": "LLM-Durchlauf",
+  "outputCleanupLlmModeOff": "Aus",
+  "outputCleanupLlmModeCloud": "Cloud",
+  "outputCleanupLlmModeLocal": "Lokal",
+  "outputCleanupLlmModeCloudHelp": "Nach dem deterministischen Durchlauf jedes Segment an {model} (Cloud, BYOK) schicken. Langsamer; nutzt deinen konfigurierten API-Key.",
+  "@outputCleanupLlmModeCloudHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmModeLocalHelp": "Nach dem deterministischen Durchlauf jedes Segment lokal durch {model} laufen lassen. Kein Netzwerk, kein API-Key; beim ersten Aufruf wird das Modell in den Speicher geladen.",
+  "@outputCleanupLlmModeLocalHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmModeCloudUnconfigured": "In Einstellungen → Cloud-LLM-Bereinigung einen Endpunkt einrichten, um diese Option zu aktivieren.",
+  "outputCleanupLlmModeLocalUnconfigured": "In Einstellungen → Lokale LLM-Bereinigung ein GGUF-Chatmodell auswählen, um diese Option zu aktivieren.",
+  "settingsLocalLlmCleanup": "Lokale LLM-Bereinigung (auf diesem Gerät)",
+  "settingsLocalLlmCleanupOff": "Aus (ein GGUF-Chatmodell auswählen, um zu aktivieren)",
+  "settingsLocalLlmHelp": "Optional. Lädt ein GGUF-Chatmodell auf diesem Gerät und nutzt es für jeden Tidy- / Summarize-Durchlauf. Kein Netzwerk, kein API-Key. Benötigt je nach Modellgröße ~2–8 GB freien RAM; Metal- / CUDA-Beschleunigung wird genutzt, wenn verfügbar.",
+  "settingsLocalLlmModelPath": "Chatmodell-Datei (GGUF)",
+  "settingsLocalLlmModelPathEmpty": "Kein Modell ausgewählt",
+  "settingsLocalLlmModelPick": "Durchsuchen…",
+  "settingsLocalLlmModelClear": "Leeren",
+  "settingsLocalLlmAdvanced": "Erweiterte Parameter",
+  "settingsLocalLlmNGpuLayers": "GPU-Layer: {n}",
+  "@settingsLocalLlmNGpuLayers": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNGpuLayersAll": "GPU-Layer: alle",
+  "settingsLocalLlmNGpuLayersHelp": "-1 = alle Layer auf der GPU (Standard; Metal auf macOS / CUDA auf Linux+Windows, wenn verfügbar). 0 = nur CPU. Positive Werte sind teilweise Offload-Konfigurationen für Geräte mit wenig VRAM.",
+  "settingsLocalLlmNCtx": "Kontextfenster (Tokens): {n}",
+  "@settingsLocalLlmNCtx": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNCtxDefault": "Kontextfenster: Modell-Standard",
+  "settingsLocalLlmNCtxHelp": "0 lässt den im GGUF eingebauten Standard. Höher setzen beim Zusammenfassen langer Transkripte; auf speicherbeschränkten Geräten reduzieren.",
+  "settingsLocalLlmNThreads": "CPU-Threads: {n}",
+  "@settingsLocalLlmNThreads": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmNThreadsAuto": "CPU-Threads: automatisch",
+  "settingsLocalLlmMaxTokens": "Max. Output-Tokens pro Aufruf: {n}",
+  "@settingsLocalLlmMaxTokens": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsLocalLlmTemperature": "Temperatur: {t}",
+  "@settingsLocalLlmTemperature": {
+    "placeholders": { "t": { "type": "String" } }
+  },
+  "settingsLocalLlmUnsupported": "Diese libcrispasr-Version stellt das Chat-ABI nicht bereit — benötigt CrispASR 0.7.0 oder neuer.",
+  "outputCleanupLocalLlmRunning": "Lokale LLM-Bereinigung läuft…",
+  "outputCleanupLocalLlmLoading": "Lokales LLM wird geladen (der erste Aufruf kann ein paar Sekunden dauern)…",
   "settingsHotkey": "Globaler Hotkey",
   "settingsHotkeyOff": "Aus (Tastenkombination + Verhalten konfigurieren, um zu aktivieren)",
   "settingsHotkeyHelp": "Registriert eine systemweite Tastenkombination, mit der du Aufnahmen starten / stoppen kannst, ohne die App in den Vordergrund zu holen. Nur Desktop — iOS / Android bieten keine systemweiten Tastenkombinationen.",
