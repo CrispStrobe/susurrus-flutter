@@ -2042,6 +2042,66 @@ abstract class AppLocalizations {
   /// **'Tap waveform to seek. Drag to select a region. Use Trim to keep [start, end]; Cut middle to remove [start, end] and splice the rest; Add split mark to drop a split point at the current playhead, then Split to write one WAV per region.'**
   String get editAudioHowto;
 
+  /// No description provided for @editAudioToggleTranscriptShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show transcript'**
+  String get editAudioToggleTranscriptShow;
+
+  /// No description provided for @editAudioToggleTranscriptHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide transcript'**
+  String get editAudioToggleTranscriptHide;
+
+  /// No description provided for @editAudioTranscriptHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get editAudioTranscriptHeading;
+
+  /// No description provided for @editAudioTranscriptEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No transcript yet. Transcribe the audio first, then return here to use it for navigation and cut-region markers.'**
+  String get editAudioTranscriptEmpty;
+
+  /// No description provided for @editAudioTranscriptSegmentTapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a line to seek the playhead. Long-press a line for cut / trim options.'**
+  String get editAudioTranscriptSegmentTapHint;
+
+  /// No description provided for @editAudioMarkSegmentForCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark segment for split'**
+  String get editAudioMarkSegmentForCut;
+
+  /// No description provided for @editAudioTrimToSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim to this segment'**
+  String get editAudioTrimToSegment;
+
+  /// No description provided for @editAudioSelectSegment.
+  ///
+  /// In en, this message translates to:
+  /// **'Select this segment'**
+  String get editAudioSelectSegment;
+
+  /// No description provided for @editAudioSegmentMarkedForCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked split point at {time}.'**
+  String editAudioSegmentMarkedForCut(String time);
+
+  /// No description provided for @editAudioSegmentSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection set: {start} – {end}.'**
+  String editAudioSegmentSelected(String start, String end);
+
   /// No description provided for @advancedVocabulary.
   ///
   /// In en, this message translates to:

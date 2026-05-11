@@ -224,6 +224,20 @@ class SettingsService {
   /// lower at runtime when the chosen model is too big.
   int get maxConcurrentSessionsLimit => Platform.isIOS ? 2 : 4;
 
+  /// §5.1.5 Phase C — whether the EditAudioScreen's transcript
+  /// pane is expanded by default. Persists so users who treat
+  /// the editor as audio-only collapse once and never see the
+  /// pane again; users who treat it as a Descript-style joint
+  /// editor leave it open. Default false to favour the pure-
+  /// audio-editing flow on first launch.
+  bool get editAudioShowTranscript =>
+      _prefs.getBool('edit_audio_show_transcript') ?? false;
+  set editAudioShowTranscript(bool value) {
+    Log.instance
+        .d('settings', 'Saving editAudioShowTranscript: $value');
+    _prefs.setBool('edit_audio_show_transcript', value);
+  }
+
   /// Helper to clear all settings (for reset)
   Future<void> clearAll() async {
     await _prefs.clear();

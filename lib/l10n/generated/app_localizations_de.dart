@@ -1164,6 +1164,42 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tippe auf die Wellenform, um zu springen. Ziehe, um einen Bereich auszuwählen. „Zuschneiden“ behält [Start, Ende]; „Mitte ausschneiden“ entfernt [Start, Ende] und fügt den Rest zusammen; „Splitmarke“ setzt einen Punkt an der aktuellen Position, dann „Aufteilen“ schreibt pro Bereich eine WAV-Datei.';
 
   @override
+  String get editAudioToggleTranscriptShow => 'Transkript anzeigen';
+
+  @override
+  String get editAudioToggleTranscriptHide => 'Transkript ausblenden';
+
+  @override
+  String get editAudioTranscriptHeading => 'Transkript';
+
+  @override
+  String get editAudioTranscriptEmpty =>
+      'Noch kein Transkript. Transkribiere die Audiodatei zuerst und kehre hierher zurück, um darin zu navigieren und Schnittmarken zu setzen.';
+
+  @override
+  String get editAudioTranscriptSegmentTapHint =>
+      'Tippe auf eine Zeile, um die Wiedergabeposition zu setzen. Lange tippen für Schnitt-/Auswahloptionen.';
+
+  @override
+  String get editAudioMarkSegmentForCut => 'Segment als Splitmarke';
+
+  @override
+  String get editAudioTrimToSegment => 'Auf dieses Segment zuschneiden';
+
+  @override
+  String get editAudioSelectSegment => 'Dieses Segment auswählen';
+
+  @override
+  String editAudioSegmentMarkedForCut(String time) {
+    return 'Splitmarke bei $time gesetzt.';
+  }
+
+  @override
+  String editAudioSegmentSelected(String start, String end) {
+    return 'Auswahl gesetzt: $start – $end.';
+  }
+
+  @override
   String get advancedVocabulary => 'Benutzerdefiniertes Vokabular';
 
   @override

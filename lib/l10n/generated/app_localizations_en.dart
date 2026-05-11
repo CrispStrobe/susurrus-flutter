@@ -1155,6 +1155,42 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap waveform to seek. Drag to select a region. Use Trim to keep [start, end]; Cut middle to remove [start, end] and splice the rest; Add split mark to drop a split point at the current playhead, then Split to write one WAV per region.';
 
   @override
+  String get editAudioToggleTranscriptShow => 'Show transcript';
+
+  @override
+  String get editAudioToggleTranscriptHide => 'Hide transcript';
+
+  @override
+  String get editAudioTranscriptHeading => 'Transcript';
+
+  @override
+  String get editAudioTranscriptEmpty =>
+      'No transcript yet. Transcribe the audio first, then return here to use it for navigation and cut-region markers.';
+
+  @override
+  String get editAudioTranscriptSegmentTapHint =>
+      'Tap a line to seek the playhead. Long-press a line for cut / trim options.';
+
+  @override
+  String get editAudioMarkSegmentForCut => 'Mark segment for split';
+
+  @override
+  String get editAudioTrimToSegment => 'Trim to this segment';
+
+  @override
+  String get editAudioSelectSegment => 'Select this segment';
+
+  @override
+  String editAudioSegmentMarkedForCut(String time) {
+    return 'Marked split point at $time.';
+  }
+
+  @override
+  String editAudioSegmentSelected(String start, String end) {
+    return 'Selection set: $start – $end.';
+  }
+
+  @override
   String get advancedVocabulary => 'Custom vocabulary';
 
   @override

@@ -24,9 +24,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 
+import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../main.dart' show appStateProvider;
 import '../services/audio_edit_service.dart';
 import '../services/log_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/waveform_painter.dart';
 
 class EditAudioScreen extends ConsumerStatefulWidget {
@@ -61,11 +64,32 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
   /// selection is active.
   final List<WaveformCutMarker> _cutMarkers = [];
 
+  /// §5.1.5 Phase C — collapsible transcript pane state.
+  /// Initial visibility comes from
+  /// `Settings.editAudioShowTranscript`; toggling the AppBar
+  /// chip persists the new value so users who don't use the
+  /// pane don't pay UI cost on every editor open.
+  bool _showTranscript = false;
+  final ScrollController _transcriptScrollController = ScrollController();
+  // Per-segment key so we can scroll-to + animate-highlight the
+  // currently-playing one when the playhead moves.
+  final Map<int, GlobalKey> _segmentKeys = {};
+  int? _highlightedSegmentIndex;
+
   @override
   void initState() {
     super.initState();
+    // Restore the persisted pane-visibility preference. Read in a
+    // post-frame callback so we have a fully-built ref tree.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final s = ref.read(settingsServiceProvider);
+      setState(() => _showTranscript = s.editAudioShowTranscript);
+    });
     _player.positionStream.listen((p) {
-      if (mounted) setState(() => _playerPosition = p);
+      if (!mounted) return;
+      setState(() => _playerPosition = p);
+      _autoHighlightCurrentSegment();
     });
     _player.playingStream.listen((playing) {
       if (mounted) setState(() => _isPlaying = playing);
@@ -75,6 +99,7 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
 
   @override
   void dispose() {
+    _transcriptScrollController.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -266,13 +291,145 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
     );
   }
 
+  // ----- Transcript pane (§5.1.5 Phase C) -----
+
+  /// Read segments from the global transcription state. The
+  /// transcript pane only shows content when the user has
+  /// already transcribed *this* audio file in the current
+  /// session — there's no persistent "audio↔transcript" link in
+  /// HistoryService yet (deferred to a future PLAN item), so an
+  /// open editor with a freshly-opened file shows the empty
+  /// state until the user transcribes from the home screen and
+  /// re-enters the editor.
+  List<TranscriptionSegment> _readSegments() {
+    return ref.read(appStateProvider).segments;
+  }
+
+  /// Linear scan to find which segment contains a given second.
+  /// Cheap enough for any realistic transcript size (~hundreds
+  /// of segments) and avoids the bookkeeping a binary search
+  /// would need when segments occasionally overlap.
+  int? _segmentIndexAt(double sec, List<TranscriptionSegment> segs) {
+    for (var i = 0; i < segs.length; i++) {
+      final s = segs[i];
+      if (sec >= s.startTime && sec <= s.endTime) return i;
+    }
+    return null;
+  }
+
+  /// Called from the player's positionStream — when the
+  /// playhead crosses into a new segment we both highlight that
+  /// row and scroll it into view. Throttled implicitly by
+  /// positionStream's ~16 Hz update rate.
+  void _autoHighlightCurrentSegment() {
+    if (!_showTranscript) return;
+    final segs = _readSegments();
+    if (segs.isEmpty) return;
+    final sec = _playerPosition.inMilliseconds / 1000.0;
+    final idx = _segmentIndexAt(sec, segs);
+    if (idx == _highlightedSegmentIndex) return;
+    setState(() => _highlightedSegmentIndex = idx);
+    if (idx != null) _scrollSegmentIntoView(idx);
+  }
+
+  void _scrollSegmentIntoView(int index) {
+    final key = _segmentKeys[index];
+    final ctx = key?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      alignment: 0.3, // place near the top third for readability
+    );
+  }
+
+  Future<void> _showSegmentMenu(
+      BuildContext sheetCtx, TranscriptionSegment seg) async {
+    final l = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: sheetCtx,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.select_all),
+                title: Text(l.editAudioSelectSegment),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  setState(() => _selection = WaveformSelection(
+                        startSec: seg.startTime,
+                        endSec: seg.endTime,
+                      ));
+                  _toast(l.editAudioSegmentSelected(
+                    _formatSeconds(seg.startTime),
+                    _formatSeconds(seg.endTime),
+                  ));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.content_cut),
+                title: Text(l.editAudioTrimToSegment),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  setState(() => _selection = WaveformSelection(
+                        startSec: seg.startTime,
+                        endSec: seg.endTime,
+                      ));
+                  _trim();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_location),
+                title: Text(l.editAudioMarkSegmentForCut),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  setState(() => _cutMarkers.add(WaveformCutMarker(
+                        startSec: seg.startTime,
+                        endSec: seg.startTime,
+                      )));
+                  _toast(l.editAudioSegmentMarkedForCut(
+                    _formatSeconds(seg.startTime),
+                  ));
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _togglePane() {
+    final settings = ref.read(settingsServiceProvider);
+    final next = !_showTranscript;
+    setState(() => _showTranscript = next);
+    settings.editAudioShowTranscript = next;
+    if (next) _autoHighlightCurrentSegment();
+  }
+
   // ----- UI -----
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.editAudioTitle)),
+      appBar: AppBar(
+        title: Text(l.editAudioTitle),
+        actions: [
+          IconButton(
+            tooltip: _showTranscript
+                ? l.editAudioToggleTranscriptHide
+                : l.editAudioToggleTranscriptShow,
+            icon: Icon(_showTranscript
+                ? Icons.subtitles
+                : Icons.subtitles_outlined),
+            onPressed: _togglePane,
+          ),
+        ],
+      ),
       body: _decodeError != null
           ? Center(
               child: Padding(
@@ -289,6 +446,17 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
   Widget _buildEditor(AppLocalizations l) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildEditorCore(l),
+        if (_showTranscript) Expanded(child: _buildTranscriptPane(l)),
+      ],
+    );
+  }
+
+  Widget _buildEditorCore(AppLocalizations l) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Waveform + interaction layer.
         SizedBox(
@@ -418,6 +586,135 @@ class _EditAudioScreenState extends ConsumerState<EditAudioScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTranscriptPane(AppLocalizations l) {
+    // Watch so the pane rebuilds when a transcript is added.
+    final segs = ref.watch(appStateProvider).segments;
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: theme.dividerColor),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                const Icon(Icons.subtitles, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  l.editAudioTranscriptHeading,
+                  style: theme.textTheme.titleSmall,
+                ),
+                const Spacer(),
+                if (segs.isNotEmpty)
+                  Text(
+                    '${segs.length}',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: Colors.grey.shade600),
+                  ),
+              ],
+            ),
+          ),
+          if (segs.isEmpty)
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    l.editAudioTranscriptEmpty,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+              ),
+            )
+          else ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                l.editAudioTranscriptSegmentTapHint,
+                style: TextStyle(
+                    fontSize: 11, color: Colors.grey.shade600),
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                controller: _transcriptScrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: segs.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: 2),
+                itemBuilder: (ctx, i) {
+                  final seg = segs[i];
+                  final key = _segmentKeys.putIfAbsent(i, GlobalKey.new);
+                  final isHighlighted = _highlightedSegmentIndex == i;
+                  return Container(
+                    key: key,
+                    decoration: BoxDecoration(
+                      color: isHighlighted
+                          ? theme.colorScheme.primaryContainer
+                              .withValues(alpha: 0.6)
+                          : null,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => _seekTo(seg.startTime),
+                      onLongPress: () => _showSegmentMenu(ctx, seg),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Row(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 64,
+                              child: Text(
+                                _formatSeconds(seg.startTime),
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                  color: isHighlighted
+                                      ? theme
+                                          .colorScheme.onPrimaryContainer
+                                      : Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                seg.text.trim(),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isHighlighted
+                                      ? theme
+                                          .colorScheme.onPrimaryContainer
+                                      : null,
+                                  fontWeight: isHighlighted
+                                      ? FontWeight.w600
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

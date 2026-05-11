@@ -322,16 +322,16 @@ is what's missing — ranked by impact ÷ effort.
   Implementation phases:
     A. ✅ `AudioEditService` + WAV encoder + tests (Dart-only,
        no UI) — May 2026.
-    B. ⏳ Waveform `CustomPainter` + `EditAudioScreen` shell
+    B. ✅ Waveform `CustomPainter` + `EditAudioScreen` shell
        with transport + the three ops (no transcript pane
-       yet) — next.
-    C. ⏳ Collapsible transcript pane on the same screen +
+       yet) — May 2026.
+    C. ✅ Collapsible transcript pane on the same screen +
        both directions of click-sync. Pane visibility persists
-       via `Settings.editAudioShowTranscript`.
+       via `Settings.editAudioShowTranscript` — May 2026.
     D. ⏳ Transcript-screen entry points: "Open in audio
        editor" actions in the long-press menu (pre-populates
        editor's initial selection + cut markers from the
-       transcript context).
+       transcript context) — next.
 
   Phase A is shipped — pure-Dart service supporting trim() /
   cut() / split() with sample-accurate slicing of the source

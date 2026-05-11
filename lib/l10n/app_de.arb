@@ -531,6 +531,25 @@
     "placeholders": { "n": { "type": "int" } }
   },
   "editAudioHowto": "Tippe auf die Wellenform, um zu springen. Ziehe, um einen Bereich auszuwählen. „Zuschneiden“ behält [Start, Ende]; „Mitte ausschneiden“ entfernt [Start, Ende] und fügt den Rest zusammen; „Splitmarke“ setzt einen Punkt an der aktuellen Position, dann „Aufteilen“ schreibt pro Bereich eine WAV-Datei.",
+  "editAudioToggleTranscriptShow": "Transkript anzeigen",
+  "editAudioToggleTranscriptHide": "Transkript ausblenden",
+  "editAudioTranscriptHeading": "Transkript",
+  "editAudioTranscriptEmpty": "Noch kein Transkript. Transkribiere die Audiodatei zuerst und kehre hierher zurück, um darin zu navigieren und Schnittmarken zu setzen.",
+  "editAudioTranscriptSegmentTapHint": "Tippe auf eine Zeile, um die Wiedergabeposition zu setzen. Lange tippen für Schnitt-/Auswahloptionen.",
+  "editAudioMarkSegmentForCut": "Segment als Splitmarke",
+  "editAudioTrimToSegment": "Auf dieses Segment zuschneiden",
+  "editAudioSelectSegment": "Dieses Segment auswählen",
+  "editAudioSegmentMarkedForCut": "Splitmarke bei {time} gesetzt.",
+  "@editAudioSegmentMarkedForCut": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "editAudioSegmentSelected": "Auswahl gesetzt: {start} – {end}.",
+  "@editAudioSegmentSelected": {
+    "placeholders": {
+      "start": { "type": "String" },
+      "end": { "type": "String" }
+    }
+  },
   "advancedVocabulary": "Benutzerdefiniertes Vokabular",
   "advancedVocabularyHint": "Begriff eingeben und Enter drücken (z. B. API, kubectl, Alice)",
   "advancedVocabularyAdd": "Begriff hinzufügen",
