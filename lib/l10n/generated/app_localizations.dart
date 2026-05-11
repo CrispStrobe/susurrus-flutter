@@ -1124,6 +1124,36 @@ abstract class AppLocalizations {
   /// **'Concurrent transcriptions: {n}'**
   String settingsMaxConcurrentCurrent(int n);
 
+  /// No description provided for @settingsMaxConcurrentSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Parallel sessions'**
+  String get settingsMaxConcurrentSessions;
+
+  /// No description provided for @settingsMaxConcurrentSessionsCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Parallel sessions: {n}'**
+  String settingsMaxConcurrentSessionsCurrent(int n);
+
+  /// No description provided for @settingsMaxConcurrentSessionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'1 = single session (default). 2+ spins up N worker isolates each holding its own model copy in RAM. Cost is N × model size; pre-flight clamps down if it wouldn\'t fit on this device.'**
+  String get settingsMaxConcurrentSessionsSubtitle;
+
+  /// No description provided for @settingsMemoryProjection.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected RAM: {projected} of {total} (per-worker: {per})'**
+  String settingsMemoryProjection(String projected, String total, String per);
+
+  /// No description provided for @settingsMemoryProjectionClamped.
+  ///
+  /// In en, this message translates to:
+  /// **'Clamped to {affordable} of {requested} workers — model is too big for available RAM'**
+  String settingsMemoryProjectionClamped(int affordable, int requested);
+
   /// No description provided for @batchResumedSnackbar.
   ///
   /// In en, this message translates to:

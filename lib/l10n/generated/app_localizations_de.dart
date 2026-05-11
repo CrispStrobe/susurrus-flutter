@@ -609,6 +609,28 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get settingsMaxConcurrentSessions => 'Parallele Sitzungen';
+
+  @override
+  String settingsMaxConcurrentSessionsCurrent(int n) {
+    return 'Parallele Sitzungen: $n';
+  }
+
+  @override
+  String get settingsMaxConcurrentSessionsSubtitle =>
+      '1 = eine Sitzung (Standard). 2+ startet N Worker-Isolates mit jeweils eigener Modell-Kopie im RAM. Kosten: N × Modellgröße; Vorabprüfung kappt automatisch, wenn es nicht passt.';
+
+  @override
+  String settingsMemoryProjection(String projected, String total, String per) {
+    return 'RAM-Schätzung: $projected von $total (pro Worker: $per)';
+  }
+
+  @override
+  String settingsMemoryProjectionClamped(int affordable, int requested) {
+    return 'Auf $affordable von $requested Workern reduziert — Modell zu groß für verfügbaren RAM';
+  }
+
+  @override
   String batchResumedSnackbar(int n) {
     String _temp0 = intl.Intl.pluralLogic(
       n,

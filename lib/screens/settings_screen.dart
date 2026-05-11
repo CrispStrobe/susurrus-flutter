@@ -6,10 +6,13 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:path/path.dart' as p;
+
 import '../engines/engine_factory.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
 import '../services/log_service.dart';
+import '../services/memory_estimator.dart';
 import '../services/model_service.dart';
 import '../services/server_service.dart';
 import '../services/settings_service.dart';
@@ -541,10 +544,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Group batch by backend: ${value ? "ON" : "OFF"}');
           },
         ),
-        // §5.23 Q2 — pipeline parallelism slider. 1 = current serial
-        // behaviour, 2..N = pre-decode next file's audio in a worker
-        // isolate while the current file's GPU work runs. Cap is
-        // platform-specific (2 on iOS, 4 elsewhere).
+        // §5.23 Q2 v1 — pipeline parallelism slider. 1 = current
+        // serial behaviour, 2..N = pre-decode next file's audio in
+        // a worker isolate while the current file's GPU work runs.
+        // Cap is platform-specific (2 on iOS, 4 elsewhere).
         Builder(builder: (context) {
           final n = settings.maxConcurrentTranscriptions;
           final cap = settings.maxConcurrentTranscriptionsLimit;
@@ -567,6 +570,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 Text(AppLocalizations.of(context)
                     .settingsMaxConcurrentSubtitle),
+              ],
+            ),
+          );
+        }),
+        // §5.23 Q2 v2 — N-way session pool slider. 1 = no pool
+        // (existing behaviour). 2+ spawns N worker isolates each
+        // holding its own model copy. RAM projection shows
+        // realtime estimate against the currently-selected model;
+        // pre-flight at batch-start time may clamp lower if the
+        // model doesn't fit.
+        Builder(builder: (context) {
+          final l = AppLocalizations.of(context);
+          final n = settings.maxConcurrentSessions;
+          final cap = settings.maxConcurrentSessionsLimit;
+          final estimator = ref.read(memoryEstimatorProvider);
+          final modelPath = _activeModelPath(ref, settings.defaultModel);
+          final est = estimator.estimate(
+              requested: n, modelPath: modelPath);
+          return ListTile(
+            title: Text(l.settingsMaxConcurrentSessionsCurrent(n)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Slider(
+                  value: n.toDouble(),
+                  min: 1,
+                  max: cap.toDouble(),
+                  divisions: cap - 1,
+                  label: n.toString(),
+                  onChanged: (v) {
+                    setState(() =>
+                        settings.maxConcurrentSessions = v.round());
+                  },
+                ),
+                Text(l.settingsMaxConcurrentSessionsSubtitle),
+                const SizedBox(height: 4),
+                Text(
+                  l.settingsMemoryProjection(
+                    est.prettyProjected,
+                    est.prettyPhysical,
+                    est.prettyPerWorker,
+                  ),
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.grey.shade700),
+                ),
+                if (est.wasClamped)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      l.settingsMemoryProjectionClamped(
+                          est.affordableWorkers, est.requestedWorkers),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
               ],
             ),
           );
@@ -867,4 +927,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return languageCode;
     }
   }
+}
+
+/// Resolve the on-disk path for [modelId] so the §5.23 Q2 v2 memory
+/// pre-flight has something to size against. Looks up the model's
+/// fileName via [ModelService] catalogs + joins under the
+/// configured models dir. Returns null when the model isn't in the
+/// catalog yet (covers user-bring-your-own GGUFs) — the memory
+/// estimator treats null as "unknown size", refuses to project a
+/// pool count.
+String? _activeModelPath(WidgetRef ref, String modelId) {
+  final def = ModelService.whisperCppModels[modelId] ??
+      ModelService.crispasrBackendModels[modelId];
+  if (def == null) return null;
+  final dir = ref.read(modelServiceProvider).whisperCppDir();
+  return p.join(dir, def.fileName);
 }

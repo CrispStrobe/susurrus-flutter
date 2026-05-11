@@ -257,6 +257,27 @@
   "settingsGroupBatchByBackendSubtitle": "Reorder queued files so consecutive jobs reuse the same model session",
   "settingsMaxConcurrent": "Concurrent transcriptions",
   "settingsMaxConcurrentCurrent": "Concurrent transcriptions: {n}",
+  "settingsMaxConcurrentSessions": "Parallel sessions",
+  "settingsMaxConcurrentSessionsCurrent": "Parallel sessions: {n}",
+  "@settingsMaxConcurrentSessionsCurrent": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsMaxConcurrentSessionsSubtitle": "1 = single session (default). 2+ spins up N worker isolates each holding its own model copy in RAM. Cost is N × model size; pre-flight clamps down if it wouldn't fit on this device.",
+  "settingsMemoryProjection": "Projected RAM: {projected} of {total} (per-worker: {per})",
+  "@settingsMemoryProjection": {
+    "placeholders": {
+      "projected": { "type": "String" },
+      "total": { "type": "String" },
+      "per": { "type": "String" }
+    }
+  },
+  "settingsMemoryProjectionClamped": "Clamped to {affordable} of {requested} workers — model is too big for available RAM",
+  "@settingsMemoryProjectionClamped": {
+    "placeholders": {
+      "affordable": { "type": "int" },
+      "requested": { "type": "int" }
+    }
+  },
   "batchResumedSnackbar": "{n, plural, =1{Recovered 1 interrupted transcription} other{Recovered {n} interrupted transcriptions}} — hit Start to resume",
   "@batchResumedSnackbar": {
     "placeholders": { "n": { "type": "int" } }

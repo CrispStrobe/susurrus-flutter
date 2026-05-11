@@ -192,6 +192,38 @@ class SettingsService {
   /// marginal speedup tapers.
   int get maxConcurrentTranscriptionsLimit => Platform.isIOS ? 2 : 4;
 
+  /// How many *true* parallel session workers the drain loop spawns
+  /// (§5.23 Q2 v2). 1 = no pool (the v1 prefetch is what the other
+  /// slider controls). 2+ spins up N persistent worker isolates,
+  /// each holding its own CrispasrSession against the same model.
+  /// Real GPU + decoder concurrency; cost is N × model size in RAM.
+  ///
+  /// At batch start the drain loop runs `MemoryEstimator.estimate`
+  /// against the active model + this slider value, and clamps the
+  /// actual worker count down to what fits in
+  /// `physicalMemory × 50% − 400 MB`. The user-set value is what's
+  /// requested; the actual spawn count is what's affordable.
+  int get maxConcurrentSessions {
+    final raw = _prefs.getInt('max_concurrent_sessions') ?? 1;
+    if (raw < 1) return 1;
+    final cap = maxConcurrentSessionsLimit;
+    return raw > cap ? cap : raw;
+  }
+
+  set maxConcurrentSessions(int value) {
+    final cap = maxConcurrentSessionsLimit;
+    final clamped = value < 1 ? 1 : (value > cap ? cap : value);
+    Log.instance.d('settings',
+        'Saving maxConcurrentSessions: $clamped (requested $value, cap $cap)');
+    _prefs.setInt('max_concurrent_sessions', clamped);
+  }
+
+  /// Same per-platform shape as the prefetch slider — iOS caps at 2
+  /// (very tight memory), everything else at 4 (beyond which Metal
+  /// queue contention dominates). The pre-flight check may clamp
+  /// lower at runtime when the chosen model is too big.
+  int get maxConcurrentSessionsLimit => Platform.isIOS ? 2 : 4;
+
   /// Helper to clear all settings (for reset)
   Future<void> clearAll() async {
     await _prefs.clear();

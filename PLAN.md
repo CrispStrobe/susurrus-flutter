@@ -427,15 +427,47 @@ launch-blocker; the rest are quality issues that surface in use.
   time. 9 new tests covering slider clamping + per-platform cap +
   prefetch cache API.
 
-* ⏳ **Q2 v2 (true N-way session pool)** — deferred. The big
-  variant from the original design: N parallel `CrispasrSession`
-  instances each in its own isolate, true GPU-concurrent
-  transcription. Cost is N × model size in RAM (4× voxtral-4B is
-  ~12 GB — OOM on a 16 GB Mac), and Metal queue contention
-  serializes a lot of the win on Apple silicon anyway. Gate
-  behind a future "I have RAM to burn" affordance + a memory-
-  pressure pre-flight check. Maintained design notes in the
-  original §5.23 block below.
+* ⏳ **Q2 v2 (true N-way session pool)** — foundations shipped
+  May 2026; drain-loop integration is the next increment.
+  Shipped:
+    * `MemoryEstimator` — cross-platform RAM probe (`sysctl
+      hw.memsize` on macOS, `/proc/meminfo` on Linux, `wmic` on
+      Windows; conservative platform-default constants for iOS /
+      Android where shelling out isn't allowed in the sandbox).
+      Computes projected RSS = `baseRss + N × on-disk-size × 1.6
+      overhead` and clamps N down to whatever fits in
+      `physicalMemory × 50% − 400 MB`. 9 tests covering missing
+      model / unknown mem / clamp math / pretty strings.
+    * `TranscriptionWorker` — top-level isolate entry. Opens its
+      own `CrispasrSession.openWithParams` (falls back to plain
+      `open` on older builds), bidirectional SendPort protocol
+      for `transcribe` / `shutdown` commands + segment streaming.
+      The cross-isolate Float32List passes by transfer (no copy).
+    * `TranscriptionWorkerPool` — `spawn(N, modelPath, ...)`
+      async ctor that brings N workers up in parallel, free-list
+      dispatcher with completer-based waiters, per-worker
+      `dead` flag for graceful degradation when a session opens
+      then later crashes, `shutdown()` clean teardown.
+    * `SettingsService.maxConcurrentSessions` — separate from the
+      v1 prefetch slider; persists, platform-clamped (iOS 2,
+      others 4). Settings UI shows live RAM projection
+      ("Projected RAM: 2.4 GB of 16.0 GB (per-worker: 320 MB)")
+      against the currently-selected default model, with an
+      orange "Clamped to N of M workers — model too big" hint
+      when the estimator already would refuse the slider value.
+
+  Still pending:
+    * Drain-loop integration in `transcription_screen.dart`. The
+      blocker is that the existing AppState assumes one active
+      transcription — parallel runs would interleave N files'
+      segments into the same display. Three plausible shapes:
+      (a) batch-mode UI strips per-file segment streaming and
+      shows aggregate "N running" status instead;
+      (b) AppState gets a per-job segments map keyed by jobId
+      and the UI switches between display modes;
+      (c) parallel mode only activates when batch size > some
+      threshold so single-file UX stays untouched.
+      Pick one before wiring the pool through.
 
 **Q3 deferred sub-items — all shipped May 2026:**
 

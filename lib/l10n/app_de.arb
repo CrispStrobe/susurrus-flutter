@@ -257,6 +257,27 @@
   "settingsGroupBatchByBackendSubtitle": "Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden",
   "settingsMaxConcurrent": "Gleichzeitige Transkriptionen",
   "settingsMaxConcurrentCurrent": "Gleichzeitige Transkriptionen: {n}",
+  "settingsMaxConcurrentSessions": "Parallele Sitzungen",
+  "settingsMaxConcurrentSessionsCurrent": "Parallele Sitzungen: {n}",
+  "@settingsMaxConcurrentSessionsCurrent": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "settingsMaxConcurrentSessionsSubtitle": "1 = eine Sitzung (Standard). 2+ startet N Worker-Isolates mit jeweils eigener Modell-Kopie im RAM. Kosten: N × Modellgröße; Vorabprüfung kappt automatisch, wenn es nicht passt.",
+  "settingsMemoryProjection": "RAM-Schätzung: {projected} von {total} (pro Worker: {per})",
+  "@settingsMemoryProjection": {
+    "placeholders": {
+      "projected": { "type": "String" },
+      "total": { "type": "String" },
+      "per": { "type": "String" }
+    }
+  },
+  "settingsMemoryProjectionClamped": "Auf {affordable} von {requested} Workern reduziert — Modell zu groß für verfügbaren RAM",
+  "@settingsMemoryProjectionClamped": {
+    "placeholders": {
+      "affordable": { "type": "int" },
+      "requested": { "type": "int" }
+    }
+  },
   "batchResumedSnackbar": "{n, plural, =1{1 unterbrochene Transkription wiederhergestellt} other{{n} unterbrochene Transkriptionen wiederhergestellt}} — Start drücken zum Fortsetzen",
   "@batchResumedSnackbar": {
     "placeholders": { "n": { "type": "int" } }
