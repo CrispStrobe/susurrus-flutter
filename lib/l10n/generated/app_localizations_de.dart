@@ -1350,6 +1350,45 @@ class AppLocalizationsDe extends AppLocalizations {
   String get outputCleanupLlmRunning => 'LLM-Bereinigung läuft…';
 
   @override
+  String get settingsHotkey => 'Globaler Hotkey';
+
+  @override
+  String get settingsHotkeyOff =>
+      'Aus (Tastenkombination + Verhalten konfigurieren, um zu aktivieren)';
+
+  @override
+  String get settingsHotkeyHelp =>
+      'Registriert eine systemweite Tastenkombination, mit der du Aufnahmen starten / stoppen kannst, ohne die App in den Vordergrund zu holen. Nur Desktop — iOS / Android bieten keine systemweiten Tastenkombinationen.';
+
+  @override
+  String get settingsHotkeyEnable => 'Globalen Hotkey aktivieren';
+
+  @override
+  String get settingsHotkeyCombo => 'Tastenkombination';
+
+  @override
+  String get settingsHotkeyBehavior => 'Verhalten';
+
+  @override
+  String get settingsHotkeyActionPushToTalk => 'Push-to-Talk';
+
+  @override
+  String get settingsHotkeyActionPushToTalkHelp =>
+      'Halten zum Aufnehmen, loslassen zum Stoppen. Passt gut zu Kombinationen mit Modifier (z. B. meta+shift+space).';
+
+  @override
+  String get settingsHotkeyActionToggle => 'Umschalten';
+
+  @override
+  String get settingsHotkeyActionToggleHelp =>
+      'Einmal drücken zum Starten, erneut drücken zum Stoppen. Einfacheres Modell; kein Halten eines Modifiers nötig.';
+
+  @override
+  String settingsHotkeyInvalid(String combo) {
+    return 'Ungültige Kombination „$combo\". Format: modifier+modifier+key, z. B. meta+shift+space.';
+  }
+
+  @override
   String get settingsCloudLlmCleanup => 'Cloud-LLM-Bereinigung (BYOK)';
 
   @override

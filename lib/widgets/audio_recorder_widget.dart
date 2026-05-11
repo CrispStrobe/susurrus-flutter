@@ -9,6 +9,7 @@ import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
 import '../services/audio_service.dart';
+import '../services/hotkey_service.dart';
 import '../services/log_service.dart';
 import '../services/settings_service.dart';
 import '../services/system_audio_capture_service.dart';
@@ -48,6 +49,11 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  /// §5.1.11 — subscription to the global hotkey stream. Lives
+  /// for the lifetime of this widget so subsequent presses are
+  /// honoured; cancelled in dispose.
+  StreamSubscription<HotkeyEvent>? _hotkeySub;
+
   @override
   void initState() {
     super.initState();
@@ -70,11 +76,40 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
       svc.isSupported().then((ok) {
         if (mounted) setState(() => _systemAudioSupported = ok);
       });
+      // §5.1.11 — start listening for global-hotkey events.
+      // Mode (push-to-talk vs toggle) is read fresh on each
+      // event from settings so a settings change mid-session
+      // takes effect immediately.
+      final hk = ref.read(hotkeyServiceProvider);
+      _hotkeySub = hk.events.listen(_onHotkeyEvent);
     });
+  }
+
+  void _onHotkeyEvent(HotkeyEvent event) {
+    if (!mounted) return;
+    final action = ref.read(hotkeyServiceProvider).action;
+    switch (action) {
+      case HotkeyAction.pushToTalk:
+        if (event == HotkeyEvent.keyDown && !_isRecording) {
+          _startRecording();
+        } else if (event == HotkeyEvent.keyUp && _isRecording) {
+          _stopRecording();
+        }
+        break;
+      case HotkeyAction.toggle:
+        if (event != HotkeyEvent.keyDown) return;
+        if (_isRecording) {
+          _stopRecording();
+        } else {
+          _startRecording();
+        }
+        break;
+    }
   }
 
   @override
   void dispose() {
+    _hotkeySub?.cancel();
     _timer?.cancel();
     _streamSub?.cancel();
     _micController?.close();

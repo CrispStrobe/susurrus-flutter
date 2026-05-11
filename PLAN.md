@@ -495,9 +495,46 @@ is what's missing — ranked by impact ÷ effort.
 * **5.1.10 Audio enhancement before transcribe** — Noise
   reduction (RNNoise FFI), dereverberation. Useful for bad
   recordings. ~2–3 days of FFI integration.
-* **5.1.11 Hotkey / global shortcut** — "Push-to-transcribe from
-  anywhere" via a system-level hotkey. `hotkey_manager` package
-  exists. ~1 day desktop, no-op on mobile.
+* **5.1.11 Global hotkey — shipped May 2026.** System-level
+  keyboard shortcut for start / stop recording without bringing
+  the app forward. Desktop only (macOS / Linux / Windows);
+  mobile is a no-op since iOS / Android don't expose a global-
+  shortcut surface. Pure Dart via the `hotkey_manager` package.
+
+  HotkeyService: broadcast-stream of `HotkeyEvent.keyDown` /
+  `keyUp`; subscribers (`AudioRecorderWidget`) dispatch on the
+  configured action. Two modes:
+    - `pushToTalk` — key-down starts, key-up stops. Walkie-
+      talkie idiom; pairs with combos that include a modifier.
+    - `toggle` — key-down toggles. Simpler; doesn't need
+      holding.
+
+  Persistence: combo as a normalised string in SharedPreferences
+  (`meta+shift+space`, `control+alt+r`). Parser handles modifier
+  aliases (cmd / command / win / super → meta; ctrl → control;
+  option → alt) and canonicalises output (control → alt →
+  shift → meta → key) so two equivalent inputs round-trip to
+  the same canonical form. F1–F12, letters A–Z, digits 0–9,
+  space / enter / tab / escape / backspace / delete supported.
+
+  UI: Settings → Global hotkey opens a dialog with an enable
+  switch, a combo text field (validated on save with a helpful
+  snackbar on parse failure), and a Radio group for push-to-
+  talk vs toggle. Re-registers with the OS on save. Settings
+  row hidden entirely on mobile so the affordance only appears
+  where it works.
+
+  18 hermetic tests pin the parser (single key, single +
+  multi modifiers, case-insensitivity, modifier aliases,
+  function keys, digit keys, named keys, empty / unknown
+  modifier / unknown key error cases, duplicate-modifier
+  dedup) and the serializer (round-trip, canonical modifier
+  order, idempotent re-serialisation, case lowering).
+
+  Native plugin registration path can't be unit-tested without
+  a host process — but the parser is the only piece with non-
+  trivial logic; the plugin call is a single
+  `_platform.register` indirection.
 * **5.1.12 Voice cloning workflow** — Wizard "record 10s →
   clone" on top of existing chatterbox / indextts / qwen3-tts.
   ~2 days UX work; the engines are there.

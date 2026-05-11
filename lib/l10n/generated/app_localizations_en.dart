@@ -1341,6 +1341,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputCleanupLlmRunning => 'Running LLM cleanup pass…';
 
   @override
+  String get settingsHotkey => 'Global hotkey';
+
+  @override
+  String get settingsHotkeyOff =>
+      'Off (configure a combo + behaviour to enable)';
+
+  @override
+  String get settingsHotkeyHelp =>
+      'Register a system-wide keyboard shortcut so you can start / stop recording without bringing the app forward. Desktop only — iOS / Android don\'t expose a global-shortcut surface.';
+
+  @override
+  String get settingsHotkeyEnable => 'Enable global hotkey';
+
+  @override
+  String get settingsHotkeyCombo => 'Key combination';
+
+  @override
+  String get settingsHotkeyBehavior => 'Behaviour';
+
+  @override
+  String get settingsHotkeyActionPushToTalk => 'Push to talk';
+
+  @override
+  String get settingsHotkeyActionPushToTalkHelp =>
+      'Hold to record, release to stop. Pairs well with combos that include a modifier (e.g. meta+shift+space).';
+
+  @override
+  String get settingsHotkeyActionToggle => 'Toggle';
+
+  @override
+  String get settingsHotkeyActionToggleHelp =>
+      'Press once to start, press again to stop. Simpler mental model; doesn\'t require holding a modifier.';
+
+  @override
+  String settingsHotkeyInvalid(String combo) {
+    return 'Invalid combo \"$combo\". Use modifier+modifier+key, e.g. meta+shift+space.';
+  }
+
+  @override
   String get settingsCloudLlmCleanup => 'Cloud LLM cleanup (BYOK)';
 
   @override

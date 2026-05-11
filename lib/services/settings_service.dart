@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../engines/engine_factory.dart';
+import '../services/hotkey_service.dart' show HotkeyAction;
 import '../services/log_service.dart';
 
 /// Central service for managing application settings and persistence.
@@ -265,6 +266,53 @@ class SettingsService {
   set cloudLlmModel(String model) {
     Log.instance.d('settings', 'Saving cloudLlmModel: $model');
     _prefs.setString('cloud_llm_model', model);
+  }
+
+  // --- §5.1.11 Global hotkey ---
+
+  /// Whether the global hotkey is registered at all. Off by
+  /// default so a fresh install doesn't grab a system shortcut
+  /// the user didn't ask for. Desktop-only — the setting is
+  /// still readable on mobile but the service treats those
+  /// platforms as no-ops.
+  bool get hotkeyEnabled => _prefs.getBool('hotkey_enabled') ?? false;
+  set hotkeyEnabled(bool value) {
+    Log.instance.d('settings', 'Saving hotkeyEnabled: $value');
+    _prefs.setBool('hotkey_enabled', value);
+  }
+
+  /// Normalised combo string ("meta+shift+space",
+  /// "control+alt+r") — see HotkeyService.serialize for the
+  /// canonical form. Empty until the user picks one in
+  /// Settings.
+  String get hotkeyCombo => _prefs.getString('hotkey_combo') ?? '';
+  set hotkeyCombo(String combo) {
+    Log.instance.d('settings', 'Saving hotkeyCombo: $combo');
+    _prefs.setString('hotkey_combo', combo);
+  }
+
+  /// 'pushToTalk' (default) or 'toggle'. Stored as the enum
+  /// name so it survives an enum-order shuffle.
+  String get hotkeyActionName =>
+      _prefs.getString('hotkey_action') ?? 'pushToTalk';
+  set hotkeyActionName(String name) {
+    Log.instance.d('settings', 'Saving hotkeyActionName: $name');
+    _prefs.setString('hotkey_action', name);
+  }
+
+  /// Convenience: parse / write the enum directly. Defaults to
+  /// pushToTalk on unknown strings so a stale prefs row doesn't
+  /// crash startup.
+  HotkeyAction get hotkeyAction {
+    final n = hotkeyActionName;
+    for (final v in HotkeyAction.values) {
+      if (v.name == n) return v;
+    }
+    return HotkeyAction.pushToTalk;
+  }
+
+  set hotkeyAction(HotkeyAction v) {
+    hotkeyActionName = v.name;
   }
 
   /// §5.1.5 Phase C — whether the EditAudioScreen's transcript

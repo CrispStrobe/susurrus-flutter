@@ -2366,6 +2366,72 @@ abstract class AppLocalizations {
   /// **'Running LLM cleanup pass…'**
   String get outputCleanupLlmRunning;
 
+  /// No description provided for @settingsHotkey.
+  ///
+  /// In en, this message translates to:
+  /// **'Global hotkey'**
+  String get settingsHotkey;
+
+  /// No description provided for @settingsHotkeyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off (configure a combo + behaviour to enable)'**
+  String get settingsHotkeyOff;
+
+  /// No description provided for @settingsHotkeyHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Register a system-wide keyboard shortcut so you can start / stop recording without bringing the app forward. Desktop only — iOS / Android don\'t expose a global-shortcut surface.'**
+  String get settingsHotkeyHelp;
+
+  /// No description provided for @settingsHotkeyEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable global hotkey'**
+  String get settingsHotkeyEnable;
+
+  /// No description provided for @settingsHotkeyCombo.
+  ///
+  /// In en, this message translates to:
+  /// **'Key combination'**
+  String get settingsHotkeyCombo;
+
+  /// No description provided for @settingsHotkeyBehavior.
+  ///
+  /// In en, this message translates to:
+  /// **'Behaviour'**
+  String get settingsHotkeyBehavior;
+
+  /// No description provided for @settingsHotkeyActionPushToTalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Push to talk'**
+  String get settingsHotkeyActionPushToTalk;
+
+  /// No description provided for @settingsHotkeyActionPushToTalkHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to record, release to stop. Pairs well with combos that include a modifier (e.g. meta+shift+space).'**
+  String get settingsHotkeyActionPushToTalkHelp;
+
+  /// No description provided for @settingsHotkeyActionToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle'**
+  String get settingsHotkeyActionToggle;
+
+  /// No description provided for @settingsHotkeyActionToggleHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Press once to start, press again to stop. Simpler mental model; doesn\'t require holding a modifier.'**
+  String get settingsHotkeyActionToggleHelp;
+
+  /// No description provided for @settingsHotkeyInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid combo \"{combo}\". Use modifier+modifier+key, e.g. meta+shift+space.'**
+  String settingsHotkeyInvalid(String combo);
+
   /// No description provided for @settingsCloudLlmCleanup.
   ///
   /// In en, this message translates to:

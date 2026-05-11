@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import '../engines/engine_factory.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart';
+import '../services/hotkey_service.dart';
 import '../services/log_service.dart';
 import '../services/memory_estimator.dart';
 import '../services/model_service.dart';
@@ -653,6 +654,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: const Icon(Icons.folder_open),
             onTap: () => _showModelsDirDialog(settings),
           ),
+        // §5.1.11 — desktop global hotkey configuration.
+        // Hidden on mobile where the OS doesn't expose a
+        // system-level shortcut surface.
+        if (Platform.isMacOS || Platform.isWindows || Platform.isLinux)
+          ListTile(
+            title: Text(AppLocalizations.of(context).settingsHotkey),
+            subtitle: Text(!settings.hotkeyEnabled ||
+                    settings.hotkeyCombo.isEmpty
+                ? AppLocalizations.of(context).settingsHotkeyOff
+                : '${settings.hotkeyCombo} '
+                    '(${settings.hotkeyAction == HotkeyAction.pushToTalk ? AppLocalizations.of(context).settingsHotkeyActionPushToTalk : AppLocalizations.of(context).settingsHotkeyActionToggle})'),
+            trailing: const Icon(Icons.keyboard),
+            onTap: () => _showHotkeyDialog(settings),
+          ),
         // §5.1.6 v2 — BYOK cloud-LLM cleanup settings.
         ListTile(
           title: Text(
@@ -758,6 +773,125 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Text(l.save)),
           ],
         );
+      },
+    );
+  }
+
+  /// §5.1.11 — global-hotkey configuration dialog. Text-input
+  /// field for the combo string plus a Radio group for the
+  /// push-to-talk / toggle behaviour and an enable switch.
+  /// Hotkey-recorder UI is intentionally simple for v1 — a
+  /// HotkeyRecorder widget exists in the package but adds a
+  /// modal-overlay UX the v1 doesn't need. v2 can swap in the
+  /// recorder.
+  void _showHotkeyDialog(SettingsService settings) {
+    final l = AppLocalizations.of(context);
+    final comboCtl = TextEditingController(text: settings.hotkeyCombo);
+    bool enabled = settings.hotkeyEnabled;
+    HotkeyAction action = settings.hotkeyAction;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setDialog) {
+          return AlertDialog(
+            title: Text(l.settingsHotkey),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l.settingsHotkeyHelp,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700)),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: Text(l.settingsHotkeyEnable),
+                    value: enabled,
+                    onChanged: (v) => setDialog(() => enabled = v),
+                  ),
+                  TextField(
+                    controller: comboCtl,
+                    decoration: InputDecoration(
+                      labelText: l.settingsHotkeyCombo,
+                      hintText: 'meta+shift+space',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(l.settingsHotkeyBehavior,
+                      style:
+                          Theme.of(context).textTheme.titleSmall),
+                  RadioGroup<HotkeyAction>(
+                    groupValue: action,
+                    onChanged: (v) {
+                      if (v != null) setDialog(() => action = v);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RadioListTile<HotkeyAction>(
+                          dense: true,
+                          title: Text(
+                              l.settingsHotkeyActionPushToTalk),
+                          subtitle: Text(
+                              l.settingsHotkeyActionPushToTalkHelp,
+                              style:
+                                  const TextStyle(fontSize: 11)),
+                          value: HotkeyAction.pushToTalk,
+                        ),
+                        RadioListTile<HotkeyAction>(
+                          dense: true,
+                          title:
+                              Text(l.settingsHotkeyActionToggle),
+                          subtitle: Text(
+                              l.settingsHotkeyActionToggleHelp,
+                              style:
+                                  const TextStyle(fontSize: 11)),
+                          value: HotkeyAction.toggle,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l.cancel)),
+              FilledButton(
+                onPressed: () async {
+                  final combo = comboCtl.text.trim();
+                  // Validate first — refuse to save garbage
+                  // that would silently disable the hotkey on
+                  // next start.
+                  if (enabled &&
+                      combo.isNotEmpty &&
+                      HotkeyService.parse(combo) == null) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                      content: Text(l.settingsHotkeyInvalid(combo)),
+                    ));
+                    return;
+                  }
+                  setState(() {
+                    settings.hotkeyEnabled = enabled;
+                    settings.hotkeyCombo = combo;
+                    settings.hotkeyAction = action;
+                  });
+                  // Re-register with the freshly-saved values.
+                  await ref
+                      .read(hotkeyServiceProvider)
+                      .applyFromSettings();
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                child: Text(l.save),
+              ),
+            ],
+          );
+        });
       },
     );
   }

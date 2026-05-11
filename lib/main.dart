@@ -32,6 +32,7 @@ import 'services/native_licenses.dart';
 import 'services/share_intake_service.dart';
 import 'services/transcription_service.dart';
 import 'services/model_service.dart';
+import 'services/hotkey_service.dart';
 import 'services/preset_service.dart';
 import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
@@ -84,12 +85,19 @@ void main() async {
   Log.instance.setMinLevel(settingsService.logLevel);
 
   final presetService = PresetService(prefs);
+  final hotkeyService = HotkeyService(settingsService);
+  // §5.1.11 — register the persisted hotkey before the first
+  // frame builds. Errors here are caught + logged inside the
+  // service; we don't gate runApp on it because a hotkey
+  // failure shouldn't prevent the app from launching.
+  unawaited(hotkeyService.applyFromSettings());
 
   runApp(
     ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWithValue(settingsService),
         presetServiceProvider.overrideWithValue(presetService),
+        hotkeyServiceProvider.overrideWithValue(hotkeyService),
       ],
       child: const CrisperWeaverApp(),
     ),

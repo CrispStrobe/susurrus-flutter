@@ -96,6 +96,13 @@ dependencies:
   # no-op (DnD across apps isn't a thing on iOS/Android).
   desktop_drop: ^0.7.0
 
+  # §5.1.11 — desktop-only global hotkey support. Registers a
+  # system-level shortcut so the user can push-to-transcribe or
+  # toggle recording without bringing the app window to the
+  # foreground. iOS / Android lack a global-shortcut surface;
+  # the service treats those platforms as no-ops.
+  hotkey_manager: ^0.2.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
