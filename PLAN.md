@@ -168,10 +168,40 @@ Shipped after this session's CrispASR best-of-N landed
   every dispatch so a previous non-1 value doesn't stick. The Dart
   wrapper's `setBestOf` method was added in this same change.
 - **Source / target language** — target-lang dropdown shipped in an
-  earlier slice; explicit source-lang picker still pending for backends
-  that accept `-sl` separately from autodetect.
+  earlier slice; **source-lang dropdown now shipped** for every
+  multilingual backend via the new
+  `AdvancedOptions.sourceLanguageCapableBackends` set (strict superset
+  of translation-capable, adds parakeet / mimo-asr / firered-asr /
+  kyutai-stt / glm-asr / gemma4-e2b / omniasr-llm{,-unlimited} /
+  moonshine). Hidden on English-only / non-ASR backends (wav2vec2,
+  fastconformer-ctc, kokoro, orpheus, chatterbox, indextts,
+  vibevoice-tts, pyannote, firered-punc, fullstop-punc). The pinned
+  value flows through `CrispASREngine.transcribe` → both the per-call
+  `language:` arg AND `session.setSourceLanguage(lang)` (defense-in-
+  depth — empty value clears, `-2` rc is logged + swallowed for
+  backends that don't honour the sticky setter at runtime).
 - **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
-- **Grammar (GBNF)** — Whisper-only, niche but valuable for structured output.
+- **Grammar (GBNF)** — Whisper-only, niche but valuable for
+  structured output. **Deferred**: needs new CrispASR work, not just
+  CrisperWeaver UI. Specifically:
+  1. Promote `examples/grammar-parser.{h,cpp}` → `src/` so libcrispasr
+     links it (currently CLI-only).
+  2. New C-ABI `crispasr_session_set_grammar_text(s, gbnf, rule_name,
+     penalty)` that calls `grammar_parser::parse` and stores the
+     parsed `whisper_grammar_element` graph in the session.
+  3. Thread the parsed rules into `wparams.grammar_rules` /
+     `n_grammar_rules` / `grammar_rule` / `grammar_penalty` on every
+     whisper transcribe dispatch.
+  4. Dart binding `CrispasrSession.setGrammar(text, rule, penalty)`
+     with the usual `providesSymbol` guard.
+  5. CrisperWeaver UI: `grammarText` + `grammarRule` + `grammarPenalty`
+     in `AdvancedOptions`, a multiline TextField gated on
+     `_activeBackend() == 'whisper'`, plumbed through
+     `CrispASREngine.transcribe`.
+  6. Unit tests on both repos (Catch2 round-trip the parser + Flutter
+     widget test on the visibility gate).
+  Estimated effort: 2–3 days of careful work + new tests on both
+  sides. Track here until prioritised; see also CrispASR PLAN.
 - ✅ **Streaming on mic** — already wired. `lib/widgets/audio_recorder_widget.dart` exposes a "Stream" toggle: when on, `audioService.startStreamingRecording()` opens a live PCM stream into `engine.transcribeStream`, and each emitted segment overwrites the rolling text via `AppStateNotifier.replaceLiveStreamingText`. Whisper-only (others don't expose the streaming session API). Error dialogs localised in this session.
 - **Auto-download default** — CrispASR's `-m auto` per backend.
   *Needs a design pass before becoming a dev task:* the model catalog

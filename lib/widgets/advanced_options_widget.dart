@@ -265,6 +265,44 @@ class AdvancedOptions {
     'granite-4.1-nar',
   };
 
+  /// Backends that benefit from a sticky source-language override.
+  /// Strict superset of [translationCapableBackends] — every backend
+  /// that can translate also accepts a source-lang pin, plus the
+  /// multilingual ASR backends that don't translate but auto-detect
+  /// language and can be wrong on short / noisy clips.
+  ///
+  /// English-only backends are deliberately excluded (the dropdown
+  /// would be useless): `wav2vec2-large-xlsr-53-english`,
+  /// `fastconformer-ctc-en`, `parakeet-tdt-0.6b-v3` (English-only
+  /// CTC head), kokoro / orpheus / vibevoice / chatterbox / indextts
+  /// (TTS — no source-lang concept), `firered-punc` / `fullstop-punc`
+  /// (post-processors), pyannote / silero-vad (non-ASR).
+  static const Set<String> sourceLanguageCapableBackends = {
+    // Translation-capable (already a superset entry).
+    'canary',
+    'cohere',
+    'voxtral',
+    'voxtral4b',
+    'qwen3',
+    'whisper',
+    'granite',
+    'granite-4.1',
+    'granite-4.1-plus',
+    'granite-4.1-nar',
+    // Multilingual ASR — CLI accepts `-sl` and the per-call API
+    // honours `language=`; pinning beats autodetect on short clips.
+    'parakeet',
+    'parakeet-ctc',
+    'mimo-asr',
+    'firered-asr',
+    'kyutai-stt',
+    'glm-asr',
+    'gemma4-e2b',
+    'omniasr-llm',
+    'omniasr-llm-unlimited',
+    'moonshine',
+  };
+
   /// Backends that accept a free-form Q&A prompt (instruct-tuned
   /// audio-LLM). Used by the UI to show / hide the ask field.
   static const Set<String> askCapableBackends = {
@@ -411,6 +449,12 @@ class _AdvancedDecodingSectionState
         // honour `setTemperature` (whisper, mimo-asr, wav2vec2, …) so
         // the panel stays uncluttered for the common case.
         _buildTemperatureRow(context, opts),
+        // Source-language picker — shown for every multilingual
+        // backend, not just translation-capable ones. Pinning a source
+        // wins over the global language dropdown / native LID, useful
+        // when autodetect is unreliable on short / noisy clips. Hidden
+        // on English-only backends (wav2vec2 / fastconformer-ctc).
+        _buildSourceLanguageRow(context, opts),
         // Target-language picker for translation. Only shown when the
         // currently-loaded model's backend advertises true speech
         // translation (canary, voxtral, qwen3, cohere, whisper). The
@@ -922,62 +966,70 @@ class _AdvancedDecodingSectionState
     );
   }
 
+  /// Source-language picker — visible whenever the active backend is in
+  /// [AdvancedOptions.sourceLanguageCapableBackends]. Independent of
+  /// translation: a parakeet user pinning German still gets a German
+  /// transcript, not a translation. The empty default "Auto-detect"
+  /// hands control back to the global language dropdown / native LID.
+  Widget _buildSourceLanguageRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (!AdvancedOptions.sourceLanguageCapableBackends
+        .contains(_activeBackend())) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: l.advancedSourceLanguage,
+          helperText: l.advancedSourceLanguageHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        initialValue: opts.sourceLanguage,
+        items: [
+          for (final e in _sourceLanguageOptions(context))
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ],
+        onChanged: (v) =>
+            ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(sourceLanguage: v ?? ''),
+      ),
+    );
+  }
+
+  /// Target-language picker — only visible for [translationCapableBackends].
+  /// Empty default = "no translation, transcribe verbatim".
   Widget _buildTargetLanguageRow(
       BuildContext context, AdvancedOptions opts) {
     final l = AppLocalizations.of(context);
     if (!AdvancedOptions.translationCapableBackends
         .contains(_activeBackend())) {
-      // Hide the dropdowns for backends that don't translate. Keeps
-      // the panel uncluttered for the wav2vec2 / parakeet / mimo-asr
-      // common case.
       return const SizedBox.shrink();
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: l.advancedSourceLanguage,
-              helperText: l.advancedSourceLanguageHelper,
-              border: const OutlineInputBorder(),
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            initialValue: opts.sourceLanguage,
-            items: [
-              for (final e in _sourceLanguageOptions(context))
-                DropdownMenuItem(value: e.key, child: Text(e.value)),
-            ],
-            onChanged: (v) =>
-                ref.read(advancedOptionsProvider.notifier).state =
-                    opts.copyWith(sourceLanguage: v ?? ''),
-          ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: l.advancedTargetLanguage,
+          helperText: l.advancedTargetLanguageHelper,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: l.advancedTargetLanguage,
-              helperText: l.advancedTargetLanguageHelper,
-              border: const OutlineInputBorder(),
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            initialValue: opts.targetLanguage,
-            items: [
-              for (final e in _targetLanguageOptions(context))
-                DropdownMenuItem(value: e.key, child: Text(e.value)),
-            ],
-            onChanged: (v) =>
-                ref.read(advancedOptionsProvider.notifier).state =
-                    opts.copyWith(targetLanguage: v ?? ''),
-          ),
-        ),
-      ],
+        initialValue: opts.targetLanguage,
+        items: [
+          for (final e in _targetLanguageOptions(context))
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ],
+        onChanged: (v) =>
+            ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(targetLanguage: v ?? ''),
+      ),
     );
   }
 

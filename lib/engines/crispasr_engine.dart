@@ -483,6 +483,24 @@ class CrispASREngine implements TranscriptionEngine {
 
     // Apply sticky session-state setters before dispatching transcribe.
     // Per-call args win when supplied, otherwise these are the fallback.
+    //
+    // Source-language: the `language:` per-call arg already covers the
+    // common case (`transcribe(pcm, language: 'de')`). The sticky setter
+    // is belt-and-braces — some session backends look at
+    // `s->source_language` for token-prefill regardless of the per-call
+    // arg, so always push the user-pinned source through. Empty string
+    // = "no override, use per-call / autodetect", which the C-ABI
+    // already treats as "clear the field".
+    if (_session != null && language != null && language.isNotEmpty &&
+        language != 'auto') {
+      try {
+        _session!.setSourceLanguage(language);
+      } catch (e) {
+        // Older libcrispasr without the symbol — silent skip.
+        Log.instance.d('crispasr',
+            'setSourceLanguage rejected by ${_session?.backend}: $e');
+      }
+    }
     if (_session != null && targetLanguage != null && targetLanguage.isNotEmpty) {
       try {
         _session!.setTargetLanguage(targetLanguage);

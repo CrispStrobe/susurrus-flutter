@@ -145,6 +145,50 @@ void main() {
             'omniasr-llm',
           ]),
           isTrue);
+      // Source-language: strict superset of translation-capable
+      // (every translator accepts a source-lang pin) plus the
+      // multilingual ASR backends that auto-detect language and
+      // benefit from a pinned override on short clips.
+      expect(
+          AdvancedOptions.sourceLanguageCapableBackends
+              .containsAll(AdvancedOptions.translationCapableBackends),
+          isTrue,
+          reason: 'every translation-capable backend also accepts a '
+              'source-lang pin');
+      expect(
+          AdvancedOptions.sourceLanguageCapableBackends.containsAll([
+            'parakeet',
+            'mimo-asr',
+            'firered-asr',
+            'kyutai-stt',
+            'glm-asr',
+            'gemma4-e2b',
+            'omniasr-llm',
+            'omniasr-llm-unlimited',
+            'moonshine',
+          ]),
+          isTrue,
+          reason: 'multilingual ASR backends should get the source-lang '
+              'picker too — not just translators');
+      // English-only / non-ASR backends are excluded — the dropdown
+      // would be useless on them.
+      for (final excluded in const [
+        'wav2vec2',
+        'fastconformer-ctc',
+        'kokoro',
+        'orpheus',
+        'chatterbox',
+        'indextts',
+        'vibevoice-tts',
+        'pyannote',
+        'firered-punc',
+        'fullstop-punc',
+      ]) {
+        expect(
+            AdvancedOptions.sourceLanguageCapableBackends.contains(excluded),
+            isFalse,
+            reason: '$excluded is English-only / non-ASR — no source-lang');
+      }
     });
 
     test('new CrispASR 0.6 parity fields roundtrip', () {
