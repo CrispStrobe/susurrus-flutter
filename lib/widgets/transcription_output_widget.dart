@@ -14,6 +14,7 @@ import '../services/cloud_llm_cleanup_service.dart';
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
 import '../services/transcript_cleanup_service.dart';
+import '../services/transcript_summarize_service.dart';
 
 class TranscriptionOutputWidget extends ConsumerStatefulWidget {
   final List<TranscriptionSegment> segments;
@@ -178,6 +179,16 @@ class _TranscriptionOutputWidgetState
                     child: ListTile(
                       leading: const Icon(Icons.auto_fix_high),
                       title: Text(AppLocalizations.of(context).outputCleanup),
+                      dense: true,
+                    ),
+                  ),
+                  // §5.1.8 — meeting-style summarisation.
+                  PopupMenuItem(
+                    value: 'summarize',
+                    child: ListTile(
+                      leading: const Icon(Icons.summarize_outlined),
+                      title:
+                          Text(AppLocalizations.of(context).outputSummarize),
                       dense: true,
                     ),
                   ),
@@ -706,6 +717,9 @@ class _TranscriptionOutputWidgetState
       case 'cleanup':
         _openCleanupDialog();
         break;
+      case 'summarize':
+        _openSummarizeDialog();
+        break;
     }
   }
 
@@ -1064,6 +1078,18 @@ class _TranscriptionOutputWidgetState
     }
   }
 
+  /// §5.1.8 — open the meeting-summarisation dialog. Gated
+  /// behind the same BYOK cloud-LLM config as §5.1.6 v2; when
+  /// the config is empty the dialog explains how to enable it
+  /// and offers no run button.
+  void _openSummarizeDialog() {
+    if (widget.segments.isEmpty) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => _SummarizeDialog(segments: widget.segments),
+    );
+  }
+
   /// Push the audio-editor route with pre-populated selection
   /// or cut-mark query params. Either pass [startSec] + [endSec]
   /// (to land with that range selected) or [markSec] (to drop a
@@ -1286,6 +1312,239 @@ class _PreviewRow extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w500)),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// §5.1.8 — dialog for meeting-style summarisation. Three
+/// section toggles (action items / key topics / decisions),
+/// a Run button gated on the cloud-LLM config, and a result
+/// pane that renders the structured Markdown + per-section
+/// lists once the run completes.
+class _SummarizeDialog extends ConsumerStatefulWidget {
+  const _SummarizeDialog({required this.segments});
+
+  final List<TranscriptionSegment> segments;
+
+  @override
+  ConsumerState<_SummarizeDialog> createState() =>
+      _SummarizeDialogState();
+}
+
+class _SummarizeDialogState extends ConsumerState<_SummarizeDialog> {
+  bool _includeAction = true;
+  bool _includeTopics = true;
+  bool _includeDecisions = true;
+  bool _running = false;
+  SummaryResult? _result;
+  String? _error;
+
+  Set<SummaryKind> get _kinds => <SummaryKind>{
+        if (_includeAction) SummaryKind.actionItems,
+        if (_includeTopics) SummaryKind.keyTopics,
+        if (_includeDecisions) SummaryKind.decisions,
+      };
+
+  Future<void> _run() async {
+    final settings = ref.read(settingsServiceProvider);
+    final cfg = CloudLlmConfig(
+      apiUrl: settings.cloudLlmApiUrl,
+      apiKey: settings.cloudLlmApiKey,
+      model: settings.cloudLlmModel,
+    );
+    if (!cfg.enabled) return;
+    setState(() {
+      _running = true;
+      _error = null;
+    });
+    try {
+      final transcript = widget.segments.map((s) => s.text).join('\n');
+      final svc = ref.read(transcriptSummarizeServiceProvider);
+      final r = await svc.summarize(
+        transcript: transcript,
+        kinds: _kinds,
+        config: cfg,
+      );
+      if (!mounted) return;
+      setState(() => _result = r);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  void _copyAll() {
+    final r = _result;
+    if (r == null) return;
+    Clipboard.setData(ClipboardData(text: r.rawMarkdown));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(AppLocalizations.of(context).outputAllCopied),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final settings = ref.read(settingsServiceProvider);
+    final hasCfg = settings.cloudLlmApiUrl.isNotEmpty &&
+        settings.cloudLlmApiKey.isNotEmpty;
+    return AlertDialog(
+      title: Text(l.outputSummarizeTitle),
+      content: SizedBox(
+        width: 620,
+        height: 560,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!hasCfg)
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.orange.shade50,
+                child: Text(l.outputSummarizeUnconfigured,
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.orange.shade900)),
+              )
+            else
+              Text(
+                l.outputSummarizeHelp(settings.cloudLlmModel),
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade700),
+              ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              dense: true,
+              title: Text(l.outputSummarizeKindActionItems),
+              value: _includeAction,
+              onChanged: _running
+                  ? null
+                  : (v) => setState(() => _includeAction = v ?? true),
+            ),
+            CheckboxListTile(
+              dense: true,
+              title: Text(l.outputSummarizeKindKeyTopics),
+              value: _includeTopics,
+              onChanged: _running
+                  ? null
+                  : (v) => setState(() => _includeTopics = v ?? true),
+            ),
+            CheckboxListTile(
+              dense: true,
+              title: Text(l.outputSummarizeKindDecisions),
+              value: _includeDecisions,
+              onChanged: _running
+                  ? null
+                  : (v) => setState(() => _includeDecisions = v ?? true),
+            ),
+            const Divider(height: 16),
+            Expanded(child: _buildResultPane(l)),
+          ],
+        ),
+      ),
+      actions: [
+        if (_result != null)
+          TextButton.icon(
+            icon: const Icon(Icons.copy, size: 18),
+            label: Text(l.outputCopyAll),
+            onPressed: _copyAll,
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.close),
+        ),
+        FilledButton.icon(
+          icon: _running
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.summarize_outlined, size: 18),
+          label: Text(l.outputSummarizeRun),
+          onPressed:
+              (!hasCfg || _running || _kinds.isEmpty) ? null : _run,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultPane(AppLocalizations l) {
+    if (_error != null) {
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Text(_error!,
+              style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+        ),
+      );
+    }
+    final r = _result;
+    if (r == null) {
+      return Center(
+        child: Text(l.outputSummarizeEmpty,
+            style: TextStyle(color: Colors.grey.shade600)),
+      );
+    }
+    if (r.isEmpty) {
+      return Center(
+        child: Text(l.outputSummarizeNothing,
+            style: TextStyle(color: Colors.grey.shade600)),
+      );
+    }
+    return ListView(
+      children: [
+        if (_includeAction)
+          _SummarizeSection(
+            heading: l.outputSummarizeKindActionItems,
+            items: r.actionItems,
+          ),
+        if (_includeTopics)
+          _SummarizeSection(
+            heading: l.outputSummarizeKindKeyTopics,
+            items: r.keyTopics,
+          ),
+        if (_includeDecisions)
+          _SummarizeSection(
+            heading: l.outputSummarizeKindDecisions,
+            items: r.decisions,
+          ),
+      ],
+    );
+  }
+}
+
+class _SummarizeSection extends StatelessWidget {
+  const _SummarizeSection({required this.heading, required this.items});
+
+  final String heading;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(heading, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 4),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text('—',
+                  style: TextStyle(color: Colors.grey.shade500)),
+            )
+          else
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 2, 0, 2),
+                child: Text('• $item',
+                    style: const TextStyle(fontSize: 13)),
+              ),
         ],
       ),
     );

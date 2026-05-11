@@ -565,6 +565,19 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "presetsDeleteTooltip": "Löschen",
+  "outputSummarize": "Zusammenfassen…",
+  "outputSummarizeTitle": "Transkript zusammenfassen",
+  "outputSummarizeHelp": "Sendet das Transkript an {model} und fordert eine strukturierte Zusammenfassung an. Ausgabe als Markdown-Aufzählungslisten.",
+  "@outputSummarizeHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputSummarizeUnconfigured": "Kein Cloud-LLM-Endpunkt konfiguriert. Einstellungen → Cloud-LLM-Bereinigung öffnen, um einen einzurichten — derselbe Endpunkt wird für Bereinigung und Zusammenfassung verwendet.",
+  "outputSummarizeKindActionItems": "Aufgaben",
+  "outputSummarizeKindKeyTopics": "Wichtige Themen",
+  "outputSummarizeKindDecisions": "Entscheidungen",
+  "outputSummarizeRun": "Zusammenfassen",
+  "outputSummarizeEmpty": "Abschnitte wählen und ausführen.",
+  "outputSummarizeNothing": "Das Modell hat für die gewählten Abschnitte nichts zurückgegeben.",
   "outputCleanup": "Transkript aufräumen…",
   "outputCleanupTitle": "Transkript aufräumen",
   "outputCleanupHelp": "Deterministische Bereinigung typischer ASR-Artefakte. Wähle die gewünschten Schritte, prüfe die Vorschau, dann auf alle anwenden.",

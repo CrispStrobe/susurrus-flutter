@@ -1241,6 +1241,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get presetsDeleteTooltip => 'Delete';
 
   @override
+  String get outputSummarize => 'Summarize…';
+
+  @override
+  String get outputSummarizeTitle => 'Summarize transcript';
+
+  @override
+  String outputSummarizeHelp(String model) {
+    return 'Sends the transcript to $model and asks for a structured summary. Output is Markdown-formatted bullet lists.';
+  }
+
+  @override
+  String get outputSummarizeUnconfigured =>
+      'No cloud LLM endpoint configured. Open Settings → Cloud LLM cleanup to add one — the same endpoint is used for both cleanup and summarisation.';
+
+  @override
+  String get outputSummarizeKindActionItems => 'Action items';
+
+  @override
+  String get outputSummarizeKindKeyTopics => 'Key topics';
+
+  @override
+  String get outputSummarizeKindDecisions => 'Decisions';
+
+  @override
+  String get outputSummarizeRun => 'Summarize';
+
+  @override
+  String get outputSummarizeEmpty => 'Pick sections and run.';
+
+  @override
+  String get outputSummarizeNothing =>
+      'The model returned no items for the selected sections.';
+
+  @override
   String get outputCleanup => 'Tidy transcript…';
 
   @override

@@ -163,11 +163,11 @@ void main() {
       }
       final svc = CloudLlmCleanupService();
       addTearDown(svc.dispose);
-      final cfg = CloudLlmConfig(
+      const cfg = CloudLlmConfig(
         apiUrl: 'https://api.groq.com/openai/v1/chat/completions',
         apiKey: 'sk-deliberately-wrong',
         model: 'llama-3.1-8b-instant',
-        timeout: const Duration(seconds: 20),
+        timeout: Duration(seconds: 20),
       );
       await expectLater(
         svc.cleanupSegment(text: 'hello', config: cfg),

@@ -453,9 +453,42 @@ is what's missing — ranked by impact ÷ effort.
 
 #### Tier C — niche but cool
 
-* **5.1.8 Meeting-style summarization** (action items / topics /
-  decisions) — Same machinery as 5.1.6 with structured-output
-  prompt templates. Requires 5.1.6 first.
+* **5.1.8 Meeting-style summarisation — shipped May 2026.**
+  Reuses the same BYOK cloud-LLM endpoint configured for
+  §5.1.6 v2. Pure-Dart `TranscriptSummarizeService` sends the
+  full transcript to the configured model with a structured-
+  output system prompt asking for exactly three optional H2
+  sections: `## Action Items`, `## Key Topics`,
+  `## Decisions`. The response Markdown is parsed back into
+  per-section bullet lists by splitting on H2 headers + bullet
+  prefixes (`- `, `* `, `1.`).
+
+  UI: "Summarize…" entry in the transcript more-actions popup
+  opens a dialog with three section checkboxes, a Run button
+  gated on the cloud-LLM config, and a result pane that
+  renders both the structured per-section view and a Copy-all
+  Markdown action. Same disabled-state explanation when the
+  cloud config is empty as the Tidy dialog.
+
+  Tests: 13 hermetic tests pin the Markdown parser (3 sections
+  / "None" placeholders / case-insensitive headers / asterisk
+  + numbered bullets / pre-header noise dropped / missing
+  sections empty / SummaryResult.isEmpty / raw verbatim
+  preservation), plus the HTTP path (disabled config, empty
+  transcript short-circuit, empty kinds short-circuit, happy-
+  path envelope + parse, non-2xx error surface). Plus one
+  live test against Groq's llama-3.3-70b-versatile in
+  test/transcript_summarize_live_test.dart, opt-in via
+  RUN_LIVE_TESTS=1 + GROQ_API_KEY.
+
+  **§5.1.8 v2 deferred:** structured-output via tool-call /
+  JSON-schema for providers that support it (OpenAI's
+  `response_format: json_schema`, Anthropic's `tools` field).
+  Would tighten the parse and let us add custom output shapes
+  (Q&A list, "highlights for the changelog", per-speaker
+  summary). Markdown was the safer v1 because it works
+  identically across every OpenAI-compatible endpoint without
+  per-provider schema knobs.
 * **5.1.9 Subtitle burning into video** — User selects a video
   file + transcript, gets a video with hardcoded subs. FFmpeg
   subprocess. ~1 day desktop-only.

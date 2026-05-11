@@ -568,6 +568,19 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "presetsDeleteTooltip": "Delete",
+  "outputSummarize": "Summarize…",
+  "outputSummarizeTitle": "Summarize transcript",
+  "outputSummarizeHelp": "Sends the transcript to {model} and asks for a structured summary. Output is Markdown-formatted bullet lists.",
+  "@outputSummarizeHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputSummarizeUnconfigured": "No cloud LLM endpoint configured. Open Settings → Cloud LLM cleanup to add one — the same endpoint is used for both cleanup and summarisation.",
+  "outputSummarizeKindActionItems": "Action items",
+  "outputSummarizeKindKeyTopics": "Key topics",
+  "outputSummarizeKindDecisions": "Decisions",
+  "outputSummarizeRun": "Summarize",
+  "outputSummarizeEmpty": "Pick sections and run.",
+  "outputSummarizeNothing": "The model returned no items for the selected sections.",
   "outputCleanup": "Tidy transcript…",
   "outputCleanupTitle": "Tidy transcript",
   "outputCleanupHelp": "Deterministic cleanup of common ASR artifacts. Pick what to apply, preview the result, then Apply to all.",

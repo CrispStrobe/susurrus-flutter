@@ -1251,6 +1251,40 @@ class AppLocalizationsDe extends AppLocalizations {
   String get presetsDeleteTooltip => 'Löschen';
 
   @override
+  String get outputSummarize => 'Zusammenfassen…';
+
+  @override
+  String get outputSummarizeTitle => 'Transkript zusammenfassen';
+
+  @override
+  String outputSummarizeHelp(String model) {
+    return 'Sendet das Transkript an $model und fordert eine strukturierte Zusammenfassung an. Ausgabe als Markdown-Aufzählungslisten.';
+  }
+
+  @override
+  String get outputSummarizeUnconfigured =>
+      'Kein Cloud-LLM-Endpunkt konfiguriert. Einstellungen → Cloud-LLM-Bereinigung öffnen, um einen einzurichten — derselbe Endpunkt wird für Bereinigung und Zusammenfassung verwendet.';
+
+  @override
+  String get outputSummarizeKindActionItems => 'Aufgaben';
+
+  @override
+  String get outputSummarizeKindKeyTopics => 'Wichtige Themen';
+
+  @override
+  String get outputSummarizeKindDecisions => 'Entscheidungen';
+
+  @override
+  String get outputSummarizeRun => 'Zusammenfassen';
+
+  @override
+  String get outputSummarizeEmpty => 'Abschnitte wählen und ausführen.';
+
+  @override
+  String get outputSummarizeNothing =>
+      'Das Modell hat für die gewählten Abschnitte nichts zurückgegeben.';
+
+  @override
   String get outputCleanup => 'Transkript aufräumen…';
 
   @override

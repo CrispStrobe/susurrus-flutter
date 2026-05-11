@@ -2192,6 +2192,66 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get presetsDeleteTooltip;
 
+  /// No description provided for @outputSummarize.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize…'**
+  String get outputSummarize;
+
+  /// No description provided for @outputSummarizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize transcript'**
+  String get outputSummarizeTitle;
+
+  /// No description provided for @outputSummarizeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends the transcript to {model} and asks for a structured summary. Output is Markdown-formatted bullet lists.'**
+  String outputSummarizeHelp(String model);
+
+  /// No description provided for @outputSummarizeUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No cloud LLM endpoint configured. Open Settings → Cloud LLM cleanup to add one — the same endpoint is used for both cleanup and summarisation.'**
+  String get outputSummarizeUnconfigured;
+
+  /// No description provided for @outputSummarizeKindActionItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Action items'**
+  String get outputSummarizeKindActionItems;
+
+  /// No description provided for @outputSummarizeKindKeyTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Key topics'**
+  String get outputSummarizeKindKeyTopics;
+
+  /// No description provided for @outputSummarizeKindDecisions.
+  ///
+  /// In en, this message translates to:
+  /// **'Decisions'**
+  String get outputSummarizeKindDecisions;
+
+  /// No description provided for @outputSummarizeRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize'**
+  String get outputSummarizeRun;
+
+  /// No description provided for @outputSummarizeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick sections and run.'**
+  String get outputSummarizeEmpty;
+
+  /// No description provided for @outputSummarizeNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'The model returned no items for the selected sections.'**
+  String get outputSummarizeNothing;
+
   /// No description provided for @outputCleanup.
   ///
   /// In en, this message translates to:
