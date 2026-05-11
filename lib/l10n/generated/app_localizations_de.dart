@@ -1195,6 +1195,62 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get close => 'Schließen';
+
+  @override
+  String get presetsTooltip => 'Voreinstellungen';
+
+  @override
+  String get presetsTitle => 'Voreinstellungen';
+
+  @override
+  String get presetsHelp =>
+      'Aktuelle Auswahl von Backend, Modell, Sprache und erweiterten Optionen unter einem Namen speichern. Später per Klick wiederherstellen.';
+
+  @override
+  String get presetsSaveCurrent =>
+      'Aktuelle Einstellungen als Voreinstellung speichern';
+
+  @override
+  String get presetsSaveCurrentTitle => 'Voreinstellung speichern';
+
+  @override
+  String get presetsNameLabel => 'Name';
+
+  @override
+  String get presetsNameHint =>
+      'z. B. Podcast, Sprachmemos, Mehrsprachiges Interview';
+
+  @override
+  String get presetsEmpty =>
+      'Noch keine Voreinstellungen. Aktuelle Einstellungen speichern, um zu beginnen.';
+
+  @override
+  String get presetsApply => 'Anwenden';
+
+  @override
+  String presetsApplied(String name) {
+    return 'Voreinstellung „$name\" angewendet.';
+  }
+
+  @override
+  String get presetsRenameTitle => 'Voreinstellung umbenennen';
+
+  @override
+  String get presetsRenameTooltip => 'Umbenennen';
+
+  @override
+  String get presetsDeleteTitle => 'Voreinstellung löschen?';
+
+  @override
+  String presetsDeleteConfirm(String name) {
+    return 'Voreinstellung „$name\" löschen? Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get presetsDeleteTooltip => 'Löschen';
+
+  @override
   String get outputCleanup => 'Transkript aufräumen…';
 
   @override

@@ -32,6 +32,7 @@ import 'services/native_licenses.dart';
 import 'services/share_intake_service.dart';
 import 'services/transcription_service.dart';
 import 'services/model_service.dart';
+import 'services/preset_service.dart';
 import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 import 'engines/transcription_engine.dart'; // Use engine TranscriptionSegment
@@ -82,10 +83,13 @@ void main() async {
   // (trace in debug, info in release) holds.
   Log.instance.setMinLevel(settingsService.logLevel);
 
+  final presetService = PresetService(prefs);
+
   runApp(
     ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWithValue(settingsService),
+        presetServiceProvider.overrideWithValue(presetService),
       ],
       child: const CrisperWeaverApp(),
     ),

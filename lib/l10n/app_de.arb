@@ -543,6 +543,28 @@
   "@editAudioSegmentMarkedForCut": {
     "placeholders": { "time": { "type": "String" } }
   },
+  "close": "Schließen",
+  "presetsTooltip": "Voreinstellungen",
+  "presetsTitle": "Voreinstellungen",
+  "presetsHelp": "Aktuelle Auswahl von Backend, Modell, Sprache und erweiterten Optionen unter einem Namen speichern. Später per Klick wiederherstellen.",
+  "presetsSaveCurrent": "Aktuelle Einstellungen als Voreinstellung speichern",
+  "presetsSaveCurrentTitle": "Voreinstellung speichern",
+  "presetsNameLabel": "Name",
+  "presetsNameHint": "z. B. Podcast, Sprachmemos, Mehrsprachiges Interview",
+  "presetsEmpty": "Noch keine Voreinstellungen. Aktuelle Einstellungen speichern, um zu beginnen.",
+  "presetsApply": "Anwenden",
+  "presetsApplied": "Voreinstellung „{name}\" angewendet.",
+  "@presetsApplied": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "presetsRenameTitle": "Voreinstellung umbenennen",
+  "presetsRenameTooltip": "Umbenennen",
+  "presetsDeleteTitle": "Voreinstellung löschen?",
+  "presetsDeleteConfirm": "Voreinstellung „{name}\" löschen? Das kann nicht rückgängig gemacht werden.",
+  "@presetsDeleteConfirm": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "presetsDeleteTooltip": "Löschen",
   "outputCleanup": "Transkript aufräumen…",
   "outputCleanupTitle": "Transkript aufräumen",
   "outputCleanupHelp": "Deterministische Bereinigung typischer ASR-Artefakte. Wähle die gewünschten Schritte, prüfe die Vorschau, dann auf alle anwenden.",

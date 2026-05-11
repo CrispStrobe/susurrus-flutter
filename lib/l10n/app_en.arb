@@ -546,6 +546,28 @@
   "@editAudioSegmentMarkedForCut": {
     "placeholders": { "time": { "type": "String" } }
   },
+  "close": "Close",
+  "presetsTooltip": "Presets",
+  "presetsTitle": "Presets",
+  "presetsHelp": "Save the current backend, model, language and Advanced Options as a named preset. Apply later to restore all settings in one tap.",
+  "presetsSaveCurrent": "Save current settings as preset",
+  "presetsSaveCurrentTitle": "Save preset",
+  "presetsNameLabel": "Preset name",
+  "presetsNameHint": "e.g. Podcast prep, Voice memos, Multilingual interview",
+  "presetsEmpty": "No presets yet. Save the current settings to start.",
+  "presetsApply": "Apply",
+  "presetsApplied": "Applied preset \"{name}\".",
+  "@presetsApplied": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "presetsRenameTitle": "Rename preset",
+  "presetsRenameTooltip": "Rename",
+  "presetsDeleteTitle": "Delete preset?",
+  "presetsDeleteConfirm": "Delete preset \"{name}\"? This can't be undone.",
+  "@presetsDeleteConfirm": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "presetsDeleteTooltip": "Delete",
   "outputCleanup": "Tidy transcript…",
   "outputCleanupTitle": "Tidy transcript",
   "outputCleanupHelp": "Deterministic cleanup of common ASR artifacts. Pick what to apply, preview the result, then Apply to all.",

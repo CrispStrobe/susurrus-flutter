@@ -1186,6 +1186,61 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get close => 'Close';
+
+  @override
+  String get presetsTooltip => 'Presets';
+
+  @override
+  String get presetsTitle => 'Presets';
+
+  @override
+  String get presetsHelp =>
+      'Save the current backend, model, language and Advanced Options as a named preset. Apply later to restore all settings in one tap.';
+
+  @override
+  String get presetsSaveCurrent => 'Save current settings as preset';
+
+  @override
+  String get presetsSaveCurrentTitle => 'Save preset';
+
+  @override
+  String get presetsNameLabel => 'Preset name';
+
+  @override
+  String get presetsNameHint =>
+      'e.g. Podcast prep, Voice memos, Multilingual interview';
+
+  @override
+  String get presetsEmpty =>
+      'No presets yet. Save the current settings to start.';
+
+  @override
+  String get presetsApply => 'Apply';
+
+  @override
+  String presetsApplied(String name) {
+    return 'Applied preset \"$name\".';
+  }
+
+  @override
+  String get presetsRenameTitle => 'Rename preset';
+
+  @override
+  String get presetsRenameTooltip => 'Rename';
+
+  @override
+  String get presetsDeleteTitle => 'Delete preset?';
+
+  @override
+  String presetsDeleteConfirm(String name) {
+    return 'Delete preset \"$name\"? This can\'t be undone.';
+  }
+
+  @override
+  String get presetsDeleteTooltip => 'Delete';
+
+  @override
   String get outputCleanup => 'Tidy transcript…';
 
   @override

@@ -20,6 +20,7 @@ import '../services/batch_persistence_service.dart';
 import '../services/batch_queue_service.dart';
 import '../services/log_service.dart';
 import '../services/memory_estimator.dart';
+import '../services/preset_service.dart';
 import '../services/transcription_service.dart';
 import '../services/model_service.dart';
 import '../services/settings_service.dart';
@@ -258,6 +259,13 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             icon: const Icon(Icons.translate),
             tooltip: l.menuTranslate,
             onPressed: () => context.push('/translate'),
+          ),
+          // §5.1.7 — Presets: save / load (backend, modelId,
+          // language, AdvancedOptions) bundles.
+          IconButton(
+            icon: const Icon(Icons.bookmarks_outlined),
+            tooltip: l.presetsTooltip,
+            onPressed: _openPresetsDialog,
           ),
         ],
       ),
@@ -765,6 +773,61 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         );
       }
     }
+  }
+
+  // ----- §5.1.7 Presets -----
+
+  /// Open the preset picker. Returns the chosen preset (or
+  /// null if the user dismissed). When non-null, the screen
+  /// applies it via `_applyPreset`.
+  Future<void> _openPresetsDialog() async {
+    final chosen = await showDialog<Preset>(
+      context: context,
+      builder: (_) => _PresetsDialog(
+        currentBackend: _activeBackendName(),
+        currentModelId: _modelName,
+        currentLanguage: _language,
+      ),
+    );
+    if (chosen != null) await _applyPreset(chosen);
+  }
+
+  /// Resolve the active backend label — derive from the
+  /// currently-selected model when there's a backend column
+  /// in the catalog, else use the engine type id as a best-
+  /// effort fallback.
+  String _activeBackendName() {
+    return ModelService.crispasrBackendModels[_modelName]?.backend ??
+        ModelService.whisperCppModels[_modelName]?.backend ??
+        ref.read(settingsServiceProvider).preferredEngine.id;
+  }
+
+  /// Apply a saved preset: update model / language / advanced
+  /// options atomically, persist the new defaults, snackbar
+  /// the user. Engine type isn't mutated here because the
+  /// backend is implied by the chosen model — `_selectModel`
+  /// reloads it under the hood.
+  Future<void> _applyPreset(Preset p) async {
+    final l = AppLocalizations.of(context);
+    // 1. Advanced options first — cheap, no I/O.
+    ref.read(advancedOptionsProvider.notifier).state = p.options;
+    // 2. Language.
+    if (p.language.isNotEmpty && p.language != _language) {
+      setState(() => _language = p.language);
+      ref.read(settingsServiceProvider).defaultLanguage = p.language;
+    }
+    // 3. Model — triggers a reload via the existing
+    //    `_selectModel` path. Skip when empty or same.
+    if (p.modelId.isNotEmpty && p.modelId != _modelName) {
+      await _selectModel(p.modelId);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l.presetsApplied(p.name)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   Widget _buildControlsSection(
@@ -1974,5 +2037,245 @@ class _EngineStatusChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// §5.1.7 — dialog that lists saved presets, lets the user
+/// save the current (backend, modelId, language, options)
+/// tuple as a new preset, rename / delete existing rows, and
+/// pop the chosen preset back to the caller for application.
+class _PresetsDialog extends ConsumerStatefulWidget {
+  const _PresetsDialog({
+    required this.currentBackend,
+    required this.currentModelId,
+    required this.currentLanguage,
+  });
+
+  /// Snapshot of the screen's current state, used as the seed
+  /// when the user taps "Save current as preset".
+  final String currentBackend;
+  final String currentModelId;
+  final String currentLanguage;
+
+  @override
+  ConsumerState<_PresetsDialog> createState() => _PresetsDialogState();
+}
+
+class _PresetsDialogState extends ConsumerState<_PresetsDialog> {
+  late List<Preset> _presets;
+
+  @override
+  void initState() {
+    super.initState();
+    _presets = ref.read(presetServiceProvider).all();
+  }
+
+  Future<void> _refresh() async {
+    if (!mounted) return;
+    setState(() => _presets = ref.read(presetServiceProvider).all());
+  }
+
+  Future<void> _saveCurrent() async {
+    final l = AppLocalizations.of(context);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final c = TextEditingController();
+        return AlertDialog(
+          title: Text(l.presetsSaveCurrentTitle),
+          content: TextField(
+            controller: c,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l.presetsNameLabel,
+              hintText: l.presetsNameHint,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.cancel)),
+            FilledButton(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(c.text.trim()),
+                child: Text(l.save)),
+          ],
+        );
+      },
+    );
+    if (name == null || name.isEmpty) return;
+    final svc = ref.read(presetServiceProvider);
+    final opts = ref.read(advancedOptionsProvider);
+    await svc.add(
+      name: name,
+      backend: widget.currentBackend,
+      modelId: widget.currentModelId,
+      language: widget.currentLanguage,
+      options: opts,
+    );
+    await _refresh();
+  }
+
+  Future<void> _rename(Preset p) async {
+    final l = AppLocalizations.of(context);
+    final next = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final c = TextEditingController(text: p.name);
+        return AlertDialog(
+          title: Text(l.presetsRenameTitle),
+          content: TextField(
+            controller: c,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l.presetsNameLabel,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.cancel)),
+            FilledButton(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(c.text.trim()),
+                child: Text(l.save)),
+          ],
+        );
+      },
+    );
+    if (next == null || next.isEmpty || next == p.name) return;
+    await ref.read(presetServiceProvider).update(p.copyWith(name: next));
+    await _refresh();
+  }
+
+  Future<void> _delete(Preset p) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.presetsDeleteTitle),
+        content: Text(l.presetsDeleteConfirm(p.name)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l.cancel)),
+          FilledButton.tonal(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l.delete)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(presetServiceProvider).remove(p.id);
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.presetsTitle),
+      content: SizedBox(
+        width: 560,
+        height: 480,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l.presetsHelp,
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade700)),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l.presetsSaveCurrent),
+              onPressed: _saveCurrent,
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Expanded(
+              child: _presets.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(l.presetsEmpty,
+                            textAlign: TextAlign.center,
+                            style:
+                                TextStyle(color: Colors.grey.shade600)),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: _presets.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final p = _presets[i];
+                        return ListTile(
+                          leading:
+                              const Icon(Icons.bookmark_outline),
+                          title: Text(p.name),
+                          subtitle: Text(
+                            _presetSummary(p),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: l.presetsRenameTooltip,
+                                icon: const Icon(Icons.edit, size: 18),
+                                onPressed: () => _rename(p),
+                              ),
+                              IconButton(
+                                tooltip: l.presetsDeleteTooltip,
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 18),
+                                onPressed: () => _delete(p),
+                              ),
+                              FilledButton.tonalIcon(
+                                icon: const Icon(Icons.check, size: 16),
+                                label: Text(l.presetsApply),
+                                onPressed: () =>
+                                    Navigator.of(context).pop(p),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.close),
+        ),
+      ],
+    );
+  }
+
+  String _presetSummary(Preset p) {
+    final parts = <String>[];
+    if (p.modelId.isNotEmpty) parts.add(p.modelId);
+    if (p.language.isNotEmpty && p.language != 'auto') {
+      parts.add(p.language);
+    }
+    if (p.options.beamSearch) parts.add('beam');
+    if (p.options.vad) parts.add('vad');
+    if (p.options.vocabulary.isNotEmpty) {
+      parts.add('vocab:${p.options.vocabulary.length}');
+    }
+    if (p.options.askPrompt.isNotEmpty) parts.add('ask');
+    if (p.options.targetLanguage.isNotEmpty) {
+      parts.add('→${p.options.targetLanguage}');
+    }
+    return parts.isEmpty ? '—' : parts.join(' · ');
   }
 }

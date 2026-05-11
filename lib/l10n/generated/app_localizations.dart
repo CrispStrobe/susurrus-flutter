@@ -2096,6 +2096,102 @@ abstract class AppLocalizations {
   /// **'Marked split point at {time}.'**
   String editAudioSegmentMarkedForCut(String time);
 
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @presetsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Presets'**
+  String get presetsTooltip;
+
+  /// No description provided for @presetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Presets'**
+  String get presetsTitle;
+
+  /// No description provided for @presetsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the current backend, model, language and Advanced Options as a named preset. Apply later to restore all settings in one tap.'**
+  String get presetsHelp;
+
+  /// No description provided for @presetsSaveCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Save current settings as preset'**
+  String get presetsSaveCurrent;
+
+  /// No description provided for @presetsSaveCurrentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save preset'**
+  String get presetsSaveCurrentTitle;
+
+  /// No description provided for @presetsNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset name'**
+  String get presetsNameLabel;
+
+  /// No description provided for @presetsNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Podcast prep, Voice memos, Multilingual interview'**
+  String get presetsNameHint;
+
+  /// No description provided for @presetsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No presets yet. Save the current settings to start.'**
+  String get presetsEmpty;
+
+  /// No description provided for @presetsApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get presetsApply;
+
+  /// No description provided for @presetsApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied preset \"{name}\".'**
+  String presetsApplied(String name);
+
+  /// No description provided for @presetsRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename preset'**
+  String get presetsRenameTitle;
+
+  /// No description provided for @presetsRenameTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get presetsRenameTooltip;
+
+  /// No description provided for @presetsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete preset?'**
+  String get presetsDeleteTitle;
+
+  /// No description provided for @presetsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete preset \"{name}\"? This can\'t be undone.'**
+  String presetsDeleteConfirm(String name);
+
+  /// No description provided for @presetsDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get presetsDeleteTooltip;
+
   /// No description provided for @outputCleanup.
   ///
   /// In en, this message translates to:

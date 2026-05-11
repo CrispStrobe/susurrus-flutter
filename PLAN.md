@@ -388,10 +388,37 @@ is what's missing — ranked by impact ÷ effort.
   `runLLMPass: true` flag once a text-LLM engine joins the
   pool. ~3–4 days inc. UI when picked up.
 
-* **5.1.7 Templates / presets** — Save current `(model,
-  AdvancedOptions, export formats)` as named preset. "Podcast
-  prep", "Voice memos", "Multilingual interview". ~1 day.
-  Low-glamor, high power-user love.
+* **5.1.7 Templates / presets — shipped May 2026.** Saves the
+  current `(backend, modelId, language, AdvancedOptions)`
+  tuple as a named preset; apply later to restore all four
+  atomically. Persisted as a JSON-encoded list in
+  SharedPreferences with per-row schema-versioning so future
+  field additions migrate cleanly.
+
+  PresetService surface: `all()` (oldest-first by createdAt),
+  `add()` (auto-disambiguates duplicate names with " (2)"
+  suffix), `update()` (overwrites in place by id; falls back
+  to add() when the id is unknown — defensive against stale
+  UI state), `remove()`, `clear()`. AdvancedOptions ↔ JSON
+  helpers are pure (27 fields, three enums, defensive
+  fromJson with unknown-key skip + missing-key fallthrough +
+  unknown-enum-value default).
+
+  UI: bookmarks icon in the transcription screen AppBar opens
+  a dialog with "Save current as preset", per-row Apply /
+  Rename / Delete actions, and a one-line summary
+  (modelId · language · key option flags). Tapping Apply
+  pops the preset back; the screen applies it via the same
+  `_selectModel` reload path so the engine swap is identical
+  to a manual model change.
+
+  15 new hermetic tests cover round-trip of all 27
+  AdvancedOptions fields (defaults + non-defaults), defensive
+  fromJson (missing keys, unknown enum names, integer-typed
+  doubles, unknown extra keys), and PresetService end-to-end
+  (add / collision-suffix / update / remove / clear / cross-
+  instance persistence / rapid-fire id uniqueness). 262 tests
+  total pass; analyze clean. ARB strings in EN + DE.
 
 #### Tier C — niche but cool
 
