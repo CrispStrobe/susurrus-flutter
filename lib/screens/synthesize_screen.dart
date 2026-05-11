@@ -21,7 +21,18 @@ import '../services/tts_service.dart';
 /// streamlined: there's no language picker (the TTS backend infers from
 /// text + voicepack), no diarisation, no advanced decoding knobs.
 class SynthesizeScreen extends ConsumerStatefulWidget {
-  const SynthesizeScreen({super.key});
+  const SynthesizeScreen({
+    super.key,
+    this.initialVoiceWavPath,
+    this.initialRefText,
+  });
+
+  /// §5.1.12 — pre-populate the custom-voice WAV field when
+  /// arriving from the voice-clone wizard. The wizard pushes
+  /// these via GoRouter `extra` so the path doesn't have to
+  /// fit in a query parameter.
+  final String? initialVoiceWavPath;
+  final String? initialRefText;
 
   @override
   ConsumerState<SynthesizeScreen> createState() => _SynthesizeScreenState();
@@ -64,6 +75,17 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   @override
   void initState() {
     super.initState();
+    // §5.1.12 — seed from wizard hand-off when present. The
+    // user can still clear / change these in the existing UI;
+    // we only set them once on screen-open.
+    final wav = widget.initialVoiceWavPath;
+    if (wav != null && wav.isNotEmpty) {
+      _customVoiceWavPath = wav;
+    }
+    final rt = widget.initialRefText;
+    if (rt != null && rt.isNotEmpty) {
+      _refTextController.text = rt;
+    }
     _refresh();
   }
 
@@ -284,6 +306,14 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
       appBar: AppBar(
         title: Text(l.synthTitle),
         actions: [
+          // §5.1.12 — guided clone-a-voice wizard. Always
+          // available; the wizard hands back into this screen
+          // with the captured WAV + ref text pre-populated.
+          IconButton(
+            tooltip: l.voiceCloneOpenTooltip,
+            icon: const Icon(Icons.record_voice_over_outlined),
+            onPressed: () => context.push('/voice-clone'),
+          ),
           if (VoiceBakingService.isSupported)
             IconButton(
               tooltip: l.voiceBakeOpenTooltip,

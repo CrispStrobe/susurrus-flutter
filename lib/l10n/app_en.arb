@@ -644,6 +644,43 @@
   "advancedVocabularyHelperAsk": "Biases the LLM by prepending these terms to its prompt. Combined with Q&A — your question still runs.",
   "advancedVocabularyHelperUnsupported": "The active backend is CTC-style and can't bias vocabulary at the decoder. Switch to Whisper / Moonshine / an LLM-backend (Voxtral, Qwen3, Granite, …) to enable.",
 
+  "voiceCloneOpenTooltip": "Clone a voice…",
+  "voiceCloneTitle": "Voice clone wizard",
+  "voiceCloneStepCapture": "Capture",
+  "voiceCloneStepRefText": "Reference text",
+  "voiceCloneStepHandoff": "Synthesize",
+  "voiceCloneCaptureHeading": "Capture a reference clip",
+  "voiceCloneCaptureHelp": "Record about {seconds} seconds of clean speech, or pick an existing audio file. A single speaker with minimal background noise gives the best clone.",
+  "@voiceCloneCaptureHelp": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceCloneCaptureNoPermission": "Microphone permission was denied. Grant it in your system settings and try again.",
+  "voiceCloneRecord": "Record {seconds} s",
+  "@voiceCloneRecord": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceClonePickFile": "Pick file",
+  "voiceCloneRecordingCountdown": "{seconds} s remaining",
+  "@voiceCloneRecordingCountdown": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceCloneRecordingStop": "Stop",
+  "voiceClonePreviewPlay": "Play",
+  "voiceClonePreviewPause": "Pause",
+  "voiceCloneCaptureClear": "Start over",
+  "voiceCloneRefTextHeading": "What was said in the clip?",
+  "voiceCloneRefTextHelp": "Some cloners (indextts, vibevoice) need a verbatim transcript of the reference clip for alignment. Others (chatterbox, qwen3-tts Base) clone from audio alone — leave this empty if your chosen backend doesn't need it.",
+  "voiceCloneRefTextLabel": "Reference transcript",
+  "voiceCloneRefTextHint": "Type what was said in the reference clip…",
+  "voiceCloneHandoffHeading": "Ready to synthesize",
+  "voiceCloneHandoffHelp": "We'll open the Synthesize screen with the clip and reference text pre-populated. Pick a clone-capable model (chatterbox, indextts, qwen3-tts Base, vibevoice-1.5b), type the text you want spoken, and hit Synthesize.",
+  "voiceCloneHandoffModelHint": "Tip: chatterbox / qwen3-tts Base clone from audio alone; indextts / vibevoice also use the reference transcript.",
+  "voiceCloneSummaryReference": "Reference clip",
+  "voiceCloneSummaryRefText": "Reference text",
+  "voiceCloneSummaryRefTextEmpty": "(none — audio-only clone)",
+  "voiceCloneBack": "Back",
+  "voiceCloneNext": "Next",
+  "voiceCloneFinish": "Open in Synthesize",
   "synthTitle": "Synthesize",
   "synthModelLabel": "TTS model",
   "synthVoiceLabel": "Voice / voicepack",

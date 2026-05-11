@@ -1452,6 +1452,101 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das aktive Backend ist CTC-basiert und kann das Vokabular nicht im Decoder berücksichtigen. Wechsle zu Whisper / Moonshine / einem LLM-Backend (Voxtral, Qwen3, Granite, …), um diese Funktion zu aktivieren.';
 
   @override
+  String get voiceCloneOpenTooltip => 'Stimme klonen…';
+
+  @override
+  String get voiceCloneTitle => 'Stimm-Klon-Assistent';
+
+  @override
+  String get voiceCloneStepCapture => 'Aufnahme';
+
+  @override
+  String get voiceCloneStepRefText => 'Referenztext';
+
+  @override
+  String get voiceCloneStepHandoff => 'Synthese';
+
+  @override
+  String get voiceCloneCaptureHeading => 'Referenzaufnahme erstellen';
+
+  @override
+  String voiceCloneCaptureHelp(int seconds) {
+    return 'Etwa $seconds Sekunden saubere Sprache aufnehmen oder eine bestehende Audiodatei auswählen. Eine Sprecherin / ein Sprecher ohne Störgeräusche liefert die besten Ergebnisse.';
+  }
+
+  @override
+  String get voiceCloneCaptureNoPermission =>
+      'Mikrofonzugriff wurde verweigert. Bitte in den Systemeinstellungen erlauben und erneut versuchen.';
+
+  @override
+  String voiceCloneRecord(int seconds) {
+    return '$seconds s aufnehmen';
+  }
+
+  @override
+  String get voiceClonePickFile => 'Datei wählen';
+
+  @override
+  String voiceCloneRecordingCountdown(int seconds) {
+    return 'noch $seconds s';
+  }
+
+  @override
+  String get voiceCloneRecordingStop => 'Stopp';
+
+  @override
+  String get voiceClonePreviewPlay => 'Wiedergabe';
+
+  @override
+  String get voiceClonePreviewPause => 'Pause';
+
+  @override
+  String get voiceCloneCaptureClear => 'Neu starten';
+
+  @override
+  String get voiceCloneRefTextHeading => 'Was wurde im Clip gesagt?';
+
+  @override
+  String get voiceCloneRefTextHelp =>
+      'Einige Cloner (indextts, vibevoice) benötigen einen wortgetreuen Transkriptionstext der Referenz für die Ausrichtung. Andere (chatterbox, qwen3-tts Base) klonen nur aus Audio — leer lassen, wenn dein Backend keine Transkription braucht.';
+
+  @override
+  String get voiceCloneRefTextLabel => 'Referenztranskription';
+
+  @override
+  String get voiceCloneRefTextHint =>
+      'Tippe, was im Referenzclip gesagt wurde…';
+
+  @override
+  String get voiceCloneHandoffHeading => 'Bereit für die Synthese';
+
+  @override
+  String get voiceCloneHandoffHelp =>
+      'Wir öffnen die Synthese-Seite mit dem Clip und dem Referenztext vorausgefüllt. Wähle ein klonfähiges Modell (chatterbox, indextts, qwen3-tts Base, vibevoice-1.5b), tippe den gewünschten Text und drücke auf Synthetisieren.';
+
+  @override
+  String get voiceCloneHandoffModelHint =>
+      'Tipp: chatterbox / qwen3-tts Base klonen aus Audio allein; indextts / vibevoice nutzen zusätzlich den Referenztext.';
+
+  @override
+  String get voiceCloneSummaryReference => 'Referenzclip';
+
+  @override
+  String get voiceCloneSummaryRefText => 'Referenztext';
+
+  @override
+  String get voiceCloneSummaryRefTextEmpty => '(keiner — reines Audio-Cloning)';
+
+  @override
+  String get voiceCloneBack => 'Zurück';
+
+  @override
+  String get voiceCloneNext => 'Weiter';
+
+  @override
+  String get voiceCloneFinish => 'In Synthese öffnen';
+
+  @override
   String get synthTitle => 'Synthese';
 
   @override

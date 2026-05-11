@@ -644,6 +644,43 @@
   "advancedAskPromptHint": "z. B. „Zusammenfassen\" oder „Wie klingt der Sprecher?\"",
   "advancedAskPromptHelper": "Nur Voxtral / Qwen3-ASR. Wenn gesetzt, ANTWORTET das LLM auf deine Frage, statt eine wortgetreue Transkription zu liefern. Leer lassen für normale Transkription.",
 
+  "voiceCloneOpenTooltip": "Stimme klonen…",
+  "voiceCloneTitle": "Stimm-Klon-Assistent",
+  "voiceCloneStepCapture": "Aufnahme",
+  "voiceCloneStepRefText": "Referenztext",
+  "voiceCloneStepHandoff": "Synthese",
+  "voiceCloneCaptureHeading": "Referenzaufnahme erstellen",
+  "voiceCloneCaptureHelp": "Etwa {seconds} Sekunden saubere Sprache aufnehmen oder eine bestehende Audiodatei auswählen. Eine Sprecherin / ein Sprecher ohne Störgeräusche liefert die besten Ergebnisse.",
+  "@voiceCloneCaptureHelp": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceCloneCaptureNoPermission": "Mikrofonzugriff wurde verweigert. Bitte in den Systemeinstellungen erlauben und erneut versuchen.",
+  "voiceCloneRecord": "{seconds} s aufnehmen",
+  "@voiceCloneRecord": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceClonePickFile": "Datei wählen",
+  "voiceCloneRecordingCountdown": "noch {seconds} s",
+  "@voiceCloneRecordingCountdown": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "voiceCloneRecordingStop": "Stopp",
+  "voiceClonePreviewPlay": "Wiedergabe",
+  "voiceClonePreviewPause": "Pause",
+  "voiceCloneCaptureClear": "Neu starten",
+  "voiceCloneRefTextHeading": "Was wurde im Clip gesagt?",
+  "voiceCloneRefTextHelp": "Einige Cloner (indextts, vibevoice) benötigen einen wortgetreuen Transkriptionstext der Referenz für die Ausrichtung. Andere (chatterbox, qwen3-tts Base) klonen nur aus Audio — leer lassen, wenn dein Backend keine Transkription braucht.",
+  "voiceCloneRefTextLabel": "Referenztranskription",
+  "voiceCloneRefTextHint": "Tippe, was im Referenzclip gesagt wurde…",
+  "voiceCloneHandoffHeading": "Bereit für die Synthese",
+  "voiceCloneHandoffHelp": "Wir öffnen die Synthese-Seite mit dem Clip und dem Referenztext vorausgefüllt. Wähle ein klonfähiges Modell (chatterbox, indextts, qwen3-tts Base, vibevoice-1.5b), tippe den gewünschten Text und drücke auf Synthetisieren.",
+  "voiceCloneHandoffModelHint": "Tipp: chatterbox / qwen3-tts Base klonen aus Audio allein; indextts / vibevoice nutzen zusätzlich den Referenztext.",
+  "voiceCloneSummaryReference": "Referenzclip",
+  "voiceCloneSummaryRefText": "Referenztext",
+  "voiceCloneSummaryRefTextEmpty": "(keiner — reines Audio-Cloning)",
+  "voiceCloneBack": "Zurück",
+  "voiceCloneNext": "Weiter",
+  "voiceCloneFinish": "In Synthese öffnen",
   "synthTitle": "Synthese",
   "synthModelLabel": "TTS-Modell",
   "synthVoiceLabel": "Stimme / Voicepack",

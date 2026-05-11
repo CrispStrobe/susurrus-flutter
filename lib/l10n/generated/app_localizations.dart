@@ -2534,6 +2534,174 @@ abstract class AppLocalizations {
   /// **'The active backend is CTC-style and can\'t bias vocabulary at the decoder. Switch to Whisper / Moonshine / an LLM-backend (Voxtral, Qwen3, Granite, …) to enable.'**
   String get advancedVocabularyHelperUnsupported;
 
+  /// No description provided for @voiceCloneOpenTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone a voice…'**
+  String get voiceCloneOpenTooltip;
+
+  /// No description provided for @voiceCloneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice clone wizard'**
+  String get voiceCloneTitle;
+
+  /// No description provided for @voiceCloneStepCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture'**
+  String get voiceCloneStepCapture;
+
+  /// No description provided for @voiceCloneStepRefText.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference text'**
+  String get voiceCloneStepRefText;
+
+  /// No description provided for @voiceCloneStepHandoff.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesize'**
+  String get voiceCloneStepHandoff;
+
+  /// No description provided for @voiceCloneCaptureHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture a reference clip'**
+  String get voiceCloneCaptureHeading;
+
+  /// No description provided for @voiceCloneCaptureHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Record about {seconds} seconds of clean speech, or pick an existing audio file. A single speaker with minimal background noise gives the best clone.'**
+  String voiceCloneCaptureHelp(int seconds);
+
+  /// No description provided for @voiceCloneCaptureNoPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission was denied. Grant it in your system settings and try again.'**
+  String get voiceCloneCaptureNoPermission;
+
+  /// No description provided for @voiceCloneRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Record {seconds} s'**
+  String voiceCloneRecord(int seconds);
+
+  /// No description provided for @voiceClonePickFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick file'**
+  String get voiceClonePickFile;
+
+  /// No description provided for @voiceCloneRecordingCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} s remaining'**
+  String voiceCloneRecordingCountdown(int seconds);
+
+  /// No description provided for @voiceCloneRecordingStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get voiceCloneRecordingStop;
+
+  /// No description provided for @voiceClonePreviewPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get voiceClonePreviewPlay;
+
+  /// No description provided for @voiceClonePreviewPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get voiceClonePreviewPause;
+
+  /// No description provided for @voiceCloneCaptureClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get voiceCloneCaptureClear;
+
+  /// No description provided for @voiceCloneRefTextHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'What was said in the clip?'**
+  String get voiceCloneRefTextHeading;
+
+  /// No description provided for @voiceCloneRefTextHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Some cloners (indextts, vibevoice) need a verbatim transcript of the reference clip for alignment. Others (chatterbox, qwen3-tts Base) clone from audio alone — leave this empty if your chosen backend doesn\'t need it.'**
+  String get voiceCloneRefTextHelp;
+
+  /// No description provided for @voiceCloneRefTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference transcript'**
+  String get voiceCloneRefTextLabel;
+
+  /// No description provided for @voiceCloneRefTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type what was said in the reference clip…'**
+  String get voiceCloneRefTextHint;
+
+  /// No description provided for @voiceCloneHandoffHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to synthesize'**
+  String get voiceCloneHandoffHeading;
+
+  /// No description provided for @voiceCloneHandoffHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll open the Synthesize screen with the clip and reference text pre-populated. Pick a clone-capable model (chatterbox, indextts, qwen3-tts Base, vibevoice-1.5b), type the text you want spoken, and hit Synthesize.'**
+  String get voiceCloneHandoffHelp;
+
+  /// No description provided for @voiceCloneHandoffModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: chatterbox / qwen3-tts Base clone from audio alone; indextts / vibevoice also use the reference transcript.'**
+  String get voiceCloneHandoffModelHint;
+
+  /// No description provided for @voiceCloneSummaryReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference clip'**
+  String get voiceCloneSummaryReference;
+
+  /// No description provided for @voiceCloneSummaryRefText.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference text'**
+  String get voiceCloneSummaryRefText;
+
+  /// No description provided for @voiceCloneSummaryRefTextEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'(none — audio-only clone)'**
+  String get voiceCloneSummaryRefTextEmpty;
+
+  /// No description provided for @voiceCloneBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get voiceCloneBack;
+
+  /// No description provided for @voiceCloneNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get voiceCloneNext;
+
+  /// No description provided for @voiceCloneFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Synthesize'**
+  String get voiceCloneFinish;
+
   /// No description provided for @synthTitle.
   ///
   /// In en, this message translates to:

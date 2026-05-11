@@ -535,9 +535,49 @@ is what's missing — ranked by impact ÷ effort.
   a host process — but the parser is the only piece with non-
   trivial logic; the plugin call is a single
   `_platform.register` indirection.
-* **5.1.12 Voice cloning workflow** — Wizard "record 10s →
-  clone" on top of existing chatterbox / indextts / qwen3-tts.
-  ~2 days UX work; the engines are there.
+* **5.1.12 Voice clone wizard — shipped May 2026.** Linear
+  3-step guided flow on top of the existing runtime-cloning
+  surfaces in the synthesize screen. Reaches a usable clone
+  in three taps instead of "open synthesize, find the custom-
+  voice picker, find the ref-text field, know which model to
+  pick".
+
+  Steps:
+    1. **Capture** — record a 10 s mic clip OR pick an
+       existing WAV / FLAC / MP3. Live countdown during
+       recording; auto-stop at the limit; playback preview
+       before advancing.
+    2. **Reference text** — type the verbatim transcript of
+       what was said in the clip. Required for backends that
+       align against it (indextts, vibevoice-1.5b); empty
+       allowed for backends that clone from audio alone
+       (chatterbox without baked GGUF, qwen3-tts Base). UI
+       explains the distinction so the user knows when
+       leaving it empty is correct.
+    3. **Hand-off** — summary card + "Open in Synthesize"
+       button pushes `/synthesize` with the WAV path + ref
+       text pre-populated via GoRouter `extra`. The user picks
+       the target text and a clone-capable model in the
+       existing screen and runs it.
+
+  Reachable from the Synthesize screen's AppBar via the
+  Icons.record_voice_over_outlined chip. Reuses
+  `AudioService.startRecording` / `stopRecording` for the
+  capture path; FilePicker for the upload path; just_audio
+  for the preview. No new native deps.
+
+  **v2 deferred:** auto-fill the reference transcript by
+  running the captured clip through the active ASR engine —
+  saves one step but bundles the transcription stack into
+  the wizard. Today the wizard is pure UX-layer; v2 will
+  re-enter the wizard from the transcription side.
+
+  3 widget-smoke tests pin the wizard rendering, the
+  stepper labels, and Cancel-on-step-1 popping back. The
+  recorder integration is platform-channel-bound and can't
+  be unit-tested without a host process; the wizard's pure
+  logic (navigation, validation, hand-off payload) is
+  trivially correct from inspection.
 
 #### Tier D — skip / wait for demand
 

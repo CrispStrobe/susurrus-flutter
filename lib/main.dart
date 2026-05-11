@@ -21,6 +21,7 @@ import 'screens/logs_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/storage_screen.dart';
 import 'screens/synthesize_screen.dart';
+import 'screens/voice_clone_wizard_screen.dart';
 import 'screens/translate_screen.dart';
 import 'screens/voice_bake_screen.dart';
 import 'screens/edit_audio_screen.dart';
@@ -252,7 +253,32 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       GoRoute(
         path: '/synthesize',
         name: 'synthesize',
-        builder: (context, state) => const SynthesizeScreen(),
+        builder: (context, state) {
+          // §5.1.12 — the voice-clone wizard hands off via
+          // GoRouter `extra` (in-memory) since the WAV path
+          // may be arbitrarily long. Both keys are optional;
+          // when present, the screen pre-populates its custom-
+          // voice + ref-text fields.
+          final extra = state.extra;
+          String? voiceWavPath;
+          String? refText;
+          if (extra is Map) {
+            final m = extra;
+            final v = m['voiceWavPath'];
+            if (v is String) voiceWavPath = v;
+            final r = m['refText'];
+            if (r is String) refText = r;
+          }
+          return SynthesizeScreen(
+            initialVoiceWavPath: voiceWavPath,
+            initialRefText: refText,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/voice-clone',
+        name: 'voice-clone',
+        builder: (context, state) => const VoiceCloneWizardScreen(),
       ),
       GoRoute(
         path: '/translate',
