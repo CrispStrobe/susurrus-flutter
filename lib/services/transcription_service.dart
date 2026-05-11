@@ -574,6 +574,46 @@ class TranscriptionService {
     }
   }
 
+  /// Run diarization as a standalone post-process on already-
+  /// transcribed segments. Used by the §5.23 Q2 v2 pool path which
+  /// has the worker emit raw segments first, then runs diarize on
+  /// main thread sequentially per file. No-ops when no pyannote
+  /// model is on disk. Mirrors what [transcribeFile] does
+  /// internally, exposed here so the pool dispatcher can reuse it.
+  Future<List<TranscriptionSegment>> diarize(
+    AudioData audioData,
+    List<TranscriptionSegment> segments, {
+    int? minSpeakers,
+    int? maxSpeakers,
+    crispasr.DiarizeMethod method = crispasr.DiarizeMethod.vadTurns,
+  }) {
+    return _diarizationService.diarizeSegments(
+      audioData,
+      segments,
+      minSpeakers: minSpeakers,
+      maxSpeakers: maxSpeakers,
+      method: method,
+    );
+  }
+
+  /// Run punctuation restoration on already-transcribed segments.
+  /// Same use case as [diarize] — pool path calls this after the
+  /// worker returns. No-op when no firered-punc / fullstop-punc
+  /// GGUF is on disk.
+  Future<List<TranscriptionSegment>> restorePunctuation(
+      List<TranscriptionSegment> segments) {
+    return _puncService.restore(segments);
+  }
+
+  /// Resolve the VAD model path on disk for [backend]. The pool
+  /// dispatcher reads this once per batch and passes the path to
+  /// the worker so it can call `transcribeVad` directly inside the
+  /// isolate. Returns null when no VAD GGUF is available.
+  Future<String?> resolveVadModelPath(
+      {VadBackend backend = VadBackend.silero}) {
+    return _vadService.ensureModel(backend: backend);
+  }
+
   /// Clean up resources
   void dispose() {
     stopTranscription();

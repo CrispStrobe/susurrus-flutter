@@ -29,8 +29,42 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import '../engines/transcription_engine.dart';
+import '../widgets/advanced_options_widget.dart';
+import 'batch_queue_service.dart';
 import 'log_service.dart';
 import 'transcription_worker.dart';
+
+/// §5.23 Q2 v2 pool eligibility. The worker isolate now carries:
+///   • sticky session-state setters (translate / targetLanguage /
+///     askPrompt / temperature / bestOf), applied per-dispatch;
+///   • VAD via `transcribeVad(samples, vadModelPath, options)`.
+/// And the drain loop runs diarization + punctuation as a main-
+/// isolate post-process after the worker returns segments.
+///
+/// What remains pool-ineligible is genuinely worker-incompatible:
+///   • [BatchJob.resumeOffsetSec] > 0 — the chunked-whisper offset
+///     path lives in `CrispASREngine._runChunkedWhisper`, not in
+///     the session API the worker uses.
+///   • [AdvancedOptions.beamSearch] — whisper-only feature; the
+///     session API doesn't expose a beam-search knob.
+///   • [AdvancedOptions.tdrz] — whisper-only tinydiarize marker
+///     emission; same reason as beamSearch.
+///
+/// Pure function — no I/O, no state — so the drain-loop test
+/// surface stays trivially testable. The `enableDiarization`
+/// argument is the screen-level diarization toggle, not part of
+/// AdvancedOptions; it's passed in so this function stays
+/// self-contained.
+bool poolEligible(
+  BatchJob job,
+  AdvancedOptions adv, {
+  required bool enableDiarization,
+}) {
+  if ((job.resumeOffsetSec ?? 0) > 0) return false;
+  if (adv.beamSearch) return false;
+  if (adv.tdrz) return false;
+  return true;
+}
 
 class TranscriptionWorkerException implements Exception {
   TranscriptionWorkerException(this.message, [this.stack]);
@@ -212,9 +246,30 @@ class TranscriptionWorkerPool {
   /// back via [onSegment]. Returns the full segment list when the
   /// worker reports `done`. Throws [TranscriptionWorkerException]
   /// on worker-side errors.
+  ///
+  /// Advanced knobs (translate / targetLanguage / askPrompt /
+  /// temperature / bestOf) are wired through to the worker's
+  /// sticky session-state setters — each is fired before every
+  /// dispatch so the previous job's settings don't leak forward.
+  /// Backends that don't honour a particular field silently no-op.
+  ///
+  /// When [vadModelPath] is non-null, the worker calls
+  /// `session.transcribeVad(...)` with the Silero VAD model
+  /// instead of bare `transcribe(...)`. The VAD options default
+  /// to crispasr's reference values when not supplied.
   Future<List<TranscriptionSegment>> dispatch({
     required Float32List samples,
     String? language,
+    String? targetLanguage,
+    bool translate = false,
+    String? askPrompt,
+    double temperature = 0.0,
+    int bestOf = 1,
+    String? vadModelPath,
+    double? vadThreshold,
+    int? vadMinSpeechMs,
+    int? vadMinSilenceMs,
+    int? vadSpeechPadMs,
     void Function(TranscriptionSegment seg)? onSegment,
   }) async {
     final worker = await _acquire();
@@ -260,6 +315,16 @@ class TranscriptionWorkerPool {
         'type': 'transcribe',
         'samples': samples,
         'language': language,
+        if (targetLanguage != null) 'targetLanguage': targetLanguage,
+        'translate': translate,
+        if (askPrompt != null) 'askPrompt': askPrompt,
+        'temperature': temperature,
+        'bestOf': bestOf,
+        if (vadModelPath != null) 'vadModelPath': vadModelPath,
+        if (vadThreshold != null) 'vadThreshold': vadThreshold,
+        if (vadMinSpeechMs != null) 'vadMinSpeechMs': vadMinSpeechMs,
+        if (vadMinSilenceMs != null) 'vadMinSilenceMs': vadMinSilenceMs,
+        if (vadSpeechPadMs != null) 'vadSpeechPadMs': vadSpeechPadMs,
         'replyPort': replyReceive.sendPort,
       });
       return await completer.future;

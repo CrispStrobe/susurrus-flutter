@@ -456,6 +456,46 @@ launch-blocker; the rest are quality issues that surface in use.
       orange "Clamped to N of M workers — model too big" hint
       when the estimator already would refuse the slider value.
 
+  **Q2 v2.1 polish (May 2026): worker-protocol expansion + main-
+  isolate post-process pipeline.** Pool eligibility was originally
+  restricted to "vanilla transcribe" (no VAD / diarize / punc /
+  translate / target-lang / askPrompt / temperature / bestOf).
+  After auditing the underlying CrispASR C-ABI we found every one
+  of those features is reachable via existing session setters or
+  `crispasr_session_transcribe_vad` — the worker just wasn't
+  wiring them. The expansion:
+    * `TranscriptionWorker` carries the sticky setters
+      (setSourceLanguage / setTargetLanguage / setTranslate /
+      setAsk / setTemperature / setBestOf) and applies them
+      before every dispatch. Empty / default values reset, so the
+      previous job's bias doesn't leak forward.
+    * `TranscriptionWorker` accepts a vadModelPath +
+      SessionVadOptions and calls `session.transcribeVad(...)`
+      instead of bare `transcribe(...)` when supplied.
+    * Word timestamps now round-trip across the SendPort wire
+      (parakeet/canary/cohere emit them natively; the worker
+      preserves the list, the main-isolate maps it back to
+      TranscriptionWord on the receiving end).
+    * Diarization + punctuation run as main-isolate post-
+      processes on the segments after the pool returns. The
+      `TranscriptionService` got two new public methods —
+      `diarize(...)` and `restorePunctuation(...)` — exposing
+      the existing services so the pool dispatcher can call them
+      without going through the full transcribe pipeline. Plus
+      a `resolveVadModelPath(backend)` helper so the dispatcher
+      can hand a real path to the worker.
+    * `_jobCanUsePool` collapsed from 10 disqualifiers to 3
+      genuine ones: resume offset (chunked-whisper specific),
+      beam search (whisper-only), tdrz (whisper-only). Extracted
+      to a top-level `poolEligible(job, adv, enableDiarization)`
+      function in `lib/services/transcription_worker_pool.dart`
+      so it's unit-testable in isolation. 12 new eligibility
+      tests + 6 wire-format tests.
+
+  No C-ABI changes needed — every setter and `transcribe_vad`
+  were already shipped in CrispASR's session API. This commit is
+  pure CrisperWeaver-side wiring.
+
   Drain-loop integration shipped May 2026 (option (a) — aggregate
   batch view). Pool is opt-in via `Settings.maxConcurrentSessions`,
   gated by `MemoryEstimator.estimate` at `_startBatchRun()` open

@@ -139,7 +139,6 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
     final replyPort = raw['replyPort'] as SendPort?;
     if (replyPort == null) continue;
     final samples = raw['samples'] as Float32List?;
-    final language = raw['language'] as String?;
     if (samples == null) {
       replyPort.send(<String, Object?>{
         'type': 'error',
@@ -147,18 +146,79 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
       });
       continue;
     }
+    final language = raw['language'] as String?;
+    final targetLanguage = raw['targetLanguage'] as String?;
+    final translate = raw['translate'] as bool? ?? false;
+    final askPrompt = raw['askPrompt'] as String?;
+    final temperature = (raw['temperature'] as num?)?.toDouble() ?? 0.0;
+    final bestOf = (raw['bestOf'] as num?)?.toInt() ?? 1;
+    final vadModelPath = raw['vadModelPath'] as String?;
+    final vadThreshold = (raw['vadThreshold'] as num?)?.toDouble();
+    final vadMinSpeechMs = (raw['vadMinSpeechMs'] as num?)?.toInt();
+    final vadMinSilenceMs = (raw['vadMinSilenceMs'] as num?)?.toInt();
+    final vadSpeechPadMs = (raw['vadSpeechPadMs'] as num?)?.toInt();
 
     try {
-      // session.transcribe is the bare FFI dispatch — no chunking,
-      // no VAD, no resume offsets. The drain loop handles those on
-      // the main isolate (chunked whisper has its own offset
-      // routing already). For the pool's purposes, the worker just
-      // produces segments for the supplied samples. The FFI call is
-      // synchronous; wrapping in Future.sync keeps the await loop
-      // happy even when transcribe is fast.
-      // session.transcribe is synchronous (FFI call returns
-      // immediately); no need to await.
-      final segs = session.transcribe(samples, language: language);
+      // Apply sticky session-state setters before dispatch. Empty
+      // strings clear; `null` / default skips so an unrelated job
+      // doesn't carry over the previous one's bias. Errors from the
+      // setters get swallowed because backends that don't honour a
+      // particular field return rc=-2 ("not supported") which the
+      // Dart binding maps to an UnsupportedError — we just continue
+      // with the runtime defaults for those backends.
+      if (language != null && language.isNotEmpty && language != 'auto') {
+        try {
+          session.setSourceLanguage(language);
+        } on Object catch (_) {}
+      } else {
+        try {
+          session.setSourceLanguage('');
+        } on Object catch (_) {}
+      }
+      if (targetLanguage != null && targetLanguage.isNotEmpty) {
+        try {
+          session.setTargetLanguage(targetLanguage);
+        } on Object catch (_) {}
+      } else {
+        try {
+          session.setTargetLanguage('');
+        } on Object catch (_) {}
+      }
+      try {
+        session.setTranslate(translate);
+      } on Object catch (_) {}
+      // setAsk always fires (even with empty string) so the
+      // previous job's prompt doesn't stick across the boundary.
+      try {
+        session.setAsk(askPrompt ?? '');
+      } on Object catch (_) {}
+      // Fire setTemperature on every dispatch — same reasoning as
+      // setAsk; the slider's previous value mustn't leak forward.
+      try {
+        session.setTemperature(temperature);
+      } on Object catch (_) {}
+      try {
+        session.setBestOf(bestOf);
+      } on Object catch (_) {}
+
+      // VAD-on path uses transcribeVad; bare transcribe otherwise.
+      // session.transcribe[Vad] are synchronous FFI calls.
+      final List<crispasr.SessionSegment> segs;
+      if (vadModelPath != null && vadModelPath.isNotEmpty) {
+        segs = session.transcribeVad(
+          samples,
+          vadModelPath,
+          language: language,
+          options: crispasr.SessionVadOptions(
+            threshold: vadThreshold ?? 0.5,
+            minSpeechDurationMs: vadMinSpeechMs ?? 250,
+            minSilenceDurationMs: vadMinSilenceMs ?? 100,
+            speechPadMs: vadSpeechPadMs ?? 30,
+          ),
+        );
+      } else {
+        segs = session.transcribe(samples, language: language);
+      }
       // Stream segments first (UI gets them as they arrive), then
       // signal done with the full list (drain loop uses it for
       // final dedupe / history save).
@@ -182,7 +242,10 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
 /// Serialise a SessionSegment for the cross-isolate hop. The
 /// canonical SessionSegment lives in `package:crispasr` and is
 /// already plain data, but to keep the wire format stable + small
-/// we round-trip through a Map.
+/// we round-trip through a Map. Words are included when the
+/// backend emits them natively (parakeet, canary, cohere); other
+/// backends produce empty words lists and the main-side aligner
+/// fills them in as a post-process.
 Map<String, Object?> _segmentToMap(crispasr.SessionSegment s) {
   return <String, Object?>{
     'text': s.text,
@@ -190,6 +253,16 @@ Map<String, Object?> _segmentToMap(crispasr.SessionSegment s) {
     // TranscriptionSegment naming the main-isolate consumer expects.
     'startTime': s.start,
     'endTime': s.end,
+    if (s.words.isNotEmpty)
+      'words': [
+        for (final w in s.words)
+          <String, Object?>{
+            'word': w.text,
+            'startTime': w.start,
+            'endTime': w.end,
+            'confidence': w.p,
+          },
+      ],
   };
 }
 
@@ -197,11 +270,24 @@ Map<String, Object?> _segmentToMap(crispasr.SessionSegment s) {
 /// over-the-wire map. The drain loop calls this when it receives a
 /// `segment` or `done` message from a worker.
 TranscriptionSegment workerSegmentFromMap(Map<String, Object?> m) {
+  final rawWords = m['words'] as List?;
   return TranscriptionSegment(
     text: m['text'] as String? ?? '',
     startTime: (m['startTime'] as num?)?.toDouble() ?? 0.0,
     endTime: (m['endTime'] as num?)?.toDouble() ?? 0.0,
     speaker: m['speaker'] as String?,
     confidence: (m['confidence'] as num?)?.toDouble() ?? 1.0,
+    words: rawWords == null
+        ? null
+        : [
+            for (final w in rawWords.cast<Map<dynamic, dynamic>>())
+              TranscriptionWord(
+                word: w['word'] as String? ?? '',
+                startTime: (w['startTime'] as num?)?.toDouble() ?? 0.0,
+                endTime: (w['endTime'] as num?)?.toDouble() ?? 0.0,
+                confidence:
+                    (w['confidence'] as num?)?.toDouble() ?? 1.0,
+              ),
+          ],
   );
 }

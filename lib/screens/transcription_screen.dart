@@ -1250,11 +1250,16 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         break;
       }
       // §5.23 Q2 v2 parallel dispatch: if the pool is alive AND the
-      // job is "vanilla" (no resume, no VAD, no advanced features
-      // the worker can't replicate), fire it on the pool and keep
-      // the main-loop walking. Pool-ineligible jobs fall through to
-      // the existing serial body below.
-      if (pool != null && _jobCanUsePool(next, adv, _enableDiarization)) {
+      // job is pool-eligible (the worker can do everything except
+      // resume-offset / beamSearch / tdrz), fire it on the pool and
+      // keep the main-loop walking. The advanced session knobs
+      // (translate / targetLanguage / askPrompt / temperature /
+      // bestOf / VAD) flow through the worker protocol; diarize +
+      // punctuate run as main-isolate post-processes after the
+      // worker returns.
+      if (pool != null &&
+          poolEligible(next, adv,
+              enableDiarization: _enableDiarization)) {
         // Wait if the pool is already at capacity.
         if (inFlight.length >= pool.size) {
           await Future.any(inFlight);
@@ -1267,6 +1272,18 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           language: language,
           persistence: persistence,
           queue: queue,
+          adv: adv,
+          advancedRun: advancedRun,
+          enableDiarization: _enableDiarization,
+          // Diarize speakers bounds: the screen doesn't currently
+          // expose a min/max picker (existing serial path passes
+          // null too), so let pyannote auto-estimate.
+          minSpeakers: null,
+          maxSpeakers: null,
+          vadModelPath: adv.vad
+              ? await transcriptionService.resolveVadModelPath(
+                  backend: adv.vadBackend)
+              : null,
         );
         inFlight.add(fut);
         fut.whenComplete(() => inFlight.remove(fut));
@@ -1475,28 +1492,6 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     }
   }
 
-  /// Pool eligibility check (§5.23 Q2 v2). The worker isolate's
-  /// transcribe path is a bare `session.transcribe(samples)`. Any
-  /// job that needs the main-isolate engine plumbing (resume
-  /// offset routing, VAD slicing, diarization, punctuation, speech
-  /// translation, Q&A, beam search, best-of, tinydiarize) falls
-  /// through to the serial code below — pool stays alive for the
-  /// vanilla jobs in between.
-  static bool _jobCanUsePool(BatchJob job, AdvancedOptions adv,
-      bool enableDiarization) {
-    if ((job.resumeOffsetSec ?? 0) > 0) return false;
-    if (adv.vad) return false;
-    if (enableDiarization) return false;
-    if (adv.restorePunctuation) return false;
-    if (adv.translate) return false;
-    if (adv.targetLanguage.isNotEmpty) return false;
-    if (adv.askPrompt.isNotEmpty) return false;
-    if (adv.beamSearch) return false;
-    if (adv.bestOf > 1) return false;
-    if (adv.tdrz) return false;
-    return true;
-  }
-
   /// Spawn an N-way session pool when the user has opted in
   /// (`Settings.maxConcurrentSessions > 1`) AND the memory
   /// estimator says N workers fit. Returns null in every other
@@ -1555,30 +1550,85 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   /// Per-job pool dispatch. Loads audio on the main isolate (uses
-  /// the §5.23 Q2 v1 prefetch when warm), hands the samples off to
-  /// a free worker, streams segments through the checkpoint file
-  /// (NOT AppState — aggregate mode), and on completion saves to
-  /// history + marks the job done.
+  /// the §5.23 Q2 v1 prefetch when warm), pushes the advanced
+  /// session-state setters across the SendPort wire so the worker
+  /// applies them before transcribe, hands the samples off to a
+  /// free worker, streams segments through the checkpoint file
+  /// (NOT AppState — aggregate mode), then runs diarization +
+  /// punctuation as a main-isolate post-process on the returned
+  /// segments. Finally saves to history + marks the job done.
+  ///
+  /// The pool dispatch is the GPU-heavy step that benefits from
+  /// parallelism; diarize / punc are sequential post-processes
+  /// that we run on main thread. The win is parallel transcribe,
+  /// not parallel post-processing.
   Future<void> _runJobOnPool({
     required TranscriptionWorkerPool pool,
     required BatchJob job,
     required String? language,
     required BatchPersistenceService persistence,
     required BatchQueueNotifier queue,
+    required AdvancedOptions adv,
+    required AdvancedTranscribeOptions advancedRun,
+    required bool enableDiarization,
+    required int? minSpeakers,
+    required int? maxSpeakers,
+    String? vadModelPath,
   }) async {
     final audioService = ref.read(audioServiceProvider);
+    final transcriptionService = ref.read(transcriptionServiceProvider);
     Log.instance.i('batch', 'pool job start',
         fields: {'id': job.id, 'file': job.filePath});
     final started = DateTime.now();
     try {
       final audioData = await audioService.loadAudioFile(File(job.filePath));
-      final segments = await pool.dispatch(
+      var segments = await pool.dispatch(
         samples: audioData.samples,
         language: language,
+        targetLanguage:
+            adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
+        translate: adv.translate,
+        askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
+        temperature: adv.temperature,
+        bestOf: adv.bestOf,
+        vadModelPath:
+            (adv.vad && vadModelPath != null) ? vadModelPath : null,
+        vadThreshold: advancedRun.vadThreshold,
+        vadMinSpeechMs: advancedRun.vadMinSpeechMs,
+        vadMinSilenceMs: advancedRun.vadMinSilenceMs,
+        vadSpeechPadMs: advancedRun.vadSpeechPadMs,
         onSegment: (seg) {
           unawaited(persistence.appendSegmentToCheckpoint(job.id, seg));
         },
       );
+      // Main-isolate post-process: diarize + punctuate. Same code
+      // path the serial transcribeFile() uses; we just call into
+      // the services directly here since we already have the raw
+      // segments from the pool. Both services no-op when their
+      // model files aren't on disk.
+      if (enableDiarization && segments.isNotEmpty) {
+        try {
+          segments = await transcriptionService.diarize(
+            audioData,
+            segments,
+            minSpeakers: minSpeakers,
+            maxSpeakers: maxSpeakers,
+            method: advancedRun.diarizeMethod,
+          );
+        } catch (e, st) {
+          Log.instance.w('batch', 'diarize (pool post-process) failed',
+              fields: {'id': job.id}, error: e, stack: st);
+        }
+      }
+      if (adv.restorePunctuation && segments.isNotEmpty) {
+        try {
+          segments =
+              await transcriptionService.restorePunctuation(segments);
+        } catch (e, st) {
+          Log.instance.w('batch', 'punc (pool post-process) failed',
+              fields: {'id': job.id}, error: e, stack: st);
+        }
+      }
       String? historyId;
       try {
         final saved = await ref.read(historyServiceProvider).save(
@@ -1587,7 +1637,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               language: language,
               segments: segments,
               sourcePath: job.filePath,
-              diarizationEnabled: false,
+              diarizationEnabled: enableDiarization,
               processingTime: DateTime.now().difference(started),
               speakerNames: const {},
             );
