@@ -348,6 +348,135 @@ the OpenAI server. Full pre-sweep + benchmark detail in
 **Risk:** medium-high. Item 1 (xcframework bundling) is the only
 launch-blocker; the rest are quality issues that surface in use.
 
+### 5.23 Batch transcription — scale-out, parallelism, save / resume
+
+The single-file batch queue from §5.7 (shipped v0.1.4) handles a
+list of files serially with persisted progress. **The next slice
+is about scale: large queues, parallel workers, and reliable
+resume across crashes.** Three intertwined design questions; each
+needs a decision before code.
+
+#### Q1 — How do we handle *batches of tasks* effectively?
+
+Today's model: `BatchQueueService` holds a `List<TranscriptionJob>`
+in a Riverpod `StateNotifier`. Each job is queued → running → done
+| error. Serial drain; the loaded model context is shared across
+runs. Works fine for 5–20 files; falls over for:
+
+* **100s of files** — UI lag from rebuilding the whole list on
+  every progress tick; SharedPreferences blob grows past its
+  practical limit (~2 MB per platform); memory pressure if results
+  buffer in RAM.
+* **Mixed durations** — a 4 h podcast holds up 20 voice memos
+  behind it; user can't see "estimated done" without a length
+  probe.
+* **Heterogeneous backends** — a queue with whisper-en files +
+  qwen3-asr Chinese files re-opens the session every job.
+
+**Proposed shape**:
+- Migrate `BatchQueueService` storage from SharedPreferences to a
+  per-job JSON file under `<app-docs>/batch/<queue-id>/job-<n>.json`
+  (mirrors the existing `<app-docs>/history/` layout). One small
+  file per job; the index file just lists IDs + statuses + last-
+  modified-at.
+- Lazy load: keep only the visible window of jobs in memory; page
+  in / out as the user scrolls. Riverpod selector keys per job so
+  rebuilds are localised.
+- Group jobs by `(backend, modelId, language)` so consecutive
+  same-backend jobs reuse the loaded session; only swap the
+  session when the key changes. Reorder a queue into "backend-
+  bundles" on enqueue, opt-in via a Settings toggle (default off
+  to preserve user-visible order).
+- Pre-flight pass: probe each file's duration via the bundled
+  miniaudio decoder (already used by `AudioService`), store on
+  the job. Use the sum for a real ETA in the queue card.
+
+#### Q2 — How do we run *parallel workers*?
+
+CrispASR sessions aren't reentrant — concurrent FFI calls into one
+`whisper_context` corrupt the decoder state. Two viable paths:
+
+**Option A: one worker per Dart isolate, one session per isolate**.
+- Each isolate `loadLibrary` + opens its own `CrispasrSession` for
+  the same model. Memory cost: N × model size (whisper-tiny is
+  74 MB, large-v3 is 3 GB, voxtral 4B is ~2 GB — 4 isolates × 3 GB
+  is real money on a 16 GB Mac).
+- Concurrency: 2–4 workers on M1/M2 typically saturate the GPU
+  (Metal queue serialises kernels anyway), so the win is mostly
+  CPU-side prefill + post-processing overlapping with the next
+  file's decode.
+- The CrispASR Dart binding's FFI lookups are per-DynamicLibrary so
+  cross-isolate sharing of a single dylib reference needs
+  `Isolate.run` carrying the `DynamicLibrary` handle, which Dart
+  FFI does NOT support — each isolate has to `DynamicLibrary.open`
+  its own handle. That's OK but it's a real cost on first spin-up.
+
+**Option B: split work *within* one isolate via VAD chunking**.
+- The session API supports VAD-sliced transcription that returns
+  segments. For a 4 h file, we already chunk into 30 s windows
+  serially. With chunk-level parallelism each window could go
+  through a separate session in a separate isolate. Same memory
+  cost as Option A but per-FILE, not per-QUEUE.
+
+**Recommendation**: ship Option A (per-job worker) behind a
+Settings slider `Concurrent transcriptions: 1–4`. Default 1
+(today's behaviour); cap at 4 even on 32 GB hosts — beyond that
+Metal queue contention dominates. Option B is a future
+optimisation for ultra-long single files.
+
+**Cross-platform**: works on macOS / Linux / Windows / Android (all
+support multi-isolate FFI); iOS allows it too but the memory cap
+is tighter — clamp to 2 workers on iOS regardless of the slider.
+
+#### Q3 — Save / restore / resume across process restarts
+
+Today: serialised `BatchJobState` per queue lets a closed-and-
+reopened app pick up where it left off, but ONLY at file
+granularity. Mid-file crashes restart the whole file.
+
+**Proposed shape**:
+- Per-job checkpoint file `<app-docs>/batch/<queue-id>/job-<n>.ckpt.json`
+  storing `{lastCompletedSegmentEnd: 12.34, segments: [...]}`.
+- The engine's `onSegment` callback is already wired; route each
+  segment append into both the in-memory list AND an
+  append-only `.ckpt.jsonl`-style file. Crash → next start finds
+  the .ckpt, restarts the file from `lastCompletedSegmentEnd`
+  using chunked-whisper's offset machinery (which already exists
+  for >60 s files in `_runChunkedWhisper`).
+- On successful job completion, delete the `.ckpt` and finalise
+  the result into the history entry.
+- New "Resume from crash" snackbar on app start when stale
+  `.ckpt` files are detected; offer to resume or discard.
+
+**Risks**:
+- The "resume from offset" path only works for backends with
+  monotonic time emission (whisper, parakeet, canary, cohere).
+  LLM-based backends (voxtral, qwen3-asr, granite) emit one big
+  segment — no useful resume granularity. Tier the resume offer
+  per backend.
+- The `.ckpt` file format needs a version field; bumping it
+  requires migration code.
+
+**Test strategy**:
+- `batch_queue_service_test.dart` — round-trip a 50-job queue
+  through save + load, assert order + status preserved.
+- `batch_checkpoint_test.dart` — fake an `onSegment` stream that
+  fires N segments then throws; assert the `.ckpt` contains the
+  first N − 1, the resume restart begins at `segments.last.end`.
+- Integration smoke (opt-in slow): real `transcribeFile` on a
+  long WAV, kill the isolate mid-stream, restart, assert
+  segment-count + final transcript match the uninterrupted run.
+
+**Estimated effort**: ~3–4 days for Q1+Q3 (per-job JSON storage,
+checkpoint file, resume UI, tests); Q2 (parallel workers) is its
+own 1–2 days. Total ~1 week if both ship together.
+
+**Risk**: medium. Mostly Dart-side work, no new FFI. The biggest
+unknown is iOS memory pressure at 2 workers × voxtral-4B — needs
+on-device validation before defaulting to anything > 1.
+
+---
+
 ### 5.9 Dependency refresh
 
 37 packages have newer versions blocked by constraint overrides (`intl`, `material_color_utilities`, `record_linux`). Revisit after Flutter 3.39 lands: many of the overrides are there to paper over SDK transitions.
