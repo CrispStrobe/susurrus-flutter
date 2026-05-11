@@ -36,19 +36,30 @@ import 'transcription_worker.dart';
 
 /// §5.23 Q2 v2 pool eligibility. The worker isolate now carries:
 ///   • sticky session-state setters (translate / targetLanguage /
-///     askPrompt / temperature / bestOf), applied per-dispatch;
+///     askPrompt / temperature / bestOf / beamSize), applied
+///     per-dispatch;
 ///   • VAD via `transcribeVad(samples, vadModelPath, options)`.
 /// And the drain loop runs diarization + punctuation as a main-
 /// isolate post-process after the worker returns segments.
+///
+/// Beam search opens up to the pool through the new
+/// `crispasr_session_set_beam_size` C-ABI added in CrispASR 0.6.x:
+/// whisper is wired to consume it today (switches sampling
+/// strategy to BEAM_SEARCH with the supplied width); the other
+/// beam-capable backends per the feature matrix (granite, voxtral,
+/// qwen3, glm-asr, kyutai-stt, firered, moonshine, omniasr) need
+/// per-backend high-level-transcribe API surface for beam_size
+/// before they can honour the session-API setter — tracked as a
+/// CrispASR follow-up. The Dart side sends beamSize unconditionally;
+/// backends that don't consume it just see no behaviour change
+/// (same outcome as today's serial path).
 ///
 /// What remains pool-ineligible is genuinely worker-incompatible:
 ///   • [BatchJob.resumeOffsetSec] > 0 — the chunked-whisper offset
 ///     path lives in `CrispASREngine._runChunkedWhisper`, not in
 ///     the session API the worker uses.
-///   • [AdvancedOptions.beamSearch] — whisper-only feature; the
-///     session API doesn't expose a beam-search knob.
 ///   • [AdvancedOptions.tdrz] — whisper-only tinydiarize marker
-///     emission; same reason as beamSearch.
+///     emission; needs the legacy whisper-context API path.
 ///
 /// Pure function — no I/O, no state — so the drain-loop test
 /// surface stays trivially testable. The `enableDiarization`
@@ -61,7 +72,6 @@ bool poolEligible(
   required bool enableDiarization,
 }) {
   if ((job.resumeOffsetSec ?? 0) > 0) return false;
-  if (adv.beamSearch) return false;
   if (adv.tdrz) return false;
   return true;
 }
@@ -265,6 +275,7 @@ class TranscriptionWorkerPool {
     String? askPrompt,
     double temperature = 0.0,
     int bestOf = 1,
+    int beamSize = 1,
     String? vadModelPath,
     double? vadThreshold,
     int? vadMinSpeechMs,
@@ -320,6 +331,7 @@ class TranscriptionWorkerPool {
         if (askPrompt != null) 'askPrompt': askPrompt,
         'temperature': temperature,
         'bestOf': bestOf,
+        'beamSize': beamSize,
         if (vadModelPath != null) 'vadModelPath': vadModelPath,
         if (vadThreshold != null) 'vadThreshold': vadThreshold,
         if (vadMinSpeechMs != null) 'vadMinSpeechMs': vadMinSpeechMs,

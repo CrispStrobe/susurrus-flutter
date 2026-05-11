@@ -181,6 +181,50 @@ Shipped after this session's CrispASR best-of-N landed
   depth — empty value clears, `-2` rc is logged + swallowed for
   backends that don't honour the sticky setter at runtime).
 - **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
+- **Beam search via session API** — May 2026: new
+  `crispasr_session_set_beam_size` C-ABI lets the worker pool
+  drive beam search through the session abstraction (whisper
+  consumes it natively today, switching `wparams.strategy =
+  BEAM_SEARCH; wparams.beam_search.beam_size = n`). Worker
+  protocol carries `beamSize`; pool dispatches forward it; the
+  Settings beam-search toggle now stays POOL-eligible. Tracked
+  follow-up: the other beam-capable backends per the
+  CrispASR feature matrix (granite, voxtral, qwen3, glm-asr,
+  kyutai-stt, firered, moonshine, omniasr / omniasr-llm) have
+  CLI-level beam search via `core_beam_decode::run_*` but their
+  high-level transcribe APIs don't take a beam_size yet — wiring
+  each per-backend is its own CrispASR-side increment.
+- **More CrispASR CLI features worth surfacing** — the CLI
+  exposes a handful of knobs CrisperWeaver doesn't yet:
+  * `--offset-t` / `--duration` — process only a [t0..t0+d) window
+    of an audio file. Useful for "transcribe minute 5–10 of this
+    podcast" workflows; needs an engine-side Float32List slice +
+    timestamp shift (similar to the resume-offset machinery but
+    bilateral) + UI affordance.
+  * `--alt N` / `--alt-n` — alternative token candidates with
+    probabilities. Power-user feature for transcript correction;
+    needs C-ABI plumbing for the alt-decoder output + UI.
+  * `--word-thold` / `--entropy-thold` / `--logprob-thold` /
+    `--no-speech-thold` — whisper decoder fallback thresholds.
+    Already in the binding but not exposed in CrisperWeaver UI.
+  * `--no-fallback` — disable temperature fallback chain. Edge
+    case but trivial to surface.
+  * `--max-len` / `--split-on-word` / `--split-on-punct` —
+    subtitle line formatting. The whisper context-params API
+    already accepts these; CrisperWeaver formats segments
+    post-hoc instead.
+  * `--suppress-nst` / `--suppress-regex` — token suppression.
+    Niche; needs whisper-specific wparams plumbing.
+  * `--carry-initial-prompt` — sticky vs reset behaviour for the
+    initial prompt across segments. Edge case.
+  * `--print-confidence` — token-level confidence in the output.
+    Already partially supported (segments carry a `confidence`
+    field); the wts / json exporters could expose per-token
+    confidence.
+  * `--temperature-inc` — temperature increment for the decoder
+    fallback chain. Pairs with the threshold flags above.
+  None of these are blocking; they're listed here so we don't
+  re-discover them next time someone audits CLI parity.
 - **Grammar (GBNF)** — Whisper-only, niche but valuable for
   structured output. **Deferred**: needs new CrispASR work, not just
   CrisperWeaver UI. Specifically:

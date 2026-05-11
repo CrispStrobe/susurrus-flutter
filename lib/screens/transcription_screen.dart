@@ -1591,6 +1591,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         askPrompt: adv.askPrompt.isEmpty ? null : adv.askPrompt,
         temperature: adv.temperature,
         bestOf: adv.bestOf,
+        // Beam search: when the user toggled it ON we pass whisper's
+        // upstream default width (5). The setter is unconditional;
+        // non-whisper backends silently no-op until CrispASR wires
+        // their per-call beam_size through the high-level transcribe
+        // API.
+        beamSize: adv.beamSearch ? 5 : 1,
         vadModelPath:
             (adv.vad && vadModelPath != null) ? vadModelPath : null,
         vadThreshold: advancedRun.vadThreshold,

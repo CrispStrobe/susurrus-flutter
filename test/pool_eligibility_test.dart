@@ -48,11 +48,12 @@ void main() {
           reason: 'null resumeOffsetSec equals "no resume"');
     });
 
-    test('beamSearch ON → ineligible (whisper-only feature)', () {
+    test('beamSearch ON → eligible (worker forwards setBeamSize; whisper '
+        'consumes it, other backends silently no-op)', () {
       expect(
           poolEligible(freshJob, const AdvancedOptions(beamSearch: true),
               enableDiarization: false),
-          isFalse);
+          isTrue);
     });
 
     test('tdrz ON → ineligible (whisper-only feature)', () {
@@ -119,8 +120,8 @@ void main() {
 
     test(
         'mixed advanced job (translate + temperature + bestOf + VAD '
-        '+ diarize + punc) is still eligible — none of those are '
-        'genuine blockers any more',
+        '+ diarize + punc + beamSearch) is still eligible — none of '
+        'those are genuine blockers any more',
         () {
       expect(
           poolEligible(
@@ -130,6 +131,7 @@ void main() {
               targetLanguage: 'en',
               temperature: 0.3,
               bestOf: 3,
+              beamSearch: true,
               vad: true,
               restorePunctuation: true,
             ),
@@ -139,16 +141,17 @@ void main() {
     });
 
     test(
-        'beamSearch + everything else → still ineligible — beamSearch '
-        'is the disqualifier and order of checks does not matter',
+        'tdrz + everything else → ineligible — tdrz is the only '
+        'remaining whisper-context disqualifier on top of resume',
         () {
       expect(
           poolEligible(
             freshJob,
             const AdvancedOptions(
-              beamSearch: true,
+              tdrz: true,
               translate: true,
               vad: true,
+              beamSearch: true,
             ),
             enableDiarization: true,
           ),

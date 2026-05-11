@@ -152,6 +152,7 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
     final askPrompt = raw['askPrompt'] as String?;
     final temperature = (raw['temperature'] as num?)?.toDouble() ?? 0.0;
     final bestOf = (raw['bestOf'] as num?)?.toInt() ?? 1;
+    final beamSize = (raw['beamSize'] as num?)?.toInt() ?? 1;
     final vadModelPath = raw['vadModelPath'] as String?;
     final vadThreshold = (raw['vadThreshold'] as num?)?.toDouble();
     final vadMinSpeechMs = (raw['vadMinSpeechMs'] as num?)?.toInt();
@@ -199,6 +200,15 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
       } on Object catch (_) {}
       try {
         session.setBestOf(bestOf);
+      } on Object catch (_) {}
+      // Beam search width (whisper today; other beam-capable backends
+      // per the feature matrix have their session-API surface
+      // tracked as a CrispASR follow-up). Older libcrispasr builds
+      // without `crispasr_session_set_beam_size` raise an
+      // UnsupportedError which we swallow — same pattern as the rest
+      // of the sticky setters.
+      try {
+        session.setBeamSize(beamSize);
       } on Object catch (_) {}
 
       // VAD-on path uses transcribeVad; bare transcribe otherwise.
