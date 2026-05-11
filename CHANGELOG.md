@@ -5,6 +5,66 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.1 competitor-gap features — Tier A + B + most of C closed (May 2026)
+
+The post-v0.4.1 sweep. Audited against the common feature set of
+comparable local GUI tools (whisper-based desktop apps for macOS /
+Linux / Windows) plus the cloud meeting-transcription category.
+Twelve features land in this batch; full write-ups in
+[HISTORY.md](HISTORY.md#post-v041-51-competitor-gap-sweep--may-2026).
+
+- **System audio capture** (§5.1.1) — "Transcribe what's playing
+  in Zoom / YouTube / any app." Per-platform native paths:
+  ScreenCaptureKit on macOS 13+, `parec` on Linux, ffmpeg-WASAPI
+  loopback on Windows, MediaProjection on Android 10+. iOS is
+  permanently unsupported by Apple's sandbox.
+- **Custom vocabulary / dictionary boost** (§5.1.2) — Persistent
+  chip list in Advanced Options. Routed per-backend-class via
+  `initial_prompt` (whisper / moonshine), `setAsk` prefix (audio-
+  LLM backends), or no-op (CTC-style, with explanatory helper
+  text).
+- **Inline transcript editing + history persistence** (§5.1.3) —
+  Long-press a segment → edit dialog. Edits update AppState AND
+  the on-disk history JSON so they survive a reload.
+- **History search** (§5.1.4) — Substring filter on title +
+  transcript with yellow-highlighted matches and auto-expand of
+  matching entries.
+- **Audio waveform editor + bidirectional transcript sync**
+  (§5.1.5) — Dedicated `EditAudioScreen` with trim / cut middle
+  / split into chapters + an optional collapsible transcript pane
+  on the same screen. Tap segment → seek; long-press segment →
+  Select / Trim to / Mark for split; tap waveform → matching
+  segment highlights. Entry points on the transcript output's
+  segment long-press menu. Pure-Dart, no FFmpeg.
+- **"Tidy transcript" deterministic pass** (§5.1.6 v1) — Pure-
+  Dart cleanup: remove fillers (per-language + custom), collapse
+  repeats, fix punctuation, capitalise sentence starts, optional
+  annotation-tag strip. Before/after preview of the first three
+  segments in the dialog.
+- **BYOK cloud LLM cleanup pass** (§5.1.6 v2) — Optional opt-in
+  LLM pass against any OpenAI-compatible endpoint (OpenAI,
+  Anthropic via proxy, OpenRouter, Groq, Cerebras, Together,
+  local llama-server). Key stays on device.
+- **Templates / presets** (§5.1.7) — Save current `(backend,
+  modelId, language, AdvancedOptions)` tuple as a named preset.
+  One-tap Apply restores all four atomically.
+- **Meeting-style summarisation** (§5.1.8) — Action Items / Key
+  Topics / Decisions sections via structured Markdown over the
+  same cloud-LLM endpoint as the cleanup pass.
+- **Global hotkey for push-to-transcribe** (§5.1.11) — Desktop-
+  only system shortcut. Push-to-talk OR toggle modes. Combo
+  parser handles modifier aliases (cmd / command / win / super
+  → meta; ctrl → control; option → alt).
+- **Voice clone wizard** (§5.1.12) — 3-step guided flow on top of
+  the existing chatterbox / indextts / qwen3-tts-base / vibevoice
+  runtime cloning. Capture (10s mic OR file pick) → reference
+  text → hand-off to Synthesize with both pre-populated.
+- **Whisper subtitle formatting** (§5.8) — Two new Advanced
+  Options rows: tokens-per-segment cap + split-on-word-boundary.
+  Yields SRT-friendly short subtitle lines.
+
+### Performance — Metal cold start (CrispASR upstream)
+
 * **38× faster ASR / TTS cold starts** via the persistent
   `MTLBinaryArchive` pipeline cache (CrispASR commit
   [`2665b1e5`](https://github.com/CrispStrobe/CrispASR/commit/2665b1e5)).

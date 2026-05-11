@@ -161,6 +161,333 @@ sampling knobs).
 
 ---
 
+## Post-v0.4.1 §5.1 competitor-gap sweep — May 2026
+
+Closes Tier A + Tier B + most of Tier C of the §5.1 competitor-gap
+backlog (PLAN.md). All twelve features below are pure-Dart and
+fully cross-platform unless noted; no FFmpeg dependency on the
+audio-editing path; no per-app native code beyond what the
+hotkey_manager / record / file_picker packages already ship.
+
+### §5.1.1 System audio capture — May 2026
+
+"Transcribe what's playing in Zoom / YouTube / any app." Cross-
+platform Dart interface + per-platform native implementations.
+
+- **macOS 13+** — ScreenCaptureKit-based, `SystemAudioCapture.swift`
+  registered from `MainFlutterWindow.swift`. AVAudioConverter
+  resamples to 16 kHz mono Float32 inside the isolate; EventChannel
+  delivers PCM frames to Dart. UI: new "screen-share" icon button
+  in the audio recorder, greyed out on unsupported platforms.
+  First use prompts for Screen Recording permission (TCC);
+  `permission_denied` / `os_too_old` / `start_failed` rcs come back
+  as typed exceptions (`SystemAudioPermissionException`,
+  `SystemAudioUnsupportedException`) with localised snackbar
+  messages in en + de.
+- **Linux** — `parec` subprocess against `@DEFAULT_SINK@.monitor`,
+  asking PulseAudio for 16 kHz mono float32-le PCM directly so
+  no Dart-side resampling. Ships with `pulseaudio-utils` (Ubuntu
+  / Debian / Fedora default install) or `pipewire-pulse`.
+  `which parec` probe in `isSupported`; missing-tool case surfaces
+  a typed `SystemAudioUnsupportedException` with an install hint.
+- **Windows** — `ffmpeg` subprocess using the `-f wasapi -i default`
+  loopback (FFmpeg 5+). Requires ffmpeg on PATH; `where ffmpeg`
+  probe caches the answer. Missing-tool case surfaces a typed
+  exception with `winget` / `choco` install hints. Native WASAPI
+  plugin (~2 days) would remove the install dependency — deferred.
+- **Android 10+** — `MediaProjection` + `AudioPlaybackCapture-
+  Configuration` via a foreground service
+  (`SystemAudioCaptureForegroundService.kt`). On `start()` the
+  activity launches the system "screen + audio capture" permission
+  dialog; on grant the foreground service spins up with a
+  persistent `mediaProjection`-type notification (required by
+  Android 14) and an `AudioRecord` configured at 16 kHz mono
+  Float32. PCM frames flow back to Dart via a static frame-listener
+  callback → EventChannel sink. Captures `USAGE_MEDIA` / `USAGE_GAME`
+  / `USAGE_UNKNOWN` but deliberately excludes
+  `USAGE_VOICE_COMMUNICATION`. New permission:
+  `FOREGROUND_SERVICE_MEDIA_PROJECTION` in manifest.
+- **iOS** — Apple sandbox forbids system audio capture entirely.
+  Throws `SystemAudioUnsupportedException` permanently.
+
+### §5.1.2 Custom vocabulary / dictionary boost — May 2026
+
+Persistent chip list in Advanced Options. Per-backend-class
+biasing mechanism:
+
+| Class | Mechanism | Models |
+|---|---|---|
+| Whisper-style | `initial_prompt` prefill | whisper, moonshine |
+| LLM-backend | `setAsk(prompt)` prefix | voxtral, voxtral4b, qwen3, granite, granite-4.1{,-plus}, glm-asr, kyutai-stt, gemma4-e2b, omniasr-llm{,-unlimited}, mimo-asr |
+| CTC-style | Not supported (no token-prefill point) | parakeet, canary, cohere, fastconformer-ctc, wav2vec2, firered-asr, omniasr-CTC |
+
+New `AdvancedOptions.vocabulary: List<String>` field with copyWith
+roundtrip; new `vocabularyViaInitialPromptBackends` and
+`vocabularyViaAskPromptBackends` capability sets; new static
+`mergeVocabularyIntoPrompt(backend, vocab, existing)` helper that
+prepends `"Vocabulary: term1, term2, …. "` to the existing prompt
+iff the backend supports it.
+
+The drain loop's three call sites (single-file, batch serial,
+batch pool) resolve the active backend via `_resolveBackend(modelId)`
+and call the merge separately for `initial_prompt` vs `askPrompt`.
+UI helper text changes between three variants per backend class.
+
+11 new tests pin the capability-set membership, CTC exclusion,
+copyWith roundtrip, and the merge formatter's 6 edge cases.
+
+### §5.1.3 Inline transcript editing — May 2026
+
+Long-press on a segment in `transcription_output_widget.dart`
+opens a bottom-sheet → "Edit segment" → dialog with a multiline
+TextField pre-filled with the current text. On save:
+`AppStateNotifier.editSegment(index, newText)` updates AppState
+with `metadata['edited'] = true` (rendered as a tiny pencil icon
+next to the segment), and if the transcription has a saved
+history id we also fire `historyService.update(entry)` so the
+edit survives a reload.
+
+New `HistoryService.update(HistoryEntry)`; new
+`AppState.historyEntryId` field stashed by the transcription
+screen after the first save; `startTranscription()` rebuilds
+AppState from scratch so a fresh run can't overwrite the previous
+entry. 2 new HistoryService tests pin the update / missing-id-
+noop contract.
+
+### §5.1.4 History search — May 2026
+
+Text field in the HistoryScreen AppBar. Filters entries client-
+side by case-insensitive substring match against the entry's
+title (source filename or URL) AND its full transcript. Matching
+entries auto-expand so the user sees the hit without an extra
+tap; matched substrings show a yellow highlight in both the title
+row and the transcript body via `TextSpan.rich` +
+`SelectableText.rich`. Per-search count strip ("N of M matched")
+above the list when a query is active. ARB strings for hint /
+no-results / match-count in en + de.
+
+### §5.1.5 Audio waveform editor + bidirectional transcript sync — May 2026
+
+Dedicated `EditAudioScreen` with a waveform painter, transport
+(play/pause/scrub), three editing operations (trim / cut middle /
+split into chapters), AND an optional collapsible transcript pane
+on the same screen so bidirectional sync stays visible without
+overlay-stacking. Output is 16 kHz mono PCM WAV (matches the
+transcription input format so "crop then transcribe" is a single
+hand-off).
+
+**Phases:**
+
+- **A. `AudioEditService` + WAV encoder + tests.** Pure-Dart service
+  supporting `trim()` / `cut()` / `split()` with sample-accurate
+  slicing via the existing `crispasr.decodeAudioFile` FFI decoder.
+  WAV output is bit-perfect: Float32 PCM clipped to ±1.0, encoded
+  as Int16 little-endian, standard RIFF/WAVE/fmt/data header.
+  5 tests pin header bytes + clipping + DecodedSource.secondsToSample.
+
+- **B. Waveform `CustomPainter` + `EditAudioScreen` shell.**
+  Transport buttons, drag-out selection on the painter, three op
+  buttons routed through the Phase A service. Cross-platform
+  `FilePicker.saveFile` for the "save as" target. `WaveformBars.
+  fromSamples` runs an O(samples) max-magnitude downsampler at
+  layout time; cached per-width so window resizes don't re-traverse.
+
+- **C. Collapsible transcript pane.** Bidirectional click-sync
+  on the single screen: tap segment → seek playhead; long-press
+  segment → bottom-sheet with "Select / Trim to / Mark for split";
+  tap waveform → playhead moves and the matching segment is
+  highlighted + scrolled into view. Pane visibility persists via
+  `Settings.editAudioShowTranscript`.
+
+- **D. Transcript-screen entry points.** "Edit this segment in
+  audio editor" + "Mark for split in audio editor" actions in the
+  transcript output's segment long-press menu. Push the
+  `/edit-audio?path=…&start=…&end=…` or `&mark=…` route; the editor
+  seeds the waveform selection / cut marker from the query params,
+  force-opens the transcript pane, parks the playhead at the
+  seeded start.
+
+**No FFmpeg dependency anywhere in the editor flow.** Decoding via
+miniaudio (bundled inside libcrispasr — handles WAV/MP3/FLAC/Ogg/
+Opus natively across every supported platform); editing is pure
+Dart on Float32 buffers; encoding is the hand-rolled WAV encoder;
+rendering is a Flutter `CustomPainter`. All five platforms run
+the identical code path.
+
+### §5.1.6 v1 deterministic "Tidy transcript" pass — May 2026
+
+Pure-Dart `TranscriptCleanupService` runs over every segment with
+composable transforms in a stable order (annotations → fillers →
+repeats → punctuation → whitespace → capitalisation):
+
+- **removeFillers** — strips um / uh / ah / etc. per-language
+  default set + custom additions. Word-boundary, case-insensitive;
+  "Hummingbird" survives the "hum" filler.
+- **collapseRepeats** — "the the cat" → "the cat", repeat-until-
+  stable for runs.
+- **normalizeWhitespace** — multi-space → one, trim, strip space
+  before `.,;:!?`.
+- **fixPunctuation** — `..` → `.` (preserves three-dot ellipsis
+  via lookbehind), `,,` → `,`, `,.` → `.`.
+- **sentenceCase** — unicode-aware (über → Über), skips content
+  inside `[]` / `()` / `<>` so annotation tags stay lowercase.
+- **stripAnnotations** — off by default (accessibility), strips
+  `[laughter]` / `(applause)` / `<noise>` on opt-in.
+
+UI: "Tidy transcript…" entry in the transcript more-actions popup
+opens a dialog with toggles for each transform, a custom-fillers
+field, and a before/after preview of the first three segments.
+"Apply to all" runs the chosen transforms via
+`AppState.editSegment` and persists to `HistoryService.update`.
+
+33 hermetic tests pin each transform individually plus the
+composed pipeline.
+
+### §5.1.6 v2 BYOK cloud LLM cleanup pass — May 2026
+
+Optional opt-in LLM pass that runs *after* the deterministic v1
+on the same Tidy dialog. Pure-Dart `CloudLlmCleanupService` POSTs
+each segment to a user-configured OpenAI-compatible
+`/v1/chat/completions` endpoint with a conservative "transcript
+editor" system prompt. Per-segment failures fall through unchanged
+so one rate-limited call doesn't abort the batch.
+
+Settings → Cloud LLM cleanup stores URL / key / model separately;
+cleanupBatch reads them lazily so a settings edit takes effect on
+the next pass without a restart. Works against OpenAI, Anthropic
+via proxy, OpenRouter, Groq, Cerebras, Together, a local llama-
+server, etc.
+
+Tests: 13 hermetic via http's MockClient (request shape, Bearer
+auth, OpenAI envelope, response parsing, non-2xx error,
+TimeoutException, per-segment failure swallow, cancel-token early
+exit, progress callback, empty batch) + 3 live tests against
+Groq's real API in `test/cloud_llm_cleanup_live_test.dart`, gated
+behind `RUN_LIVE_TESTS=1` + a key in `GROQ_API_KEY` (process env)
+or in a dotenv file pointed at by `CRISPER_WEAVER_DOTENV`.
+
+§5.1.6 v3 (local LLM via libcrispasr) requires upstream CrispASR
+work to promote talk-llama's vendored llama.cpp to a public
+sub-library — tracked in
+[`docs/upstream-chat-abi.md`](docs/upstream-chat-abi.md) here and
+`CrispASR/docs/prompts/chat-abi.md` in the CrispASR repo.
+
+### §5.1.7 Templates / presets — May 2026
+
+Saves the current `(backend, modelId, language, AdvancedOptions)`
+tuple as a named preset. One-tap Apply restores all four
+atomically; useful for users who jump between workflows.
+
+`PresetService.all()` (oldest-first), `add()` (auto-disambiguates
+name collisions with `(2)` suffix), `update()` (overwrites by id;
+falls back to add when id is unknown), `remove()`, `clear()`.
+AdvancedOptions ↔ JSON: 27 fields incl. three enums; toJson writes
+the current shape with a `schemaVersion` stamp; fromJson is
+defensive — unknown extra keys ignored (forward-compat), missing
+keys fall through to ctor defaults (backward-compat), unknown
+enum values pin to the safe default.
+
+UI: bookmarks icon in transcription_screen AppBar opens a dialog
+with "Save current as preset" + per-row Apply / Rename / Delete.
+Apply uses the existing `_selectModel` reload path so the engine
+swap is identical to a manual model change.
+
+15 new hermetic tests cover round-trip of all 27 fields, defensive
+fromJson edge cases, and PresetService end-to-end.
+
+### §5.1.8 Meeting-style summarisation — May 2026
+
+Reuses the §5.1.6 v2 BYOK endpoint to produce structured-Markdown
+summaries with three optional sections: Action Items / Key Topics
+/ Decisions. `TranscriptSummarizeService` sends a prompt asking
+for exactly the requested H2 sections in a strict bullet format
+("None" placeholder for empty sections so the parse is
+unambiguous). Markdown is split back into per-section bullet lists
+by splitting on case-insensitive H2 headers + bullet prefixes
+(`- ` / `* ` / `1.`).
+
+UI: "Summarize…" entry in the transcript more-actions popup opens
+a dialog with three section checkboxes, a Run button gated on the
+cloud config, and a result pane that renders the per-section
+bullet lists + a Copy-all (raw Markdown) action.
+
+Tests: 13 hermetic (Markdown parser, HTTP path) + 1 live test
+against Groq's llama-3.3-70b-versatile.
+
+§5.1.8 v2 (JSON-schema / tool-call structured output) deferred —
+Markdown works identically across every OpenAI-compatible endpoint
+without per-provider schema knobs.
+
+### §5.1.11 Global hotkey for push-to-transcribe — May 2026
+
+System-level keyboard shortcut for start / stop recording without
+bringing the app to the foreground. Desktop only (macOS / Linux /
+Windows); mobile is a no-op since iOS / Android don't expose a
+global-shortcut surface. Pure Dart via the `hotkey_manager` package.
+
+`HotkeyService`: broadcast-stream of `keyDown` / `keyUp` so
+subscribers (`AudioRecorderWidget`) dispatch on the configured
+action. Two modes: **pushToTalk** (key-down starts, key-up stops)
+and **toggle** (key-down toggles). Action read fresh on each
+event from settings.
+
+Combo persisted as a canonical string in SharedPreferences
+(`meta+shift+space`, `control+alt+r`). Parser handles aliases
+(cmd / command / win / super → meta; ctrl → control; option → alt)
+and canonicalises output (control → alt → shift → meta → key).
+F1–F12, letters A–Z, digits 0–9, space / enter / tab / escape /
+backspace / delete supported.
+
+UI: Settings → Global hotkey dialog (enable switch + combo
+TextField with validation snackbar + RadioGroup for action).
+Re-registers with the OS on save. Hidden on mobile.
+
+18 hermetic tests pin the parser (single key, single + multi
+modifiers, case-insensitivity, all four modifier alias families,
+function keys, digit keys, named keys, empty / unknown modifier /
+unknown key error paths, duplicate-modifier dedup) and the
+serializer (round-trip, canonical modifier order, idempotent
+re-serialisation, case lowering, f-key round trip).
+
+### §5.1.12 Voice clone wizard — May 2026
+
+Linear 3-step guided flow on top of the existing runtime-cloning
+surface in the synthesize screen:
+
+1. **Capture** — 10 s mic recording OR file pick (wav/flac/mp3).
+   Live countdown, auto-stop, playback preview.
+2. **Reference text** — verbatim transcript of what was said.
+   Required for backends that align against it (indextts /
+   vibevoice-1.5b); empty allowed for audio-only cloners
+   (chatterbox / qwen3-tts Base).
+3. **Hand-off** — pushes `/synthesize` with the WAV path + ref
+   text pre-populated via GoRouter `extra`. User picks the
+   target text and a clone-capable model in the existing screen.
+
+Reachable from the Synthesize screen's AppBar. Reuses
+`AudioService.startRecording` for the mic path. 3 widget-smoke
+tests pin the rendering + stepper labels + Cancel-on-step-1
+popping back.
+
+v2 deferred: auto-fill the reference transcript by running the
+captured clip through the active ASR engine — saves one step but
+bundles the transcription stack into the wizard.
+
+### §5.8 Whisper subtitle formatting — May 2026
+
+Surfaces two whisper-only `TranscribeOptions` fields that were
+already in the CrispASR Dart binding but missing from the
+CrisperWeaver UI: tokens-per-segment cap and split-on-word-
+boundary. Produces SRT-friendly short subtitle lines.
+
+`AdvancedOptions.maxLen` (int slider 0..200; 0 = whisper default,
+no cap) + `splitOnWord` (switch gated on `maxLen > 0`). Plumbed
+through `AdvancedTranscribeOptions` to `crispasr.TranscribeOptions`
+on the whisper file path. Both fields round-trip through
+PresetService JSON. Hidden on non-whisper backends.
+
+---
+
 ## Pre-sweep §5.x roadmap items — shipped
 
 These were the original CrisperWeaver §5 items in PLAN.md; full
