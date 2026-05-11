@@ -244,6 +244,29 @@ Pre-flight: 3 hermetic channel-contract tests via
 `TestDefaultBinaryMessengerBinding`. Total: 349 tests pass (was
 346, +3).
 
+### macOS Services menu (May 2026)
+
+Finishing macOS-share polish: right-click any audio or
+SRT / VTT file in Finder (or any other app that respects the
+Services menu) and **Services → Transcribe with CrisperWeaver**
+now does the obvious thing — launches CrisperWeaver if needed,
+brings it forward, and lands the file in the transcription pane.
+
+- `Info.plist` declares an `NSServices` entry with
+  `NSSendFileTypes = [public.audio, com.crispstrobe.crisperweaver.srt,
+  com.crispstrobe.crisperweaver.vtt]`. macOS uses these UTIs
+  to decide which files the menu item appears for.
+- `AppDelegate.transcribeAudio(_:userData:error:)` reads file
+  URLs off `NSPasteboard`, feeds them to the same
+  `OpenWithReceiver.shared.enqueue(urls:)` the Open-With
+  bridge uses, then `NSApp.activate()`s so the user sees the
+  file land.
+- `applicationDidFinishLaunching` registers the AppDelegate
+  as `NSApp.servicesProvider` and calls
+  `NSUpdateDynamicServices()` to nudge macOS into refreshing
+  the Services menu so fresh installs / version bumps surface
+  the entry without a logout.
+
 ### Performance — Metal cold start (CrispASR upstream)
 
 * **38× faster ASR / TTS cold starts** via the persistent

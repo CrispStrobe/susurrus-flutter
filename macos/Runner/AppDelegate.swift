@@ -26,6 +26,16 @@ class AppDelegate: FlutterAppDelegate {
     } else {
       NSApp.activate(ignoringOtherApps: true)
     }
+
+    // Register this AppDelegate as the host for the
+    // "Transcribe with CrisperWeaver" Services menu item
+    // declared in Info.plist's NSServices array. The matching
+    // selector is `transcribeAudio(_:userData:error:)` below.
+    // `NSUpdateDynamicServices()` nudges the system to re-scan
+    // installed Services so a fresh install / version bump
+    // surfaces the entry without a logout.
+    NSApp.servicesProvider = self
+    NSUpdateDynamicServices()
   }
 
   // Open-With / drop-on-dock-icon / `open foo.wav` from the
@@ -57,5 +67,41 @@ class AppDelegate: FlutterAppDelegate {
   override func application(_ sender: NSApplication, openFiles filenames: [String]) {
     OpenWithReceiver.shared.enqueue(filenames)
     sender.reply(toOpenOrPrint: .success)
+  }
+
+  // -------------------------------------------------------------
+  // Services menu handler — fired when the user picks
+  // "Transcribe with CrisperWeaver" from a Finder right-click
+  // (or any other Services-respecting app). The system hands
+  // us the selected files via NSPasteboard; we read the file
+  // URLs off it and feed them into the same intake buffer that
+  // Open-With / drop-on-dock uses, so the Dart side sees them
+  // identically.
+  //
+  // Selector shape is dictated by Apple's Services contract —
+  // the NSMessage in Info.plist's NSServices entry maps to
+  // `<message>(_ pboard:userData:error:)`. The error parameter
+  // is documented as a pointer-to-NSString the handler writes
+  // a user-facing message into on failure; we leave it
+  // untouched and just log to our normal sink.
+  // -------------------------------------------------------------
+  @objc func transcribeAudio(_ pboard: NSPasteboard,
+                             userData: String,
+                             error: AutoreleasingUnsafeMutablePointer<NSString>) {
+    let urls = pboard.readObjects(forClasses: [NSURL.self], options: nil)
+      as? [URL] ?? []
+    if urls.isEmpty {
+      NSLog("[crisperweaver] NSServices invocation had no file URLs")
+      return
+    }
+    OpenWithReceiver.shared.enqueue(urls: urls)
+    // Bring the app forward so the user sees the file land in
+    // the transcription pane — Services menu invocations don't
+    // auto-foreground us the way Finder Open With does.
+    if #available(macOS 14.0, *) {
+      NSApp.activate()
+    } else {
+      NSApp.activate(ignoringOtherApps: true)
+    }
   }
 }

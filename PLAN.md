@@ -204,14 +204,14 @@ Open items only below.
   - ~~**macOS Open-With handler**~~ — **shipped May 2026**.
     `OpenWithReceiver.swift` + Dart-side `DesktopOpenWithBridge`
     feed Finder's Open With / `open foo.wav` from the terminal
-    / dock-drop into `ShareIntakeService.acceptPaths`. The
-    `NSServices` (Services-menu) entry is a separate, lower-
-    priority follow-up — it adds a "Transcribe with
-    CrisperWeaver" entry to the Finder Services submenu via an
-    NSServices Info.plist declaration + a Swift handler that
-    reads `NSFilenamesPboardType` off the pasteboard and feeds
-    `OpenWithReceiver.shared.enqueue(_:)`. ~half-day on top of
-    what's there.
+    / dock-drop into `ShareIntakeService.acceptPaths`.
+  - ~~**macOS NSServices**~~ — **shipped May 2026**. Right-click
+    a file in Finder → Services → "Transcribe with
+    CrisperWeaver" routes the file URLs through the same
+    OpenWithReceiver buffer as Open-With. Info.plist
+    NSServices entry + `AppDelegate.transcribeAudio(_:userData:error:)`
+    + `NSApp.servicesProvider = self` in
+    `applicationDidFinishLaunching`.
   - **Windows file association** — best done at install time
     via an MSIX manifest (`uap:Extension Category=
     "windows.fileTypeAssociation"`). Out of scope until an

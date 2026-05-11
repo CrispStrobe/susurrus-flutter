@@ -30,6 +30,59 @@
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>CrisperWeaver records audio from the microphone so it can be transcribed locally on your Mac.</string>
+	<!--
+	  macOS Services menu integration — adds a "Transcribe with
+	  CrisperWeaver" entry under right-click → Services in Finder
+	  (and any other app that respects the Services menu) for
+	  audio + SRT / VTT files. When invoked, the system launches
+	  CrisperWeaver if needed and calls the @objc handler in
+	  AppDelegate.swift, which feeds the file URLs into
+	  OpenWithReceiver — same triage path as Finder Open With.
+
+	  Naming:
+	    NSMessage      → selector name minus the
+	                      :userData:error: suffix; AppDelegate
+	                      implements `transcribeAudio(_:userData:error:)`.
+	    NSPortName     → must match the service-provider name we
+	                      register with NSApp.servicesProvider;
+	                      "CrisperWeaver" doubles as the Services
+	                      sub-menu group header.
+	    NSSendFileTypes → which UTIs make the menu item appear.
+	                      Audio uses the catch-all public.audio,
+	                      subtitles use our own exported UTIs
+	                      declared in UTExportedTypeDeclarations.
+	-->
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMessage</key>
+			<string>transcribeAudio</string>
+			<key>NSPortName</key>
+			<string>CrisperWeaver</string>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Transcribe with CrisperWeaver</string>
+			</dict>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSFilenamesPboardType</string>
+				<string>public.file-url</string>
+			</array>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.audio</string>
+				<string>com.crispstrobe.crisperweaver.srt</string>
+				<string>com.crispstrobe.crisperweaver.vtt</string>
+			</array>
+			<!-- The handler returns nothing back to the source app
+			     — pure intake. Declaring NSReturnTypes as an empty
+			     array tells the system "this is a one-way send",
+			     which is what NSPasteboard semantically expects. -->
+			<key>NSReturnTypes</key>
+			<array/>
+		</dict>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
