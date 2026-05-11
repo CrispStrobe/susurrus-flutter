@@ -609,6 +609,17 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String batchResumedSnackbar(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n unterbrochene Transkriptionen wiederhergestellt',
+      one: '1 unterbrochene Transkription wiederhergestellt',
+    );
+    return '$_temp0 — Start drücken zum Fortsetzen';
+  }
+
+  @override
   String get settingsMaxConcurrentSubtitle =>
       '1 = seriell (bisheriges Verhalten). 2+ dekodiert die Audio-Daten der nächsten Datei in einem Worker-Isolate, während die aktuelle Datei transkribiert wird — zusätzliche Parallelität ohne weitere Modell-Kopien im RAM.';
 

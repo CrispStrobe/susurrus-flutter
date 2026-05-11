@@ -45,6 +45,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../engines/transcription_engine.dart';
 import 'batch_queue_service.dart';
+import 'ios_helpers.dart';
 import 'log_service.dart';
 
 class BatchPersistenceService {
@@ -89,7 +90,15 @@ class BatchPersistenceService {
     }
     final base = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(base.path, _folder, _queueId));
-    if (!await dir.exists()) await dir.create(recursive: true);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+      // Flag the batch dir as not iCloud-backed (§5.23 Q3 polish).
+      // Mid-batch checkpoints are ephemeral — deleted on setDone —
+      // so uploading them to iCloud is wasted bandwidth and storage.
+      // No-op on every platform except iOS; idempotent so subsequent
+      // calls on an already-flagged dir are cheap.
+      unawaited(excludeFromBackup(dir.path));
+    }
     _dir = dir;
     return dir;
   }

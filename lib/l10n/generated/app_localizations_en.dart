@@ -605,6 +605,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String batchResumedSnackbar(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Recovered $n interrupted transcriptions',
+      one: 'Recovered 1 interrupted transcription',
+    );
+    return '$_temp0 — hit Start to resume';
+  }
+
+  @override
   String get settingsMaxConcurrentSubtitle =>
       '1 = serial (current behaviour). 2+ pre-decodes the next file\'s audio in a worker isolate while the current file is being transcribed — extra parallelism without extra model copies in RAM.';
 

@@ -214,6 +214,47 @@ void main() {
       notifier.dispose();
     });
 
+    test('load() exposes the resumed-job count for the post-frame snackbar',
+        () async {
+      // Two resumable jobs (running + ckpt with segments) + one
+      // clean queued job + one done job. lastLoadResumedCount
+      // should report exactly the resumable pair.
+      Future<void> plant(String id, BatchJobStatus status,
+          {bool ckpt = false}) async {
+        await persistence.saveJob(BatchJob(
+          id: id,
+          filePath: '/p/$id.wav',
+          createdAt: DateTime.utc(2026, 5, 11, 10),
+          status: status,
+        ));
+        if (ckpt) {
+          await persistence.appendSegmentToCheckpoint(
+            id,
+            const TranscriptionSegment(
+                text: 'mid', startTime: 0, endTime: 5),
+          );
+        }
+      }
+
+      await plant('crashed-a', BatchJobStatus.running, ckpt: true);
+      await plant('crashed-b', BatchJobStatus.running, ckpt: true);
+      await plant('fresh', BatchJobStatus.queued);
+      await plant('finished', BatchJobStatus.done);
+
+      final notifier = BatchQueueNotifier(persistence: persistence);
+      expect(notifier.lastLoadResumedCount, 0,
+          reason: 'pre-load: counter starts at 0');
+      await notifier.load();
+      expect(notifier.lastLoadResumedCount, 2,
+          reason: 'two resumable; the queued/done rows do not count');
+
+      // After the UI acknowledges the snackbar the counter resets
+      // so a hot-reload or another widget mount does not show it again.
+      notifier.acknowledgeResumedJobsSnackbar();
+      expect(notifier.lastLoadResumedCount, 0);
+      notifier.dispose();
+    });
+
     test('zero or negative endTime is ignored (defensive against bad data)',
         () async {
       final crashed = BatchJob(

@@ -152,6 +152,18 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
   final BatchPersistenceService _persistence;
   final Future<Duration?> Function(String filePath)? _durationProbe;
   bool _loaded = false;
+  int _lastLoadResumedCount = 0;
+
+  /// How many resumable jobs (non-terminal + had a leftover
+  /// `.ckpt.jsonl`) the most recent [load] call recovered. The UI
+  /// reads this once after the first frame to show a one-shot
+  /// "recovered N interrupted job(s)" snackbar, then calls
+  /// [acknowledgeResumedJobsSnackbar] to clear the counter so a
+  /// hot-reload doesn't show it again.
+  int get lastLoadResumedCount => _lastLoadResumedCount;
+  void acknowledgeResumedJobsSnackbar() {
+    _lastLoadResumedCount = 0;
+  }
 
   /// Hydrate in-memory state from the on-disk queue. Idempotent —
   /// safe to call multiple times. Used by the app-startup wiring in
@@ -205,6 +217,7 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
       }
 
       state = List<BatchJob>.unmodifiable(repaired);
+      _lastLoadResumedCount = resumeCount;
       // Push only the mutated jobs back to disk — saves I/O on the
       // common case where every job round-trips unchanged.
       for (final j in repaired) {

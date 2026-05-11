@@ -437,21 +437,28 @@ launch-blocker; the rest are quality issues that surface in use.
   pressure pre-flight check. Maintained design notes in the
   original §5.23 block below.
 
-**Q3 deferred sub-items:**
+**Q3 deferred sub-items — all shipped May 2026:**
 
-* Mid-batch backend swap awareness — when a resumed job's `backend`
-  field doesn't match the currently-loaded model, the drain loop
-  should silently load the right model rather than reusing the
-  current session. Currently it just runs against whatever model is
-  loaded.
-* iCloud-backup exclusion on iOS for the `batch/` directory
-  (`NSURLIsExcludedFromBackupKey`). Non-blocking; worst case today
-  is a few KB of brief iCloud noise per in-flight job.
-* Localised "recovered N interrupted job(s)" snackbar on app start.
-  Currently the user just sees the queue card auto-populated with
-  the demoted-to-queued jobs and has to hit Start. The log line
-  `hydrated N job(s) from disk resumable=K` is informative for
-  debugging but not user-facing.
+* ✅ Mid-batch backend swap awareness — drain loop checks
+  `next.modelId` against the engine's `currentModelId` before each
+  job and calls `loadModel(jobModelId)` on mismatch. Falls back to
+  the current session on load failure (logged warning) so a stale
+  modelId from a deleted GGUF doesn't kill the queue.
+* ✅ iCloud-backup exclusion — new `crisperweaver/ios_helpers`
+  MethodChannel handler in `ios/Runner/AppDelegate.swift` exposes
+  `excludeFromBackup(path)` which calls
+  `URL.setResourceValues({isExcludedFromBackup: true})`. The Dart
+  wrapper in `lib/services/ios_helpers.dart` is a no-op on every
+  non-iOS platform, so `BatchPersistenceService._ensureDir` calls
+  it unconditionally at first directory create.
+* ✅ Localised resume snackbar — `BatchQueueNotifier` tracks
+  `lastLoadResumedCount` from the most recent `load()`;
+  `transcription_screen`'s post-frame callback reads it once and
+  shows a `SnackBar` saying "Recovered N interrupted
+  transcription(s) — hit Start to resume". Plural-aware ARBs in
+  en + de. Counter cleared via
+  `acknowledgeResumedJobsSnackbar()` so hot-reload doesn't double-
+  fire.
 
 **Original §5.23 design (for archive):**
 

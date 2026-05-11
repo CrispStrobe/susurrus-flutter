@@ -257,6 +257,10 @@
   "settingsGroupBatchByBackendSubtitle": "Sortiert wartende Dateien so um, dass aufeinanderfolgende Jobs dieselbe Modell-Sitzung wiederverwenden",
   "settingsMaxConcurrent": "Gleichzeitige Transkriptionen",
   "settingsMaxConcurrentCurrent": "Gleichzeitige Transkriptionen: {n}",
+  "batchResumedSnackbar": "{n, plural, =1{1 unterbrochene Transkription wiederhergestellt} other{{n} unterbrochene Transkriptionen wiederhergestellt}} — Start drücken zum Fortsetzen",
+  "@batchResumedSnackbar": {
+    "placeholders": { "n": { "type": "int" } }
+  },
   "@settingsMaxConcurrentCurrent": {
     "placeholders": { "n": { "type": "int" } }
   },

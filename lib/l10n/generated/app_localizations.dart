@@ -1124,6 +1124,12 @@ abstract class AppLocalizations {
   /// **'Concurrent transcriptions: {n}'**
   String settingsMaxConcurrentCurrent(int n);
 
+  /// No description provided for @batchResumedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Recovered 1 interrupted transcription} other{Recovered {n} interrupted transcriptions}} — hit Start to resume'**
+  String batchResumedSnackbar(int n);
+
   /// No description provided for @settingsMaxConcurrentSubtitle.
   ///
   /// In en, this message translates to:

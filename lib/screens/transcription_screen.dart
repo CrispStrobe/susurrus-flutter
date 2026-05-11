@@ -71,7 +71,30 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
 
     // Kick off engine initialization after the first frame so the error
     // dialog (if it occurs) has a context to attach to.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureEngineReady());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureEngineReady();
+      // §5.23 Q3 polish: if main.dart's load() recovered any
+      // crash-interrupted jobs, surface a one-shot snackbar so the
+      // user knows the queue card is pre-populated and can hit
+      // Start. Only fires once per app launch — the count is
+      // cleared after the snackbar shows.
+      _maybeShowResumeSnackbar();
+    });
+  }
+
+  void _maybeShowResumeSnackbar() {
+    if (!mounted) return;
+    final queue = ref.read(batchQueueProvider.notifier);
+    final n = queue.lastLoadResumedCount;
+    if (n <= 0) return;
+    queue.acknowledgeResumedJobsSnackbar();
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l.batchResumedSnackbar(n)),
+        duration: const Duration(seconds: 5),
+      ),
+    );
   }
 
   @override
@@ -1191,6 +1214,37 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       final next = queue.nextQueued();
       if (next == null) break;
       queue.setRunning(next.id);
+      // §5.23 Q3 polish: if the job was enqueued against a
+      // different model than the one currently loaded (because the
+      // user switched models mid-queue, or because a crash-resumed
+      // job had a snapshotted modelId from before that switch),
+      // silently load the right one. This is what makes grouping
+      // (§5.23 Q1) actually save time — without it the drain loop
+      // would still use whatever `_modelName` happened to be when
+      // batch started.
+      final jobModelId = next.modelId;
+      if (jobModelId != null && jobModelId.isNotEmpty) {
+        final currentStatus = transcriptionService.getEngineStatus();
+        if (currentStatus.currentModelId != jobModelId) {
+          Log.instance.i('batch', 'switching model for job',
+              fields: {
+                'id': next.id,
+                'from': currentStatus.currentModelId ?? 'none',
+                'to': jobModelId,
+              });
+          try {
+            await transcriptionService.loadModel(jobModelId);
+          } catch (e, st) {
+            // Couldn't load the snapshotted model — fall back to
+            // the currently-loaded one and log. The transcription
+            // might emit wrong-language results but won't crash.
+            Log.instance.w('batch',
+                'model swap failed; running against current session: $e',
+                fields: {'id': next.id, 'target': jobModelId},
+                stack: st);
+          }
+        }
+      }
       // Kick off prefetch for the file AFTER the current one. The
       // current file's loadAudioFile call may also consume an
       // already-pending prefetch from the previous iteration.

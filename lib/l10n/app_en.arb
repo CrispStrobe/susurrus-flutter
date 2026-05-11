@@ -257,6 +257,10 @@
   "settingsGroupBatchByBackendSubtitle": "Reorder queued files so consecutive jobs reuse the same model session",
   "settingsMaxConcurrent": "Concurrent transcriptions",
   "settingsMaxConcurrentCurrent": "Concurrent transcriptions: {n}",
+  "batchResumedSnackbar": "{n, plural, =1{Recovered 1 interrupted transcription} other{Recovered {n} interrupted transcriptions}} — hit Start to resume",
+  "@batchResumedSnackbar": {
+    "placeholders": { "n": { "type": "int" } }
+  },
   "@settingsMaxConcurrentCurrent": {
     "placeholders": { "n": { "type": "int" } }
   },
