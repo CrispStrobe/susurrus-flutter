@@ -583,6 +583,20 @@
   "outputCleanupPreviewHeading": "Preview (first 3 segments)",
   "outputCleanupPreviewEmpty": "No segments to preview.",
   "outputCleanupApply": "Apply to all",
+  "outputCleanupLlmPass": "Also run LLM pass (cloud)",
+  "outputCleanupLlmPassHelp": "After the deterministic pass, send each segment to {model} for a context-aware cleanup. Slower; uses your configured API key.",
+  "@outputCleanupLlmPassHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmPassUnconfigured": "Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.",
+  "outputCleanupLlmRunning": "Running LLM cleanup pass…",
+  "settingsCloudLlmCleanup": "Cloud LLM cleanup (BYOK)",
+  "settingsCloudLlmCleanupOff": "Off (paste an OpenAI-compatible URL + API key to enable)",
+  "settingsCloudLlmHelp": "Optional. Sends each segment to an OpenAI-compatible /v1/chat/completions endpoint for context-aware cleanup. Works against OpenAI, Anthropic via proxy, OpenRouter, Groq, a local llama-server, etc. Your key stays on this device.",
+  "settingsCloudLlmUrl": "API URL",
+  "settingsCloudLlmKey": "API key",
+  "settingsCloudLlmModel": "Model id",
+  "settingsCloudLlmClear": "Clear",
   "outputCleanupApplied": "Cleanup applied to {n} segment(s).",
   "@outputCleanupApplied": {
     "placeholders": { "n": { "type": "int" } }

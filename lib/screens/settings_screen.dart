@@ -653,12 +653,112 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: const Icon(Icons.folder_open),
             onTap: () => _showModelsDirDialog(settings),
           ),
+        // §5.1.6 v2 — BYOK cloud-LLM cleanup settings.
+        ListTile(
+          title: Text(
+              AppLocalizations.of(context).settingsCloudLlmCleanup),
+          subtitle: Text(settings.cloudLlmApiUrl.isEmpty ||
+                  settings.cloudLlmApiKey.isEmpty
+              ? AppLocalizations.of(context)
+                  .settingsCloudLlmCleanupOff
+              : '${settings.cloudLlmModel} · ${settings.cloudLlmApiUrl}'),
+          trailing: const Icon(Icons.cloud_outlined),
+          onTap: () => _showCloudLlmDialog(settings),
+        ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/logs'),
         ),
       ],
+    );
+  }
+
+  void _showCloudLlmDialog(SettingsService settings) {
+    final l = AppLocalizations.of(context);
+    final urlCtl = TextEditingController(text: settings.cloudLlmApiUrl);
+    final keyCtl = TextEditingController(text: settings.cloudLlmApiKey);
+    final modelCtl =
+        TextEditingController(text: settings.cloudLlmModel);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l.settingsCloudLlmCleanup),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l.settingsCloudLlmHelp,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlCtl,
+                  decoration: InputDecoration(
+                    labelText: l.settingsCloudLlmUrl,
+                    hintText:
+                        'https://api.openai.com/v1/chat/completions',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: keyCtl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: l.settingsCloudLlmKey,
+                    hintText: 'sk-…',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: modelCtl,
+                  decoration: InputDecoration(
+                    labelText: l.settingsCloudLlmModel,
+                    hintText: 'gpt-4o-mini',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.cancel)),
+            TextButton(
+                onPressed: () {
+                  setState(() {
+                    settings.cloudLlmApiUrl = '';
+                    settings.cloudLlmApiKey = '';
+                    settings.cloudLlmModel = 'gpt-4o-mini';
+                  });
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(l.settingsCloudLlmClear)),
+            FilledButton(
+                onPressed: () {
+                  setState(() {
+                    settings.cloudLlmApiUrl = urlCtl.text.trim();
+                    settings.cloudLlmApiKey = keyCtl.text.trim();
+                    final m = modelCtl.text.trim();
+                    settings.cloudLlmModel =
+                        m.isEmpty ? 'gpt-4o-mini' : m;
+                  });
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(l.save)),
+          ],
+        );
+      },
     );
   }
 

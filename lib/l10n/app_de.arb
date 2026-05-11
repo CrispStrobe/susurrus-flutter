@@ -580,6 +580,20 @@
   "outputCleanupPreviewHeading": "Vorschau (erste 3 Segmente)",
   "outputCleanupPreviewEmpty": "Keine Segmente vorhanden.",
   "outputCleanupApply": "Auf alle anwenden",
+  "outputCleanupLlmPass": "Zusätzlich LLM-Durchlauf (Cloud)",
+  "outputCleanupLlmPassHelp": "Nach dem deterministischen Durchlauf jedes Segment an {model} für kontextsensitive Bereinigung schicken. Langsamer; nutzt deinen konfigurierten API-Key.",
+  "@outputCleanupLlmPassHelp": {
+    "placeholders": { "model": { "type": "String" } }
+  },
+  "outputCleanupLlmPassUnconfigured": "In Einstellungen → Cloud-LLM-Bereinigung einen Endpunkt einrichten, um diese Option zu aktivieren.",
+  "outputCleanupLlmRunning": "LLM-Bereinigung läuft…",
+  "settingsCloudLlmCleanup": "Cloud-LLM-Bereinigung (BYOK)",
+  "settingsCloudLlmCleanupOff": "Aus (OpenAI-kompatible URL + API-Key eintragen)",
+  "settingsCloudLlmHelp": "Optional. Sendet jedes Segment an einen OpenAI-kompatiblen /v1/chat/completions-Endpunkt zur kontextsensitiven Bereinigung. Funktioniert mit OpenAI, Anthropic via Proxy, OpenRouter, Groq, lokaler llama-server etc. Dein Schlüssel bleibt auf diesem Gerät.",
+  "settingsCloudLlmUrl": "API-URL",
+  "settingsCloudLlmKey": "API-Key",
+  "settingsCloudLlmModel": "Modell-ID",
+  "settingsCloudLlmClear": "Löschen",
   "outputCleanupApplied": "{n} Segment(e) bereinigt.",
   "@outputCleanupApplied": {
     "placeholders": { "n": { "type": "int" } }

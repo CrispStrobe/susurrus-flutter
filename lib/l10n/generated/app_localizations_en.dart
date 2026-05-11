@@ -1292,6 +1292,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputCleanupApply => 'Apply to all';
 
   @override
+  String get outputCleanupLlmPass => 'Also run LLM pass (cloud)';
+
+  @override
+  String outputCleanupLlmPassHelp(String model) {
+    return 'After the deterministic pass, send each segment to $model for a context-aware cleanup. Slower; uses your configured API key.';
+  }
+
+  @override
+  String get outputCleanupLlmPassUnconfigured =>
+      'Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.';
+
+  @override
+  String get outputCleanupLlmRunning => 'Running LLM cleanup pass…';
+
+  @override
+  String get settingsCloudLlmCleanup => 'Cloud LLM cleanup (BYOK)';
+
+  @override
+  String get settingsCloudLlmCleanupOff =>
+      'Off (paste an OpenAI-compatible URL + API key to enable)';
+
+  @override
+  String get settingsCloudLlmHelp =>
+      'Optional. Sends each segment to an OpenAI-compatible /v1/chat/completions endpoint for context-aware cleanup. Works against OpenAI, Anthropic via proxy, OpenRouter, Groq, a local llama-server, etc. Your key stays on this device.';
+
+  @override
+  String get settingsCloudLlmUrl => 'API URL';
+
+  @override
+  String get settingsCloudLlmKey => 'API key';
+
+  @override
+  String get settingsCloudLlmModel => 'Model id';
+
+  @override
+  String get settingsCloudLlmClear => 'Clear';
+
+  @override
   String outputCleanupApplied(int n) {
     return 'Cleanup applied to $n segment(s).';
   }

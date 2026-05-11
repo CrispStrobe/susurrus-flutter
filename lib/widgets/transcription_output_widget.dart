@@ -10,7 +10,9 @@ import '../engines/transcription_engine.dart'; // Use engine TranscriptionSegmen
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart'
     show appStateProvider, historyServiceProvider, selectedAudioPathProvider;
+import '../services/cloud_llm_cleanup_service.dart';
 import '../services/history_service.dart';
+import '../services/settings_service.dart';
 import '../services/transcript_cleanup_service.dart';
 
 class TranscriptionOutputWidget extends ConsumerStatefulWidget {
@@ -950,18 +952,20 @@ class _TranscriptionOutputWidgetState
       context: context,
       builder: (ctx) => _CleanupDialog(
         segments: widget.segments,
-        onApply: (CleanupOptions opts) async {
-          await _applyCleanup(opts);
+        onApply: (opts, runLlmPass) async {
+          await _applyCleanup(opts, runLlmPass: runLlmPass);
         },
       ),
     );
   }
 
-  Future<void> _applyCleanup(CleanupOptions opts) async {
+  Future<void> _applyCleanup(CleanupOptions opts,
+      {bool runLlmPass = false}) async {
     final l = AppLocalizations.of(context);
     final svc = ref.read(transcriptCleanupServiceProvider);
     final notifier = ref.read(appStateProvider.notifier);
     var changed = 0;
+    // Deterministic pass first.
     for (var i = 0; i < widget.segments.length; i++) {
       final original = widget.segments[i].text;
       final cleaned = svc.cleanupText(original, opts);
@@ -970,6 +974,25 @@ class _TranscriptionOutputWidgetState
         changed++;
       }
     }
+
+    // §5.1.6 v2 — optional LLM pass over the (just-cleaned)
+    // segments. Disabled by default and silently skipped when
+    // the BYOK config is empty. Runs sequentially with a
+    // progress snackbar; per-segment failures are swallowed by
+    // the service so one rate-limited call doesn't blow up
+    // the whole batch.
+    if (runLlmPass) {
+      final settings = ref.read(settingsServiceProvider);
+      final cfg = CloudLlmConfig(
+        apiUrl: settings.cloudLlmApiUrl,
+        apiKey: settings.cloudLlmApiKey,
+        model: settings.cloudLlmModel,
+      );
+      if (cfg.enabled) {
+        await _runLlmPass(cfg);
+      }
+    }
+
     // Persist to history if this transcription has a row on disk.
     final st = ref.read(appStateProvider);
     final id = st.historyEntryId;
@@ -995,6 +1018,50 @@ class _TranscriptionOutputWidgetState
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  /// Runs the LLM-pass over the current segments, with a
+  /// cancellable progress snackbar. Reads the latest segments
+  /// from AppState so any deterministic-pass edits made just
+  /// before are picked up; writes the LLM-cleaned versions
+  /// back via editSegment.
+  Future<void> _runLlmPass(CloudLlmConfig cfg) async {
+    final l = AppLocalizations.of(context);
+    final llm = ref.read(cloudLlmCleanupServiceProvider);
+    final notifier = ref.read(appStateProvider.notifier);
+    final cancel = CleanupCancelToken();
+
+    // Snackbar with a Cancel action — the cancel token flips
+    // on tap and the batch service bails out between segments.
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = messenger.showSnackBar(SnackBar(
+      content: Text(l.outputCleanupLlmRunning),
+      duration: const Duration(minutes: 30),
+      action: SnackBarAction(
+        label: l.cancel,
+        onPressed: cancel.cancel,
+      ),
+    ));
+
+    try {
+      final st = ref.read(appStateProvider);
+      final texts = st.segments.map((s) => s.text).toList();
+      final cleaned = await llm.cleanupBatch(
+        texts: texts,
+        config: cfg,
+        cancel: cancel,
+      );
+      // Write back the deltas. cleanupBatch may return fewer
+      // entries than `texts` when cancelled — only update the
+      // prefix it actually processed.
+      for (var i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] != texts[i]) {
+          notifier.editSegment(i, cleaned[i]);
+        }
+      }
+    } finally {
+      controller.close();
+    }
   }
 
   /// Push the audio-editor route with pre-populated selection
@@ -1029,7 +1096,7 @@ class _CleanupDialog extends ConsumerStatefulWidget {
   const _CleanupDialog({required this.segments, required this.onApply});
 
   final List<TranscriptionSegment> segments;
-  final Future<void> Function(CleanupOptions) onApply;
+  final Future<void> Function(CleanupOptions opts, bool runLlmPass) onApply;
 
   @override
   ConsumerState<_CleanupDialog> createState() => _CleanupDialogState();
@@ -1037,6 +1104,7 @@ class _CleanupDialog extends ConsumerStatefulWidget {
 
 class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
   CleanupOptions _opts = const CleanupOptions();
+  bool _runLlmPass = false;
   final _customFillersController = TextEditingController();
 
   @override
@@ -1125,6 +1193,28 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
+              // §5.1.6 v2 — LLM-pass toggle. Only enabled when
+              // the user has configured a BYOK endpoint in
+              // settings; otherwise we explain how to enable it.
+              const SizedBox(height: 8),
+              Builder(builder: (_) {
+                final settings = ref.read(settingsServiceProvider);
+                final hasCfg = settings.cloudLlmApiUrl.isNotEmpty &&
+                    settings.cloudLlmApiKey.isNotEmpty;
+                return SwitchListTile(
+                  title: Text(l.outputCleanupLlmPass),
+                  subtitle: Text(
+                      hasCfg
+                          ? l.outputCleanupLlmPassHelp(
+                              settings.cloudLlmModel)
+                          : l.outputCleanupLlmPassUnconfigured,
+                      style: const TextStyle(fontSize: 11)),
+                  value: hasCfg && _runLlmPass,
+                  onChanged: hasCfg
+                      ? (v) => setState(() => _runLlmPass = v)
+                      : null,
+                );
+              }),
               const SizedBox(height: 12),
               Text(l.outputCleanupPreviewHeading,
                   style: Theme.of(context).textTheme.titleSmall),
@@ -1153,8 +1243,9 @@ class _CleanupDialogState extends ConsumerState<_CleanupDialog> {
           label: Text(l.outputCleanupApply),
           onPressed: () async {
             final apply = previewOpts;
+            final runLlm = _runLlmPass;
             Navigator.of(context).pop();
-            await widget.onApply(apply);
+            await widget.onApply(apply, runLlm);
           },
         ),
       ],

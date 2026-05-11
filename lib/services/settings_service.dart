@@ -224,6 +224,49 @@ class SettingsService {
   /// lower at runtime when the chosen model is too big.
   int get maxConcurrentSessionsLimit => Platform.isIOS ? 2 : 4;
 
+  // --- §5.1.6 v2 Cloud-LLM cleanup (BYOK) ---
+
+  /// OpenAI-compatible /v1/chat/completions endpoint. Empty
+  /// means "feature off"; the Tidy dialog hides the LLM-pass
+  /// toggle when this is empty. Defaults to OpenAI's public
+  /// endpoint to nudge users into a known-good shape; can be
+  /// pointed at any other compatible server (Anthropic via
+  /// proxy, local llama-server, OpenRouter, Groq, etc.).
+  String get cloudLlmApiUrl =>
+      _prefs.getString('cloud_llm_api_url') ?? '';
+  set cloudLlmApiUrl(String url) {
+    Log.instance.d('settings',
+        'Saving cloudLlmApiUrl: ${url.isEmpty ? "EMPTY" : url}');
+    _prefs.setString('cloud_llm_api_url', url);
+  }
+
+  /// API key — pasted by the user. Logged only as SET/EMPTY
+  /// to avoid leaking into telemetry. Stored in
+  /// SharedPreferences (platform-default; encrypted on iOS via
+  /// the keychain integration, plain JSON in app-support on
+  /// other platforms). For real secret storage we'd reach for
+  /// flutter_secure_storage — out of scope for the v1
+  /// opt-in cleanup feature.
+  String get cloudLlmApiKey =>
+      _prefs.getString('cloud_llm_api_key') ?? '';
+  set cloudLlmApiKey(String key) {
+    Log.instance.d('settings',
+        'Saving cloudLlmApiKey: ${key.isEmpty ? "EMPTY" : "SET"}');
+    _prefs.setString('cloud_llm_api_key', key);
+  }
+
+  /// Model id sent in the chat-completions request body.
+  /// Default "gpt-4o-mini" — small, fast, cheap; users
+  /// pointing at non-OpenAI endpoints override per their
+  /// catalog (e.g. "claude-3-5-haiku-20241022" via proxy,
+  /// "llama-3.1-8b-instruct" on local llama-server, …).
+  String get cloudLlmModel =>
+      _prefs.getString('cloud_llm_model') ?? 'gpt-4o-mini';
+  set cloudLlmModel(String model) {
+    Log.instance.d('settings', 'Saving cloudLlmModel: $model');
+    _prefs.setString('cloud_llm_model', model);
+  }
+
   /// §5.1.5 Phase C — whether the EditAudioScreen's transcript
   /// pane is expanded by default. Persists so users who treat
   /// the editor as audio-only collapse once and never see the

@@ -380,13 +380,44 @@ is what's missing — ranked by impact ÷ effort.
   edits survive a reload. 33 hermetic tests pin each transform
   individually plus the composed pipeline.
 
-  **Deferred to a follow-up:** LLM-driven v2 (Qwen2.5-1.5B-
-  Instruct or cloud Anthropic/OpenAI API) that does context-
-  aware fixes — mis-hearings of named entities, sentence-
-  boundary inference, terminology consistency. Will layer onto
-  the same `CleanupOptions` surface with an additional
-  `runLLMPass: true` flag once a text-LLM engine joins the
-  pool. ~3–4 days inc. UI when picked up.
+  **§5.1.6 v2 cloud path — shipped May 2026.** Optional BYOK
+  OpenAI-compatible cleanup pass that runs *after* the
+  deterministic v1 on the same Tidy dialog. Pure-Dart
+  `CloudLlmCleanupService` POSTs each segment to a user-
+  configured `/v1/chat/completions` endpoint with a
+  conservative "transcript editor" system prompt; per-segment
+  failures are swallowed so one rate-limited call doesn't
+  abort the batch. Cancellable via a snackbar action. Works
+  against OpenAI, Anthropic via proxy, OpenRouter, Groq,
+  Cerebras, Together, a local llama-server, etc.
+
+  Settings → Cloud LLM cleanup stores URL / key / model
+  separately; cleanupBatch reads them lazily so a settings
+  edit takes effect on the next pass without a restart. Key
+  is stored in SharedPreferences (platform-default; encrypted
+  by the OS keychain on iOS, plain JSON in app-support
+  elsewhere — opt-in feature so the trade-off is acceptable
+  for v1).
+
+  Tests: 13 hermetic tests via http's MockClient pin the
+  request shape (URL, Bearer auth, OpenAI envelope), response
+  parsing, error surfaces, batch behaviour, cancellation, and
+  per-segment-failure swallowing. Plus 3 live-network tests
+  gated behind `RUN_LIVE_TESTS=1` + a key in
+  `GROQ_API_KEY` / `CRISPER_WEAVER_DOTENV` that verify
+  end-to-end against Groq's real API in ~5 s. Default
+  `flutter test` stays offline.
+
+  **§5.1.6 v3 local LLM — deferred to upstream CrispASR
+  work.** Requires promoting llama.cpp from CrispASR's
+  `examples/talk-llama/` example to a real public library
+  with a clean C ABI (`crispasr_chat_open` / `_generate` /
+  `_close` + sampler config + KV cache lifecycle). Tracked in
+  a CrisperWeaver-side prompt MD (see top-level
+  `docs/prompts/`) that drives the upstream session. Once
+  shipped upstream, the v3 swap-in is a one-day wiring job
+  here: the same `runLlmPass` toggle would route to a local
+  endpoint instead of (or in addition to) the cloud path.
 
 * **5.1.7 Templates / presets — shipped May 2026.** Saves the
   current `(backend, modelId, language, AdvancedOptions)`

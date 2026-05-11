@@ -23,3 +23,15 @@ tags:
       End-to-end synth/transcribe roundtrips that load gigabyte GGUFs
       and run minutes of LLM decode. Skips itself silently unless the
       matching `CRISPASR_TEST_<BACKEND>_MODEL` env var is set.
+  live:
+    description: >
+      Live network calls against an external API (BYOK cloud LLM
+      cleanup, §5.1.6 v2). Same per-test opt-in pattern as `slow`:
+      each test guards itself with a `markTestSkipped` clause that
+      fires when `RUN_LIVE_TESTS` isn't set, so a default `flutter
+      test` invocation stays offline even if a key happens to be in
+      the shell env. Run explicitly with:
+        RUN_LIVE_TESTS=1 GROQ_API_KEY=… flutter test --tags=live
+      or:
+        RUN_LIVE_TESTS=1 CRISPER_WEAVER_DOTENV=$HOME/code/.env \
+          flutter test --tags=live

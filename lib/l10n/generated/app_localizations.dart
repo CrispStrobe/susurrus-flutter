@@ -2282,6 +2282,72 @@ abstract class AppLocalizations {
   /// **'Apply to all'**
   String get outputCleanupApply;
 
+  /// No description provided for @outputCleanupLlmPass.
+  ///
+  /// In en, this message translates to:
+  /// **'Also run LLM pass (cloud)'**
+  String get outputCleanupLlmPass;
+
+  /// No description provided for @outputCleanupLlmPassHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'After the deterministic pass, send each segment to {model} for a context-aware cleanup. Slower; uses your configured API key.'**
+  String outputCleanupLlmPassHelp(String model);
+
+  /// No description provided for @outputCleanupLlmPassUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a cloud LLM endpoint in Settings → Cloud LLM cleanup to enable this.'**
+  String get outputCleanupLlmPassUnconfigured;
+
+  /// No description provided for @outputCleanupLlmRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running LLM cleanup pass…'**
+  String get outputCleanupLlmRunning;
+
+  /// No description provided for @settingsCloudLlmCleanup.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud LLM cleanup (BYOK)'**
+  String get settingsCloudLlmCleanup;
+
+  /// No description provided for @settingsCloudLlmCleanupOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off (paste an OpenAI-compatible URL + API key to enable)'**
+  String get settingsCloudLlmCleanupOff;
+
+  /// No description provided for @settingsCloudLlmHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Sends each segment to an OpenAI-compatible /v1/chat/completions endpoint for context-aware cleanup. Works against OpenAI, Anthropic via proxy, OpenRouter, Groq, a local llama-server, etc. Your key stays on this device.'**
+  String get settingsCloudLlmHelp;
+
+  /// No description provided for @settingsCloudLlmUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'API URL'**
+  String get settingsCloudLlmUrl;
+
+  /// No description provided for @settingsCloudLlmKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get settingsCloudLlmKey;
+
+  /// No description provided for @settingsCloudLlmModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model id'**
+  String get settingsCloudLlmModel;
+
+  /// No description provided for @settingsCloudLlmClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get settingsCloudLlmClear;
+
   /// No description provided for @outputCleanupApplied.
   ///
   /// In en, this message translates to:
