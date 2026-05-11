@@ -7,6 +7,11 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- §5.1.1 system-audio capture (Android 10+) — MediaProjection
+         needs the media-projection foreground-service permission on
+         Android 14+. Pre-14 the plain FOREGROUND_SERVICE above is
+         enough, but listing both is safe + future-proof. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <!-- Audio features -->
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
@@ -80,6 +85,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- §5.1.1 system-audio capture — MediaProjection foreground
+             service. Android requires foregroundServiceType
+             "mediaProjection" since API 29 (Q); the system notification
+             pinned by the service is what makes the projection legal. -->
+        <service
+            android:name=".SystemAudioCaptureForegroundService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false" />
     </application>
     
     <!-- Queries for file picker -->

@@ -51,22 +51,18 @@ void main() {
       final ok = await svc.isSupported();
       expect(ok, anyOf(isTrue, isFalse),
           reason: 'isSupported must always return a bool, never throw');
-      // On iOS / Android the source short-circuits to false
-      // without any system call.
-      if (Platform.isIOS || Platform.isAndroid) {
+      // On iOS the source short-circuits to false without any
+      // system call (Apple sandbox restriction). Android calls
+      // through to the MethodChannel and returns true on API 29+,
+      // false on older — we can't predict from a unit test which
+      // it'll be, so we don't assert.
+      if (Platform.isIOS) {
         expect(ok, isFalse);
       }
     });
 
     test('start() on iOS throws SystemAudioUnsupportedException', () async {
       if (!Platform.isIOS) return;
-      final svc = SystemAudioCaptureService();
-      expect(svc.start, throwsA(isA<SystemAudioUnsupportedException>()));
-    });
-
-    test('start() on Android throws SystemAudioUnsupportedException',
-        () async {
-      if (!Platform.isAndroid) return;
       final svc = SystemAudioCaptureService();
       expect(svc.start, throwsA(isA<SystemAudioUnsupportedException>()));
     });

@@ -177,9 +177,23 @@ is what's missing — ranked by impact ÷ effort.
   - ❌ **iOS** — Apple sandbox forbids system audio capture
     entirely. Throws `SystemAudioUnsupportedException`
     permanently.
-  - ⏳ **Android** — MediaProjection API. Surfaces a
-    system-visible "recording" indicator; the UX cost is real
-    but the feature works. ~2–3 days.
+  - ✅ **Android 10+** (May 2026) — `MediaProjection` +
+    `AudioPlaybackCaptureConfiguration` via a foreground
+    service (`SystemAudioCaptureForegroundService.kt`). On
+    `start()` the activity launches the system
+    "screen + audio capture" permission dialog; on grant the
+    foreground service spins up with a persistent
+    `mediaProjection`-type notification (required by Android 14)
+    and an `AudioRecord` configured at 16 kHz mono Float32 (the
+    framework resamples internally). PCM frames flow back to
+    Dart via a static frame-listener callback (same-process, no
+    AIDL) → EventChannel sink. Captures `USAGE_MEDIA`,
+    `USAGE_GAME`, `USAGE_UNKNOWN` (covers music, video, games,
+    most apps) but deliberately excludes
+    `USAGE_VOICE_COMMUNICATION` so Zoom/phone-call audio gets
+    captured via system speaker output rather than the more
+    invasive direct path. New permission:
+    `FOREGROUND_SERVICE_MEDIA_PROJECTION` in manifest.
 
 * **5.1.2 Custom vocabulary / dictionary boost** — Persistent
   list of "always-recognize-these" terms (brand names, acronyms,

@@ -97,14 +97,17 @@ class SystemAudioCaptureService {
   ///   • macOS → native MethodChannel `isSupported` (returns
   ///     false on macOS < 13 because SCStream audio capture
   ///     needs macOS 13+).
+  ///   • Android → native MethodChannel `isSupported` (returns
+  ///     false on Android < 10 because AudioPlaybackCaptureConfig
+  ///     needs API 29+). System notification appears while
+  ///     capturing (Android requirement).
   ///   • Linux → true when `parec` is on PATH (PulseAudio or
   ///     pipewire-pulse). Result cached for the next start().
   ///   • Windows → true when `ffmpeg` is on PATH.
   ///   • iOS → always false (Apple sandbox restriction).
-  ///   • Android → always false in v1 (MediaProjection not wired).
   Future<bool> isSupported() async {
-    if (Platform.isIOS || Platform.isAndroid) return false;
-    if (Platform.isMacOS) {
+    if (Platform.isIOS) return false;
+    if (Platform.isMacOS || Platform.isAndroid) {
       try {
         final ok = await _control.invokeMethod<bool>('isSupported') ?? false;
         return ok;
@@ -161,40 +164,42 @@ class SystemAudioCaptureService {
           'System audio capture is not supported on iOS — Apple '
           'sandbox restriction.');
     }
-    if (Platform.isAndroid) {
-      throw SystemAudioUnsupportedException(
-          'System audio capture on Android is not yet implemented. '
-          'Tracked in PLAN §5.1.1 (MediaProjection).');
-    }
     if (_activeController != null) {
       // Already running — reuse the existing stream. Cheap idempotency.
       return _activeController!.stream;
     }
 
-    if (Platform.isMacOS) return _startMacOSNative();
+    if (Platform.isMacOS || Platform.isAndroid) {
+      // Same MethodChannel + EventChannel protocol. macOS uses
+      // ScreenCaptureKit, Android uses MediaProjection — both
+      // deliver 16 kHz mono Float32 PCM through the same wire.
+      return _startNativeChannel();
+    }
     if (Platform.isLinux) return _startLinuxParec();
     if (Platform.isWindows) return _startWindowsFfmpeg();
     throw SystemAudioUnsupportedException(
         'Unknown platform: ${Platform.operatingSystem}');
   }
 
-  /// macOS — MethodChannel + ScreenCaptureKit (see
-  /// macos/Runner/SystemAudioCapture.swift).
-  Future<Stream<Float32List>> _startMacOSNative() async {
+  /// Native MethodChannel + EventChannel path. macOS:
+  /// ScreenCaptureKit (`macos/Runner/SystemAudioCapture.swift`).
+  /// Android: MediaProjection + foreground service
+  /// (`android/.../SystemAudioCaptureForegroundService.kt`).
+  Future<Stream<Float32List>> _startNativeChannel() async {
     try {
       final ok = await _control.invokeMethod<bool>('start') ?? false;
       if (!ok) {
         throw SystemAudioUnsupportedException(
-            'native start() returned false — see Console.app for SCStream errors');
+            'native start() returned false — see platform log for details');
       }
     } on PlatformException catch (e) {
       switch (e.code) {
         case 'permission_denied':
-          throw SystemAudioPermissionException(
-              e.message ?? 'Screen Recording permission denied');
+          throw SystemAudioPermissionException(e.message ??
+              'System audio capture permission denied');
         case 'os_too_old':
-          throw SystemAudioUnsupportedException(
-              e.message ?? 'macOS 13 or later required');
+          throw SystemAudioUnsupportedException(e.message ??
+              'OS version too old for system audio capture');
         case 'unsupported':
         default:
           throw SystemAudioUnsupportedException(
@@ -226,7 +231,8 @@ class SystemAudioCaptureService {
       },
     );
 
-    Log.instance.i('sysaudio', 'capture started (macOS native)');
+    Log.instance.i('sysaudio',
+        'capture started (${Platform.operatingSystem} native)');
     return controller.stream;
   }
 
@@ -387,7 +393,7 @@ class SystemAudioCaptureService {
     if (c != null && !c.isClosed) {
       await c.close();
     }
-    if (Platform.isMacOS) {
+    if (Platform.isMacOS || Platform.isAndroid) {
       try {
         await _control.invokeMethod<void>('stop');
       } catch (e) {
