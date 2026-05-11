@@ -35,7 +35,7 @@ void main() {
       }
     });
 
-    Future<void> _write(int sizeBytes) async {
+    Future<void> writeSparse(int sizeBytes) async {
       // Cheap: write a sparse-ish file of the requested size.
       // RandomAccessFile.setSize is platform-portable.
       final raf = await modelFile.open(mode: FileMode.write);
@@ -53,13 +53,13 @@ void main() {
 
     test('modelFileSizeBytes returns the real on-disk size', () async {
       const size = 200 * 1024 * 1024; // 200 MB
-      await _write(size);
+      await writeSparse(size);
       expect(MemoryEstimator.modelFileSizeBytes(modelFile.path), size);
     });
 
     test('estimate: requested 1 fits trivially', () async {
       const size = 100 * 1024 * 1024; // 100 MB
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()
         ..physicalMemoryBytesForTest = 16 * 1024 * 1024 * 1024; // 16 GB
       final r = est.estimate(requested: 1, modelPath: modelFile.path);
@@ -74,7 +74,7 @@ void main() {
       // base = 1.04 GB; budget = 16 GB × 50% − 400 MB = 7.6 GB.
       // → 4 fit comfortably.
       const size = 100 * 1024 * 1024;
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()
         ..physicalMemoryBytesForTest = 16 * 1024 * 1024 * 1024;
       final r = est.estimate(requested: 4, modelPath: modelFile.path);
@@ -87,7 +87,7 @@ void main() {
       // 3 GB on disk × 1.6 = 4.8 GB per worker; budget = 7.6 GB.
       // → only 1 worker fits.
       const size = 3 * 1024 * 1024 * 1024;
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()
         ..physicalMemoryBytesForTest = 16 * 1024 * 1024 * 1024;
       final r = est.estimate(requested: 4, modelPath: modelFile.path);
@@ -106,7 +106,7 @@ void main() {
       // budget = 3 GB × 50% − 400 MB ≈ 1.1 GB. 1.1 GB / 800 MB = 1.
       // Calibrate up: 4 GB host → budget = 1.6 GB. 1.6 / 0.8 = 2.
       const size = 500 * 1024 * 1024;
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()
         ..physicalMemoryBytesForTest = 4 * 1024 * 1024 * 1024;
       final r = est.estimate(requested: 4, modelPath: modelFile.path);
@@ -127,7 +127,7 @@ void main() {
 
     test('estimate: null physical memory returns unknown-mem', () async {
       const size = 100 * 1024 * 1024;
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()..physicalMemoryBytesForTest = null;
       final r = est.estimate(requested: 4, modelPath: modelFile.path);
       expect(r.affordableWorkers, 1);
@@ -137,7 +137,7 @@ void main() {
     test('estimate: pretty strings are non-empty and reasonable',
         () async {
       const size = 200 * 1024 * 1024;
-      await _write(size);
+      await writeSparse(size);
       final est = MemoryEstimator()
         ..physicalMemoryBytesForTest = 16 * 1024 * 1024 * 1024;
       final r = est.estimate(requested: 2, modelPath: modelFile.path);

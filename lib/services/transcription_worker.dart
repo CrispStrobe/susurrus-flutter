@@ -58,7 +58,7 @@ class TranscriptionWorkerArgs {
     required this.readySendPort,
     required this.modelPath,
     required this.backend,
-    required this.libName,
+    this.libName,
     this.useGpu = true,
     this.flashAttn = true,
     this.nThreads = 0,
@@ -70,7 +70,10 @@ class TranscriptionWorkerArgs {
   final SendPort readySendPort;
   final String modelPath;
   final String backend;
-  final String libName;
+  /// Override for the libcrispasr path. `null` (the default) lets
+  /// the binding's `CrispASR.defaultLibName()` resolve per-platform
+  /// (which is what every other call site does).
+  final String? libName;
   final bool useGpu;
   final bool flashAttn;
   final int nThreads;
@@ -97,12 +100,14 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
         flashAttn: args.flashAttn,
         nGpuLayers: args.nGpuLayers,
         backend: args.backend,
+        libPath: args.libName,
       );
     } on UnsupportedError {
       session = crispasr.CrispasrSession.open(
         args.modelPath,
         nThreads: args.nThreads,
         backend: args.backend,
+        libPath: args.libName,
       );
     }
     args.readySendPort.send(<String, Object?>{

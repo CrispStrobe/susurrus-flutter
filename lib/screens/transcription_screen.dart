@@ -15,11 +15,15 @@ import '../main.dart';
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/audio_prefetch_service.dart';
+import '../services/audio_service.dart';
+import '../services/batch_persistence_service.dart';
 import '../services/batch_queue_service.dart';
 import '../services/log_service.dart';
+import '../services/memory_estimator.dart';
 import '../services/transcription_service.dart';
 import '../services/model_service.dart';
 import '../services/settings_service.dart';
+import '../services/transcription_worker_pool.dart';
 import '../utils/file_utils.dart';
 import '../widgets/advanced_options_widget.dart';
 import '../widgets/audio_recorder_widget.dart';
@@ -1199,7 +1203,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       queue.reorderByGrouping();
     }
 
-    // §5.23 Q2 pipeline parallelism: pre-decode the next queued
+    // §5.23 Q2 v1 pipeline parallelism: pre-decode the next queued
     // file's audio in a worker isolate while the current file is
     // mid-GPU. AudioService.loadAudioFile consumes the cached
     // result if it's ready by the time we get there. Setting > 1
@@ -1210,9 +1214,71 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         ? ref.read(audioPrefetchServiceProvider)
         : null;
 
+    // §5.23 Q2 v2 N-way session pool: opt-in slider gated on a
+    // memory pre-flight. The pool's `dispatch` is a bare
+    // `session.transcribe(samples)` — no VAD slicing, no resume
+    // offset routing, no Q&A / translate / beam-search / best-of
+    // (those need engine plumbing that lives on the main isolate).
+    // So pool eligibility is per-job: jobs that need any of those
+    // features fall through to the serial path below, while
+    // "vanilla transcribe" jobs run in parallel on the pool.
+    final pool = await _maybeSpawnWorkerPool(adv: adv);
+    if (pool != null) {
+      // Aggregate batch view (§5.23 Q2 v2 option (a)): one
+      // startTranscription at batch open instead of per-job. The
+      // queue card is the source of truth during parallel runs;
+      // per-file segment streaming into AppState would interleave
+      // N files' text.
+      appStateNotifier.startTranscription();
+    }
+
+    // Track in-flight pool dispatches. The drain loop dispatches up
+    // to `pool.size` pool-eligible jobs concurrently; pool-
+    // ineligible jobs run serially in the same loop and block the
+    // pool from receiving new work until they return.
+    final inFlight = <Future<void>>{};
+
+    try {
     while (true) {
       final next = queue.nextQueued();
-      if (next == null) break;
+      if (next == null) {
+        // Pool may still have in-flight work; wait for it to drain.
+        if (inFlight.isNotEmpty) {
+          await Future.any(inFlight);
+          continue;
+        }
+        break;
+      }
+      // §5.23 Q2 v2 parallel dispatch: if the pool is alive AND the
+      // job is "vanilla" (no resume, no VAD, no advanced features
+      // the worker can't replicate), fire it on the pool and keep
+      // the main-loop walking. Pool-ineligible jobs fall through to
+      // the existing serial body below.
+      if (pool != null && _jobCanUsePool(next, adv, _enableDiarization)) {
+        // Wait if the pool is already at capacity.
+        if (inFlight.length >= pool.size) {
+          await Future.any(inFlight);
+          continue;
+        }
+        queue.setRunning(next.id);
+        final fut = _runJobOnPool(
+          pool: pool,
+          job: next,
+          language: language,
+          persistence: persistence,
+          queue: queue,
+        );
+        inFlight.add(fut);
+        fut.whenComplete(() => inFlight.remove(fut));
+        continue;
+      }
+      // If the pool is alive AND busy, give it a chance to clear
+      // before we start a serial job — otherwise we'd starve the
+      // pool on whichever non-vanilla job came in.
+      if (pool != null && inFlight.length >= pool.size) {
+        await Future.any(inFlight);
+        continue;
+      }
       queue.setRunning(next.id);
       // §5.23 Q3 polish: if the job was enqueued against a
       // different model than the one currently loaded (because the
@@ -1268,7 +1334,10 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       if (resumeOffset > 0) {
         try {
           resumedPrefix = await persistence.loadCheckpoint(next.id);
-          appStateNotifier.startTranscription();
+          // In pool-active mode we already fired
+          // startTranscription() once at batch open. Skip the
+          // per-job restart so the aggregate view stays stable.
+          if (pool == null) appStateNotifier.startTranscription();
           for (final s in resumedPrefix) {
             appStateNotifier.addSegment(s);
           }
@@ -1285,7 +1354,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         if (resumeOffset > 0) 'resumed_segments': resumedPrefix.length,
       });
       try {
-        if (resumeOffset == 0) {
+        if (resumeOffset == 0 && pool == null) {
           appStateNotifier.startTranscription();
         }
         final started = DateTime.now();
@@ -1312,9 +1381,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           // §5.23 Q3 checkpoint streaming — every segment hits the
           // appState (visible) AND the per-job .ckpt.jsonl on disk
           // (resumable). Fire-and-forget: a slow disk shouldn't
-          // back-pressure transcription.
+          // back-pressure transcription. In pool-active mode the
+          // queue card is the source of truth (aggregate view), so
+          // we skip the live AppState push to keep parallel files'
+          // segments from interleaving in the same panel.
           onSegment: (seg) {
-            appStateNotifier.addSegment(seg);
+            if (pool == null) appStateNotifier.addSegment(seg);
             unawaited(
                 persistence.appendSegmentToCheckpoint(next.id, seg));
           },
@@ -1334,7 +1406,14 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           engineId: engine?.engineId,
           modelId: engine?.currentModelId,
         );
-        appStateNotifier.completeTranscription(fullSegments, performance: perf);
+        // Aggregate batch view: don't fire per-job
+        // completeTranscription while the pool is alive — the
+        // final completion (with last-finishing job's segments)
+        // fires in the finally block below.
+        if (pool == null) {
+          appStateNotifier.completeTranscription(fullSegments,
+              performance: perf);
+        }
 
         String? historyId;
         try {
@@ -1367,8 +1446,165 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         queue.setError(next.id, e.toString());
         Log.instance.e('batch', 'job failed',
             fields: {'id': next.id}, error: e, stack: st);
-        appStateNotifier.setError(e.toString());
+        // Aggregate-mode: don't surface per-job errors as a global
+        // appState error (it'd kick the screen out of "batch
+        // running" mode while other workers are still going). The
+        // queue card row already shows the error status + message.
+        if (pool == null) appStateNotifier.setError(e.toString());
       }
+    }
+    } finally {
+      // Drain remaining in-flight pool work before teardown so
+      // segments + history saves complete cleanly.
+      while (inFlight.isNotEmpty) {
+        await Future.any(inFlight);
+      }
+      // Pool teardown — sends 'shutdown' to each worker, gives
+      // them 100 ms to close the session, then kills the isolate.
+      if (pool != null) {
+        await pool.shutdown();
+        // Aggregate completion: surface the final state of the
+        // batch as a single "done" event. We don't have a
+        // canonical "batch segments" so we use whatever the
+        // serial fallback left in AppState, or empty.
+        final st = ref.read(appStateProvider);
+        appStateNotifier.completeTranscription(
+            st.segments,
+            performance: null);
+      }
+    }
+  }
+
+  /// Pool eligibility check (§5.23 Q2 v2). The worker isolate's
+  /// transcribe path is a bare `session.transcribe(samples)`. Any
+  /// job that needs the main-isolate engine plumbing (resume
+  /// offset routing, VAD slicing, diarization, punctuation, speech
+  /// translation, Q&A, beam search, best-of, tinydiarize) falls
+  /// through to the serial code below — pool stays alive for the
+  /// vanilla jobs in between.
+  static bool _jobCanUsePool(BatchJob job, AdvancedOptions adv,
+      bool enableDiarization) {
+    if ((job.resumeOffsetSec ?? 0) > 0) return false;
+    if (adv.vad) return false;
+    if (enableDiarization) return false;
+    if (adv.restorePunctuation) return false;
+    if (adv.translate) return false;
+    if (adv.targetLanguage.isNotEmpty) return false;
+    if (adv.askPrompt.isNotEmpty) return false;
+    if (adv.beamSearch) return false;
+    if (adv.bestOf > 1) return false;
+    if (adv.tdrz) return false;
+    return true;
+  }
+
+  /// Spawn an N-way session pool when the user has opted in
+  /// (`Settings.maxConcurrentSessions > 1`) AND the memory
+  /// estimator says N workers fit. Returns null in every other
+  /// case — the drain loop then walks the serial path.
+  Future<TranscriptionWorkerPool?> _maybeSpawnWorkerPool({
+    required AdvancedOptions adv,
+  }) async {
+    final settings = ref.read(settingsServiceProvider);
+    final requested = settings.maxConcurrentSessions;
+    if (requested <= 1) return null;
+    final modelDef = ModelService.whisperCppModels[_modelName] ??
+        ModelService.crispasrBackendModels[_modelName];
+    if (modelDef == null) {
+      Log.instance.d('batch',
+          'pool skipped: $_modelName not in catalog (custom GGUF?)');
+      return null;
+    }
+    final modelsDir = ref.read(modelServiceProvider).whisperCppDir();
+    final modelPath = p.join(modelsDir, modelDef.fileName);
+    final estimator = ref.read(memoryEstimatorProvider);
+    final est = estimator.estimate(
+        requested: requested, modelPath: modelPath);
+    if (est.affordableWorkers <= 1) {
+      Log.instance.i('batch',
+          'pool skipped: pre-flight clamped to 1 worker (${est.reason})',
+          fields: {
+            'requested': requested,
+            'model_mb': est.modelBytesPerWorker ~/ (1024 * 1024),
+          });
+      return null;
+    }
+    Log.instance.i('batch',
+        'spawning pool: ${est.affordableWorkers} workers (requested $requested)',
+        fields: {
+          'model': _modelName,
+          'projected_gb':
+              (est.projectedUsageBytes / (1024 * 1024 * 1024))
+                  .toStringAsFixed(2),
+        });
+    try {
+      return await TranscriptionWorkerPool.spawn(
+        count: est.affordableWorkers,
+        modelPath: modelPath,
+        backend: modelDef.backend,
+        useGpu: adv.asrUseGpu,
+        flashAttn: adv.asrFlashAttn,
+        nThreads: adv.nThreads,
+        nGpuLayers: adv.asrNGpuLayers,
+      );
+    } catch (e, st) {
+      Log.instance
+          .w('batch', 'pool spawn failed; falling back to serial: $e',
+              stack: st);
+      return null;
+    }
+  }
+
+  /// Per-job pool dispatch. Loads audio on the main isolate (uses
+  /// the §5.23 Q2 v1 prefetch when warm), hands the samples off to
+  /// a free worker, streams segments through the checkpoint file
+  /// (NOT AppState — aggregate mode), and on completion saves to
+  /// history + marks the job done.
+  Future<void> _runJobOnPool({
+    required TranscriptionWorkerPool pool,
+    required BatchJob job,
+    required String? language,
+    required BatchPersistenceService persistence,
+    required BatchQueueNotifier queue,
+  }) async {
+    final audioService = ref.read(audioServiceProvider);
+    Log.instance.i('batch', 'pool job start',
+        fields: {'id': job.id, 'file': job.filePath});
+    final started = DateTime.now();
+    try {
+      final audioData = await audioService.loadAudioFile(File(job.filePath));
+      final segments = await pool.dispatch(
+        samples: audioData.samples,
+        language: language,
+        onSegment: (seg) {
+          unawaited(persistence.appendSegmentToCheckpoint(job.id, seg));
+        },
+      );
+      String? historyId;
+      try {
+        final saved = await ref.read(historyServiceProvider).save(
+              engineId: 'crispasr',
+              modelId: _modelName,
+              language: language,
+              segments: segments,
+              sourcePath: job.filePath,
+              diarizationEnabled: false,
+              processingTime: DateTime.now().difference(started),
+              speakerNames: const {},
+            );
+        historyId = saved.id;
+      } catch (e, st) {
+        Log.instance.w('batch', 'history save failed (pool path)',
+            fields: {'id': job.id}, error: e, stack: st);
+      }
+      queue.setDone(job.id,
+          resultText: segments.map((s) => s.text).join(' ').trim(),
+          historyEntryId: historyId);
+      Log.instance.i('batch', 'pool job done',
+          fields: {'id': job.id, 'segments': segments.length});
+    } catch (e, st) {
+      Log.instance.e('batch', 'pool job failed',
+          fields: {'id': job.id}, error: e, stack: st);
+      queue.setError(job.id, e.toString());
     }
   }
 

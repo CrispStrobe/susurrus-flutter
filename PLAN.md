@@ -456,18 +456,28 @@ launch-blocker; the rest are quality issues that surface in use.
       orange "Clamped to N of M workers — model too big" hint
       when the estimator already would refuse the slider value.
 
-  Still pending:
-    * Drain-loop integration in `transcription_screen.dart`. The
-      blocker is that the existing AppState assumes one active
-      transcription — parallel runs would interleave N files'
-      segments into the same display. Three plausible shapes:
-      (a) batch-mode UI strips per-file segment streaming and
-      shows aggregate "N running" status instead;
-      (b) AppState gets a per-job segments map keyed by jobId
-      and the UI switches between display modes;
-      (c) parallel mode only activates when batch size > some
-      threshold so single-file UX stays untouched.
-      Pick one before wiring the pool through.
+  Drain-loop integration shipped May 2026 (option (a) — aggregate
+  batch view). Pool is opt-in via `Settings.maxConcurrentSessions`,
+  gated by `MemoryEstimator.estimate` at `_startBatchRun()` open
+  time. When the pool is alive, the drain loop:
+    1. fires `appStateNotifier.startTranscription()` ONCE at batch
+       open (instead of per-job),
+    2. dispatches "vanilla" jobs (no resume offset / VAD /
+       diarization / punctuation / translate / Q&A / beam-search /
+       best-of / tinydiarize — see `_jobCanUsePool` for the list)
+       to the pool with the in-flight set capped at `pool.size`,
+    3. handles pool-ineligible jobs serially within the same loop
+       (pool keeps running between them),
+    4. drops the live `addSegment` → AppState path for pool jobs
+       (segments still hit `.ckpt.jsonl`); the queue card is the
+       source of truth in aggregate mode,
+    5. on batch finish, fires one `completeTranscription` with
+       whatever segments AppState last held (or empty for an all-
+       parallel run),
+    6. tears the pool down in `finally` even on uncaught errors.
+  Spawn failures gracefully degrade to the serial+prefetch path.
+  Per-job pool dispatch failures mark the job as error and the
+  drain loop continues; one bad worker doesn't kill the batch.
 
 **Q3 deferred sub-items — all shipped May 2026:**
 
