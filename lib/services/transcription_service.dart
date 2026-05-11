@@ -196,6 +196,11 @@ class TranscriptionService {
     int? minSpeakers,
     int? maxSpeakers,
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    /// §5.23 Q3 resume offset. When > 0 the engine skips audio
+    /// before this second mark and emits segments with absolute
+    /// timestamps. Caller (the batch drain loop) populates this
+    /// from BatchJob.resumeOffsetSec after a crash-recovered job.
+    double startOffsetSec = 0.0,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -254,6 +259,7 @@ class TranscriptionService {
         temperature: temperature,
         bestOf: bestOf,
         advanced: advanced,
+        startOffsetSec: startOffsetSec,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
         onSegment: onSegment,
       );
@@ -531,6 +537,7 @@ class TranscriptionService {
     double temperature = 0.0,
     int bestOf = 1,
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    double startOffsetSec = 0.0,
     void Function(double progress)? onProgress,
     void Function(TranscriptionSegment segment)? onSegment,
   }) async {
@@ -556,6 +563,7 @@ class TranscriptionService {
         temperature: temperature,
         bestOf: bestOf,
         advanced: advanced,
+        startOffsetSec: startOffsetSec,
         onSegment: onSegment,
         onProgress: onProgress,
       );

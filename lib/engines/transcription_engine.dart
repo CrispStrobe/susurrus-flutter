@@ -73,6 +73,15 @@ abstract class TranscriptionEngine {
     /// token timestamps). Defaults mirror historical behaviour so
     /// existing call sites don't change.
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    /// Resume offset for crash-recovery (§5.23 Q3). When > 0 the
+    /// engine skips audio before this second mark and emits segments
+    /// whose timestamps are absolute (i.e. start at the offset, not
+    /// at 0). For whisper backends this is implemented by starting the
+    /// chunked-whisper loop at the chunk containing the offset; for
+    /// session backends by trimming leading PCM samples + shifting
+    /// emitted timestamps. Defaults to 0.0 — single-file and fresh
+    /// batch runs keep their existing behaviour.
+    double startOffsetSec = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   });

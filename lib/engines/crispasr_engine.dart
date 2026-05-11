@@ -458,6 +458,7 @@ class CrispASREngine implements TranscriptionEngine {
     double temperature = 0.0,
     int bestOf = 1,
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    double startOffsetSec = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -624,12 +625,21 @@ class CrispASREngine implements TranscriptionEngine {
             initialPrompt: initialPrompt,
             bestOf: bestOf,
             advanced: advanced,
+            startOffsetSec: startOffsetSec,
             onSegment: onSegment,
             onProgress: onProgress,
           );
         } else {
+          // Non-chunked whisper path. For §5.23 Q3 resume: trim the
+          // leading samples then shift the emitted segments so their
+          // timestamps stay absolute. Short-file resume is rare (the
+          // chunking path takes over above 60 s) so we do the simple
+          // thing — sublist + per-segment shift.
+          final trimmed = startOffsetSec <= 0
+              ? audioData
+              : _trimLeadingSamples(audioData, startOffsetSec);
           final nativeSegments = await _runTranscription(
-            audioData,
+            trimmed,
             language: language,
             wordTimestamps: enableWordTimestamps,
             translate: translate,
@@ -640,19 +650,55 @@ class CrispASREngine implements TranscriptionEngine {
             bestOf: bestOf,
             advanced: advanced,
           );
-          segments = _mapWhisperSegments(
-              nativeSegments, enableWordTimestamps, onSegment);
+          final mapped = _mapWhisperSegments(
+              nativeSegments, enableWordTimestamps, null);
+          segments = startOffsetSec <= 0
+              ? mapped
+              : mapped
+                  .map((s) => shiftSegmentForResume(s,
+                      offsetSeconds: startOffsetSec))
+                  .toList(growable: false);
+          // Re-fire onSegment with the post-shift timestamps so the
+          // streamed-into-the-UI stamps stay monotonic with the
+          // pre-loaded checkpoint segments.
+          if (onSegment != null) {
+            for (final s in segments) {
+              onSegment(s);
+            }
+          }
         }
       } else {
-        // Unified session path (Parakeet, Canary, etc.)
+        // Unified session path (Parakeet, Canary, etc.). §5.23 Q3
+        // resume: trim leading samples + shift the emitted segments.
+        // Note: most session backends (voxtral, qwen3-asr, granite,
+        // glm-asr) emit one big segment, so the resume granularity
+        // for those is effectively whole-file. Callers should think
+        // twice before resuming an LLM-style backend job —
+        // BatchQueueNotifier still wires it through here so the
+        // *transcript prefix the user already saw* is preserved
+        // via the checkpoint-replay path in the UI.
+        final trimmed = startOffsetSec <= 0
+            ? audioData
+            : _trimLeadingSamples(audioData, startOffsetSec);
         final sessionSegments = await _runSessionTranscription(
-          audioData,
+          trimmed,
           language: language,
           vad: vad,
           vadModelPath: vadModelPath,
           advanced: advanced,
         );
-        segments = _mapSessionSegments(sessionSegments, onSegment);
+        final mapped = _mapSessionSegments(sessionSegments, null);
+        segments = startOffsetSec <= 0
+            ? mapped
+            : mapped
+                .map((s) => shiftSegmentForResume(s,
+                    offsetSeconds: startOffsetSec))
+                .toList(growable: false);
+        if (onSegment != null) {
+          for (final s in segments) {
+            onSegment(s);
+          }
+        }
 
         // Post-step: if word timestamps were requested and this session
         // backend didn't emit any (qwen3, voxtral, voxtral4b, granite,
@@ -775,6 +821,53 @@ class CrispASREngine implements TranscriptionEngine {
     );
   }
 
+  /// Trim the leading `offsetSeconds` worth of 16 kHz mono samples
+  /// from `audio`. Returns a sublist view, no copy. If the offset
+  /// exceeds the buffer length, returns an empty view (the caller
+  /// will see a zero-segment result, which the drain loop treats as
+  /// "job already complete" — the checkpoint must have covered the
+  /// full file).
+  static Float32List _trimLeadingSamples(
+      Float32List audio, double offsetSeconds) {
+    if (offsetSeconds <= 0) return audio;
+    const sampleRate = 16000;
+    final start = (offsetSeconds * sampleRate).round();
+    if (start >= audio.length) return Float32List(0);
+    return Float32List.sublistView(audio, start);
+  }
+
+  /// Shift a segment's timestamps by `offsetSeconds` for §5.23 Q3
+  /// resume-from-checkpoint. Same arithmetic as [shiftSegmentByOffset]
+  /// but skips the chunked-whisper metadata stamping — appropriate
+  /// when the offset originates from a checkpoint replay (whisper
+  /// non-chunked path + session path) rather than a chunk index.
+  /// Public for `test/batch_resume_offset_test.dart`.
+  static TranscriptionSegment shiftSegmentForResume(
+    TranscriptionSegment raw, {
+    required double offsetSeconds,
+  }) {
+    if (offsetSeconds == 0) return raw;
+    return TranscriptionSegment(
+      text: raw.text,
+      startTime: raw.startTime + offsetSeconds,
+      endTime: raw.endTime + offsetSeconds,
+      speaker: raw.speaker,
+      confidence: raw.confidence,
+      words: raw.words
+          ?.map((w) => TranscriptionWord(
+                word: w.word,
+                startTime: w.startTime + offsetSeconds,
+                endTime: w.endTime + offsetSeconds,
+                confidence: w.confidence,
+              ))
+          .toList(),
+      metadata: {
+        ...raw.metadata,
+        'resumeOffsetSec': offsetSeconds,
+      },
+    );
+  }
+
   Future<List<TranscriptionSegment>> _runChunkedWhisper(
     Float32List audioData, {
     String? language,
@@ -784,6 +877,7 @@ class CrispASREngine implements TranscriptionEngine {
     String? initialPrompt,
     int bestOf = 1,
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    double startOffsetSec = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
@@ -792,9 +886,28 @@ class CrispASREngine implements TranscriptionEngine {
     const chunkSamples = chunkSeconds * sampleRate;
     final totalSamples = audioData.length;
     final nChunks = (totalSamples / chunkSamples).ceil();
+    // §5.23 Q3 resume: skip the chunks below the requested offset.
+    // Chunk-aligned skip — leaves at most a `chunkSeconds`-sized
+    // overlap of work the checkpoint may already cover, which is
+    // tolerable (and the caller's pre-loaded segments stay visible
+    // until the new ones land alongside). Equivalent shorter-but-
+    // misleading: trimming the input PCM would force the chunk
+    // timestamps onto a non-30-s grid, breaking the offset assumption
+    // used by downstream callers.
+    final firstChunk = startOffsetSec <= 0
+        ? 0
+        : (startOffsetSec * sampleRate / chunkSamples).floor();
+    if (firstChunk > 0) {
+      Log.instance.i('crispasr', 'resume: skipping first $firstChunk chunk(s)',
+          fields: {
+            'startOffsetSec': startOffsetSec.toStringAsFixed(3),
+            'firstChunk': firstChunk,
+            'nChunks': nChunks,
+          });
+    }
 
     final allSegments = <TranscriptionSegment>[];
-    for (var i = 0; i < nChunks; i++) {
+    for (var i = firstChunk; i < nChunks; i++) {
       if (_cancelRequested) break;
       final start = i * chunkSamples;
       final end =
@@ -838,8 +951,11 @@ class CrispASREngine implements TranscriptionEngine {
         allSegments.add(shifted);
         onSegment?.call(shifted);
       }
-      // Per-chunk progress: fraction of audio dispatched. Caller scales.
-      onProgress?.call((i + 1) / nChunks);
+      // Per-chunk progress: fraction of REMAINING audio dispatched
+      // (post-resume the progress bar should walk 0→1 across the
+      // unfinished tail, not jump to firstChunk/nChunks on tick 1).
+      final remaining = nChunks - firstChunk;
+      onProgress?.call(remaining <= 0 ? 1.0 : (i - firstChunk + 1) / remaining);
     }
     return allSegments;
   }

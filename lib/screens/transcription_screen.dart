@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -268,11 +269,21 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     setState(() => _selectedFilePath = supported.first.path);
     ref.read(selectedAudioPathProvider.notifier).state = null;
 
-    // Rest: enqueue for batch processing.
+    // Rest: enqueue for batch processing. Snapshot
+    // backend/modelId/language at enqueue time so the drain loop
+    // (and any restart-time resume path) knows which model the job
+    // was intended to run against — §5.23 Q1 grouping + Q3 resume.
     final extras = supported.skip(1).toList();
     final q = ref.read(batchQueueProvider.notifier);
+    final enqueueBackend = ModelService
+            .crispasrBackendModels[_modelName]
+            ?.backend ??
+        ModelService.whisperCppModels[_modelName]?.backend ??
+        'whisper';
+    final enqueueLang = _language == 'auto' ? null : _language;
     for (final f in extras) {
-      q.enqueue(f.path);
+      q.enqueue(f.path,
+          backend: enqueueBackend, modelId: _modelName, language: enqueueLang);
     }
 
     final l = AppLocalizations.of(context);
@@ -951,8 +962,19 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       ref.read(selectedAudioPathProvider.notifier).state = null;
       if (paths.length > 1) {
         final q = ref.read(batchQueueProvider.notifier);
+        // Snapshot backend/modelId/language for the batched files so
+        // a crash-recovered job knows which model to reload — §5.23.
+        final enqueueBackend = ModelService
+                .crispasrBackendModels[_modelName]
+                ?.backend ??
+            ModelService.whisperCppModels[_modelName]?.backend ??
+            'whisper';
+        final enqueueLang = _language == 'auto' ? null : _language;
         for (final p in paths.skip(1)) {
-          q.enqueue(p);
+          q.enqueue(p,
+              backend: enqueueBackend,
+              modelId: _modelName,
+              language: enqueueLang);
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1142,16 +1164,42 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       }
     }
 
+    final persistence = queue.persistence;
+
     while (true) {
       final next = queue.nextQueued();
       if (next == null) break;
       queue.setRunning(next.id);
+      // §5.23 Q3 resume: replay any checkpointed segments into the
+      // appState before dispatch so the user sees the partial
+      // transcript that survived the crash, then the new run picks
+      // up at next.resumeOffsetSec (which load() stamped from the
+      // checkpoint's last segment).
+      final resumeOffset = next.resumeOffsetSec ?? 0.0;
+      List<TranscriptionSegment> resumedPrefix = const [];
+      if (resumeOffset > 0) {
+        try {
+          resumedPrefix = await persistence.loadCheckpoint(next.id);
+          appStateNotifier.startTranscription();
+          for (final s in resumedPrefix) {
+            appStateNotifier.addSegment(s);
+          }
+        } catch (e, st) {
+          Log.instance.w('batch', 'checkpoint replay failed',
+              fields: {'id': next.id}, error: e, stack: st);
+          resumedPrefix = const [];
+        }
+      }
       Log.instance.i('batch', 'job start', fields: {
         'id': next.id,
         'file': next.filePath,
+        if (resumeOffset > 0) 'resume_from_sec': resumeOffset.toStringAsFixed(1),
+        if (resumeOffset > 0) 'resumed_segments': resumedPrefix.length,
       });
       try {
-        appStateNotifier.startTranscription();
+        if (resumeOffset == 0) {
+          appStateNotifier.startTranscription();
+        }
         final started = DateTime.now();
         final segments = await transcriptionService.transcribeFile(
           File(next.filePath),
@@ -1168,19 +1216,37 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           temperature: adv.temperature,
           bestOf: adv.bestOf,
           advanced: advancedRun,
+          startOffsetSec: resumeOffset,
           onProgress: (p) {
             queue.setProgress(next.id, p);
             appStateNotifier.updateProgress(p);
           },
-          onSegment: appStateNotifier.addSegment,
+          // §5.23 Q3 checkpoint streaming — every segment hits the
+          // appState (visible) AND the per-job .ckpt.jsonl on disk
+          // (resumable). Fire-and-forget: a slow disk shouldn't
+          // back-pressure transcription.
+          onSegment: (seg) {
+            appStateNotifier.addSegment(seg);
+            unawaited(
+                persistence.appendSegmentToCheckpoint(next.id, seg));
+          },
         );
+        // Final transcript = recovered prefix (already in appState +
+        // ckpt) ∪ freshly-emitted tail. Dedupe by endTime in case the
+        // engine emitted a segment that the chunked-whisper resume
+        // path also covered.
+        final fullSegments = <TranscriptionSegment>[
+          ...resumedPrefix,
+          ...segments.where((s) =>
+              resumedPrefix.every((r) => r.endTime != s.endTime)),
+        ];
         final engine = transcriptionService.currentEngine;
         final perf = PerformanceStats.fromMetadata(
           transcriptionService.lastResult?.metadata,
           engineId: engine?.engineId,
           modelId: engine?.currentModelId,
         );
-        appStateNotifier.completeTranscription(segments, performance: perf);
+        appStateNotifier.completeTranscription(fullSegments, performance: perf);
 
         String? historyId;
         try {
@@ -1188,7 +1254,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
                 engineId: engine?.engineId ?? 'unknown',
                 modelId: engine?.currentModelId,
                 language: language,
-                segments: segments,
+                segments: fullSegments,
                 sourcePath: next.filePath,
                 diarizationEnabled: _enableDiarization,
                 processingTime: DateTime.now().difference(started),
@@ -1198,12 +1264,16 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         } catch (e, st) {
           Log.instance.w('batch', 'history save failed', error: e, stack: st);
         }
+        // setDone clears the .ckpt file via BatchQueueNotifier's
+        // post-mutation hook, so a successful run leaves no stale
+        // checkpoint behind.
         queue.setDone(next.id,
-            resultText: segments.map((s) => s.text).join(' ').trim(),
+            resultText: fullSegments.map((s) => s.text).join(' ').trim(),
             historyEntryId: historyId);
         Log.instance.i('batch', 'job done', fields: {
           'id': next.id,
-          'segments': segments.length,
+          'segments': fullSegments.length,
+          if (resumeOffset > 0) 'recovered': resumedPrefix.length,
         });
       } catch (e, st) {
         queue.setError(next.id, e.toString());

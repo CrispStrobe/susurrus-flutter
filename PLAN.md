@@ -380,6 +380,59 @@ launch-blocker; the rest are quality issues that surface in use.
 
 ### 5.23 Batch transcription — scale-out, parallelism, save / resume
 
+**Status (May 2026):**
+
+* ✅ **Q1 (foundation)** — per-job JSON persistence under
+  `<app-docs>/batch/default/job-<id>.json`,
+  `BatchPersistenceService` (cross-platform `dart:io` + path_provider,
+  same pattern HistoryService ships on every platform),
+  `BatchQueueNotifier` mirrors every mutation to disk, app-start
+  hydration via `load()` in `main.dart`'s post-frame callback.
+  Running-when-killed jobs demoted to queued. Per-job filesystem-op
+  serializer keeps concurrent unawaited writes from racing each
+  other's rename. 25 new tests.
+* ✅ **Q3 (resume from checkpoint)** — append-only
+  `<id>.ckpt.jsonl` written by the drain loop on every onSegment;
+  `BatchJob.resumeOffsetSec` stamped at app-start from each
+  leftover checkpoint's last segment endTime;
+  `transcribeFile`/`engine.transcribe` gained an optional
+  `startOffsetSec` that routes via `_runChunkedWhisper(firstChunk)`
+  for whisper or `_trimLeadingSamples + shiftSegmentForResume` for
+  the session path; drain loop replays checkpointed segments into
+  AppState before dispatch so the user sees the recovered transcript
+  prefix without a flash. setDone deletes the checkpoint. 9 new
+  tests on the engine helper + load() hydration round-trip.
+
+**Still open:**
+
+* ⏳ **Q1 sub-bullet: backend grouping reorder + duration pre-flight**
+  — opt-in Settings toggle to reorder a queue into
+  `(backend, modelId, language)` bundles so consecutive same-backend
+  jobs reuse the loaded session; pre-flight miniaudio duration
+  probe per job so the queue card shows a real ETA. ~1 day.
+* ⏳ **Q2 (parallel workers)** — Settings slider
+  `Concurrent transcriptions: 1–4`, per-isolate
+  `DynamicLibrary.open` + `CrispasrSession`; iOS clamp to 2 for
+  memory budget. ~1–2 days.
+
+**Q3 deferred sub-items:**
+
+* Mid-batch backend swap awareness — when a resumed job's `backend`
+  field doesn't match the currently-loaded model, the drain loop
+  should silently load the right model rather than reusing the
+  current session. Currently it just runs against whatever model is
+  loaded.
+* iCloud-backup exclusion on iOS for the `batch/` directory
+  (`NSURLIsExcludedFromBackupKey`). Non-blocking; worst case today
+  is a few KB of brief iCloud noise per in-flight job.
+* Localised "recovered N interrupted job(s)" snackbar on app start.
+  Currently the user just sees the queue card auto-populated with
+  the demoted-to-queued jobs and has to hit Start. The log line
+  `hydrated N job(s) from disk resumable=K` is informative for
+  debugging but not user-facing.
+
+**Original §5.23 design (for archive):**
+
 The single-file batch queue from §5.7 (shipped v0.1.4) handles a
 list of files serially with persisted progress. **The next slice
 is about scale: large queues, parallel workers, and reliable

@@ -144,41 +144,68 @@ class BatchQueueNotifier extends StateNotifier<List<BatchJob>> {
 
   /// Hydrate in-memory state from the on-disk queue. Idempotent —
   /// safe to call multiple times. Used by the app-startup wiring in
-  /// `main.dart` and by the resume-from-crash UI in
-  /// `transcription_screen.dart`.
+  /// `main.dart`.
   ///
-  /// Running-when-killed jobs are demoted back to `queued` on load so
-  /// the next drain pass picks them up. A separate §5.23 Q3 path will
-  /// look for matching `.ckpt.jsonl` files and stamp `resumeOffsetSec`
-  /// onto the BatchJob before re-running — that lives in commit 2 of
-  /// this slice.
+  /// Two repair passes (§5.23 Q1 + Q3):
+  ///   1. Running-when-killed jobs are demoted back to `queued` so the
+  ///      next drain pass picks them up.
+  ///   2. For each job whose `.ckpt.jsonl` survived, we stamp
+  ///      `resumeOffsetSec` = endTime of the last checkpointed
+  ///      segment. The drain loop reads that field and starts
+  ///      transcription past the already-completed prefix (whisper
+  ///      via chunked-whisper offset routing; session backends trim
+  ///      leading PCM samples + shift emitted timestamps).
   Future<void> load() async {
     if (_loaded) return;
     _loaded = true;
     try {
       final loaded = await _persistence.loadAllJobs();
-      // Anything that was 'running' when the app died can't still be
-      // running — demote to queued so the drain loop will retry it.
-      final demoted = loaded
-          .map((j) => j.status == BatchJobStatus.running
-              ? j.copyWith(
-                  status: BatchJobStatus.queued,
-                  progress: 0.0,
-                )
-              : j)
-          .toList(growable: false);
-      state = demoted;
-      // Push the demotion back to disk so subsequent loads see the
-      // same state.
-      for (final j in demoted) {
-        if (j.status == BatchJobStatus.queued) {
-          unawaited(_persist(j));
+      // Pass 1: demote running → queued.
+      final repaired = <BatchJob>[];
+      final dirtyIds = <String>{};
+      for (final j in loaded) {
+        if (j.status == BatchJobStatus.running) {
+          repaired.add(j.copyWith(
+            status: BatchJobStatus.queued,
+            progress: 0.0,
+          ));
+          dirtyIds.add(j.id);
+        } else {
+          repaired.add(j);
         }
       }
+
+      // Pass 2: stamp resumeOffsetSec from each leftover checkpoint.
+      // findResumableJobs only returns IDs whose job is non-terminal
+      // AND has a .ckpt.jsonl, so we just probe each match here.
+      final resumableIds =
+          (await _persistence.findResumableJobs()).toSet();
+      int resumeCount = 0;
+      for (var i = 0; i < repaired.length; i++) {
+        final j = repaired[i];
+        if (!resumableIds.contains(j.id)) continue;
+        final segs = await _persistence.loadCheckpoint(j.id);
+        if (segs.isEmpty) continue;
+        final lastEnd = segs.last.endTime;
+        if (lastEnd <= 0) continue;
+        repaired[i] = j.copyWith(resumeOffsetSec: lastEnd);
+        dirtyIds.add(j.id);
+        resumeCount++;
+      }
+
+      state = List<BatchJob>.unmodifiable(repaired);
+      // Push only the mutated jobs back to disk — saves I/O on the
+      // common case where every job round-trips unchanged.
+      for (final j in repaired) {
+        if (dirtyIds.contains(j.id)) unawaited(_persist(j));
+      }
       Log.instance.i('batch-queue',
-          'hydrated ${demoted.length} job(s) from disk', fields: {
-        'queued': demoted.where((j) => j.status == BatchJobStatus.queued).length,
-        'done': demoted.where((j) => j.status == BatchJobStatus.done).length,
+          'hydrated ${repaired.length} job(s) from disk', fields: {
+        'queued':
+            repaired.where((j) => j.status == BatchJobStatus.queued).length,
+        'done':
+            repaired.where((j) => j.status == BatchJobStatus.done).length,
+        'resumable': resumeCount,
       });
     } catch (e, st) {
       Log.instance.w('batch-queue', 'load failed; starting empty',

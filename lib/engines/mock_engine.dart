@@ -177,6 +177,7 @@ class MockEngine implements TranscriptionEngine {
     double temperature = 0.0,
     int bestOf = 1,
     AdvancedTranscribeOptions advanced = const AdvancedTranscribeOptions(),
+    double startOffsetSec = 0.0,
     void Function(TranscriptionSegment segment)? onSegment,
     void Function(double progress)? onProgress,
   }) async {
