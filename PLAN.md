@@ -128,590 +128,231 @@ The same unified dispatcher is shared with the Python (`crispasr.Session`) and R
 
 ## 5. Open roadmap items
 
-### ~~5.1 Finish i18n~~ — **DONE → [HISTORY.md](HISTORY.md)**
+Earlier §5.1–§5.7, §5.11–§5.21, §5.23, and most of §5.8 are
+shipped — see [HISTORY.md](HISTORY.md) for full per-section
+write-ups. What follows is only the work that's still pending.
 
-### ~~5.2 iOS build verification~~ — **DONE → [HISTORY.md](HISTORY.md)** (audit + xcframework wiring; on-device verification still pending — see 5.22 below)
+### 5.1 Competitor-gap features
 
-### ~~5.3 Android native-lib CI wiring~~ — **DONE → [HISTORY.md](HISTORY.md)** (real-ASR APK shipping in releases)
+Audited against MacWhisper, Buzz, Aiko, Whisper Transcription
+(local GUI peers) plus Otter.ai / Fireflies.ai / Descript (cloud)
+in May 2026. CrisperWeaver already does most of what they do AND
+several things they don't (engine breadth, cross-platform, free /
+OSS, multilingual UI, text translation, OpenAI-compatible HTTP
+server, parallel batch pool with OOM pre-flight). The list below
+is what's missing — ranked by impact ÷ effort.
 
-### ~~5.4 Windows CI end-to-end validation~~ — **DONE → [HISTORY.md](HISTORY.md)** (release.yml green; install-on-real-Windows verification still pending)
+#### Tier A — high impact, moderate cost
 
-### ~~5.5 Real speaker diarization~~ — **DONE → [HISTORY.md](HISTORY.md)**
+* **5.1.1 System audio capture** — "Transcribe what's playing in
+  Zoom / YouTube / any app." Buzz has this on macOS via
+  BlackHole / Loopback. Every desktop platform has a native API:
+  ScreenCaptureKit on macOS 12+ (no virtual-audio-device install
+  needed), WASAPI loopback on Windows, PulseAudio /
+  pipewire-pulse `<sink>.monitor` on Linux. iOS doesn't allow
+  system audio capture (Apple restriction); Android has
+  MediaProjection but the docs are sparse and it triggers a
+  user-visible recording-indicator. This is **the** feature that
+  bridges "I have audio files" → "I have any audio source at
+  all" and is probably the single biggest UX gap. Desktop-only
+  v1 first, ~3–5 days end-to-end.
 
-### ~~5.6 Backend-specific UX~~ — **DONE → [HISTORY.md](HISTORY.md)** (Q&A / source+target lang pickers / beam search / best-of-N)
+* **5.1.2 Custom vocabulary / dictionary boost** — Persistent
+  list of "always-recognize-these" terms (brand names, acronyms,
+  technical jargon, people's names). Already plumbed through
+  whisper's `initial_prompt` field; just needs a UI for managing
+  the list + an `AdvancedOptions.vocabulary` array that gets
+  joined into the prompt on every dispatch. MacWhisper Pro sells
+  this as a paid feature. ~1 day.
 
-### ~~5.7 Batch transcription~~ — **DONE in v0.1.4 → [HISTORY.md](HISTORY.md)**
+* **5.1.3 Inline transcript editing** — Click a segment → edit
+  text → re-save. The data model has it (segments are mutable),
+  but no robust click-to-edit UI yet. Polished version with
+  undo + auto-save: ~2 days. Every competitor has this.
 
-### 5.8 Expose more CrispASR capabilities in Advanced Options
+* **5.1.4 History search** — Full-text search across past
+  transcriptions. The JSON files are already there, just need a
+  search index (fts5 via sqflite, or naive grep for small
+  libraries). ~1 day.
 
-Shipped in v0.1.4 (first slice): **translate-to-English**, **beam search** toggle, **initial prompt** text field. Live in the Advanced Options → Advanced decoding block; applies to both single-file and batch runs.
+#### Tier B — high impact, higher cost
 
-Shipped in v0.1.7: **Skip silence (VAD)** toggle. Drives `CrispasrSession.transcribeVad` (session backends) and `TranscribeOptions.vad = true` (whisper) via the new v0.4.4 library C-ABI. Silero v6.2.0 GGUF is bundled as `assets/vad/silero-v6.2.0-ggml.bin` (~885 KB).
+* **5.1.5 Audio waveform visualization with segment sync** —
+  Click a segment, waveform highlights; click waveform, scrubs.
+  `waveform_flutter` exists but isn't great; might need a custom
+  CustomPainter on top of `just_audio`'s PositionStream. ~3 days.
+  Standard in Descript / MacWhisper.
 
-Shipped this session (v0.4.x prep):
-- **Temperature** — slider 0.0–1.0 in Advanced Options, hidden on
-  backends that don't honour `crispasr_session_set_temperature`
-  (whisper, mimo-asr, wav2vec2, …); shown for canary, cohere,
-  parakeet, moonshine. Greedy default (0.0). Threaded through
-  TranscriptionService → TranscriptionEngine → CrispASREngine →
-  `_session.setTemperature(t)` per-call so a previous non-zero value
-  doesn't stick after the user drags back to 0.
+* **5.1.6 LLM post-editing pass** — "Clean up this transcript"
+  button that runs segments through a local LLM (capitalize,
+  remove "um"s, fix obvious mishearings) OR via
+  Anthropic/OpenAI API for cloud users. CrisperWeaver has audio-
+  LLMs (voxtral, granite) but they're audio-instruction-tuned;
+  a small text LLM (Qwen2.5-1.5B-Instruct, ~1 GB) added to the
+  engine pool would be the right tool. ~3–4 days inc. UI.
 
-Shipped after this session's CrispASR best-of-N landed
-(`crispasr_session_set_best_of` + `TranscribeOptions.bestOf`):
-- **Best-of-N** — slider 1–10 in Advanced Options, always visible.
-  Whisper consumes via `wparams.greedy.best_of`; other backends
-  loop externally and pick the highest-mean-confidence transcript
-  (per CrispASR's C-side implementation). `bestOf=1` default = single
-  decode (historical behaviour). Threaded through TranscriptionService
-  → TranscriptionEngine → CrispASREngine, with `setBestOf` set on
-  every dispatch so a previous non-1 value doesn't stick. The Dart
-  wrapper's `setBestOf` method was added in this same change.
-- **Source / target language** — target-lang dropdown shipped in an
-  earlier slice; **source-lang dropdown now shipped** for every
-  multilingual backend via the new
-  `AdvancedOptions.sourceLanguageCapableBackends` set (strict superset
-  of translation-capable, adds parakeet / mimo-asr / firered-asr /
-  kyutai-stt / glm-asr / gemma4-e2b / omniasr-llm{,-unlimited} /
-  moonshine). Hidden on English-only / non-ASR backends (wav2vec2,
-  fastconformer-ctc, kokoro, orpheus, chatterbox, indextts,
-  vibevoice-tts, pyannote, firered-punc, fullstop-punc). The pinned
-  value flows through `CrispASREngine.transcribe` → both the per-call
-  `language:` arg AND `session.setSourceLanguage(lang)` (defense-in-
-  depth — empty value clears, `-2` rc is logged + swallowed for
-  backends that don't honour the sticky setter at runtime).
-- **Audio Q&A (`--ask`)** — shipped (the prompt field in Advanced).
-- **Beam search via session API** — May 2026: new
-  `crispasr_session_set_beam_size` C-ABI lets the worker pool
-  drive beam search through the session abstraction (whisper
-  consumes it natively today, switching `wparams.strategy =
-  BEAM_SEARCH; wparams.beam_search.beam_size = n`). Worker
-  protocol carries `beamSize`; pool dispatches forward it; the
-  Settings beam-search toggle now stays POOL-eligible. Tracked
-  follow-up: the other beam-capable backends per the
-  CrispASR feature matrix (granite, voxtral, qwen3, glm-asr,
-  kyutai-stt, firered, moonshine, omniasr / omniasr-llm) have
-  CLI-level beam search via `core_beam_decode::run_*` but their
-  high-level transcribe APIs don't take a beam_size yet — wiring
-  each per-backend is its own CrispASR-side increment.
-- **More CrispASR CLI features worth surfacing** — the CLI
-  exposes a handful of knobs CrisperWeaver doesn't yet:
-  * `--offset-t` / `--duration` — process only a [t0..t0+d) window
-    of an audio file. Useful for "transcribe minute 5–10 of this
-    podcast" workflows; needs an engine-side Float32List slice +
-    timestamp shift (similar to the resume-offset machinery but
-    bilateral) + UI affordance.
-  * `--alt N` / `--alt-n` — alternative token candidates with
-    probabilities. Power-user feature for transcript correction;
-    needs C-ABI plumbing for the alt-decoder output + UI.
-  * `--word-thold` / `--entropy-thold` / `--logprob-thold` /
-    `--no-speech-thold` — whisper decoder fallback thresholds.
-    Already in the binding but not exposed in CrisperWeaver UI.
-  * `--no-fallback` — disable temperature fallback chain. Edge
-    case but trivial to surface.
-  * `--max-len` / `--split-on-word` / `--split-on-punct` —
-    subtitle line formatting. The whisper context-params API
-    already accepts these; CrisperWeaver formats segments
-    post-hoc instead.
-  * `--suppress-nst` / `--suppress-regex` — token suppression.
-    Niche; needs whisper-specific wparams plumbing.
-  * `--carry-initial-prompt` — sticky vs reset behaviour for the
-    initial prompt across segments. Edge case.
-  * `--print-confidence` — token-level confidence in the output.
-    Already partially supported (segments carry a `confidence`
-    field); the wts / json exporters could expose per-token
-    confidence.
-  * `--temperature-inc` — temperature increment for the decoder
-    fallback chain. Pairs with the threshold flags above.
-  None of these are blocking; they're listed here so we don't
-  re-discover them next time someone audits CLI parity.
-- **Grammar (GBNF)** — Whisper-only, niche but valuable for
-  structured output. **Deferred**: needs new CrispASR work, not just
-  CrisperWeaver UI. Specifically:
-  1. Promote `examples/grammar-parser.{h,cpp}` → `src/` so libcrispasr
-     links it (currently CLI-only).
-  2. New C-ABI `crispasr_session_set_grammar_text(s, gbnf, rule_name,
-     penalty)` that calls `grammar_parser::parse` and stores the
-     parsed `whisper_grammar_element` graph in the session.
+* **5.1.7 Templates / presets** — Save current `(model,
+  AdvancedOptions, export formats)` as named preset. "Podcast
+  prep", "Voice memos", "Multilingual interview". ~1 day.
+  Low-glamor, high power-user love.
+
+#### Tier C — niche but cool
+
+* **5.1.8 Meeting-style summarization** (action items / topics /
+  decisions) — Same machinery as 5.1.6 with structured-output
+  prompt templates. Requires 5.1.6 first.
+* **5.1.9 Subtitle burning into video** — User selects a video
+  file + transcript, gets a video with hardcoded subs. FFmpeg
+  subprocess. ~1 day desktop-only.
+* **5.1.10 Audio enhancement before transcribe** — Noise
+  reduction (RNNoise FFI), dereverberation. Useful for bad
+  recordings. ~2–3 days of FFI integration.
+* **5.1.11 Hotkey / global shortcut** — "Push-to-transcribe from
+  anywhere" via a system-level hotkey. `hotkey_manager` package
+  exists. ~1 day desktop, no-op on mobile.
+* **5.1.12 Voice cloning workflow** — Wizard "record 10s →
+  clone" on top of existing chatterbox / indextts / qwen3-tts.
+  ~2 days UX work; the engines are there.
+
+#### Tier D — skip / wait for demand
+
+* Cloud sync (high effort, splits the privacy story)
+* Web UI on top of the HTTP server (desktop app covers this
+  audience already)
+* Final Cut / Premiere XML export (real niche)
+* Voice commands during recording (low value vs. UX complexity)
+
+### 5.8 Advanced-Options leftovers
+
+Most of §5.8 is shipped — see [HISTORY.md → "Advanced Options
+completeness — May 2026"](HISTORY.md). What's still pending:
+
+* **GBNF (grammar-constrained sampling)** — Whisper-only, niche
+  but valuable for structured output (force JSON / SKUs / phone-
+  number shape). **Deferred**: needs new CrispASR work, not just
+  CrisperWeaver UI. Six concrete steps:
+  1. Promote `CrispASR/examples/grammar-parser.{h,cpp}` → `src/`
+     so libcrispasr links it (currently CLI-only).
+  2. New C-ABI `crispasr_session_set_grammar_text(s, gbnf,
+     rule_name, penalty)` that calls `grammar_parser::parse` and
+     stores the parsed `whisper_grammar_element` graph in the
+     session.
   3. Thread the parsed rules into `wparams.grammar_rules` /
-     `n_grammar_rules` / `grammar_rule` / `grammar_penalty` on every
-     whisper transcribe dispatch.
-  4. Dart binding `CrispasrSession.setGrammar(text, rule, penalty)`
-     with the usual `providesSymbol` guard.
-  5. CrisperWeaver UI: `grammarText` + `grammarRule` + `grammarPenalty`
-     in `AdvancedOptions`, a multiline TextField gated on
-     `_activeBackend() == 'whisper'`, plumbed through
+     `n_grammar_rules` / `grammar_rule` / `grammar_penalty` on
+     every whisper transcribe dispatch.
+  4. Dart binding `CrispasrSession.setGrammar(text, rule,
+     penalty)` with the usual `providesSymbol` guard.
+  5. CrisperWeaver UI: `grammarText` + `grammarRule` +
+     `grammarPenalty` in `AdvancedOptions`, multiline TextField
+     gated on `_activeBackend() == 'whisper'`, plumbed through
      `CrispASREngine.transcribe`.
-  6. Unit tests on both repos (Catch2 round-trip the parser + Flutter
-     widget test on the visibility gate).
-  Estimated effort: 2–3 days of careful work + new tests on both
-  sides. Track here until prioritised; see also CrispASR PLAN.
-- ✅ **Streaming on mic** — already wired. `lib/widgets/audio_recorder_widget.dart` exposes a "Stream" toggle: when on, `audioService.startStreamingRecording()` opens a live PCM stream into `engine.transcribeStream`, and each emitted segment overwrites the rolling text via `AppStateNotifier.replaceLiveStreamingText`. Whisper-only (others don't expose the streaming session API). Error dialogs localised in this session.
-- **Auto-download default** — CrispASR's `-m auto` per backend.
-  *Needs a design pass before becoming a dev task:* the model catalog
-  has no `isDefault` flag, the Model Management list is per-quant not
+  6. Tests on both repos.
+  Estimated 2–3 days. Track here until prioritised; matching
+  entry in CrispASR PLAN.
+
+* **CrispASR CLI features missing from CrisperWeaver** — found
+  during the §5.23 beam-search audit, listed here so the next
+  parity pass doesn't have to rediscover them:
+  - `--offset-t` / `--duration` — process only a [t0, t0+d)
+    audio window. Useful for "transcribe minute 5–10 of this
+    podcast." Needs engine-side slice + timestamp shift (same
+    machinery as resume-offset, bilateral). ~1 day.
+  - `--alt N` / `--alt-n` — alternative token candidates with
+    probabilities. Power-user feature; needs C-ABI plumbing for
+    alt-decoder output + UI. ~2 days.
+  - Whisper decoder fallback thresholds (`--word-thold`,
+    `--entropy-thold`, `--logprob-thold`, `--no-speech-thold`,
+    `--no-fallback`, `--temperature-inc`) — already in the Dart
+    binding, just not in the UI. ~half day to surface as
+    Advanced Options rows + localised strings.
+  - Subtitle line formatting (`--max-len`, `--split-on-word`,
+    `--split-on-punct`) — already in whisper context-params;
+    CrisperWeaver post-formats instead. ~1 day to wire through.
+  - Token suppression (`--suppress-nst`, `--suppress-regex`),
+    `--carry-initial-prompt`, `--print-confidence` — niche edge
+    cases. ~1 hour each.
+
+* **Auto-download default** — CrispASR's `-m auto` per backend.
+  *Needs a design pass before becoming a dev task:* model catalog
+  has no `isDefault` flag, Model Management is per-quant not
   per-backend, and "smallest functional default" varies wildly
-  (whisper-tiny works standalone; parakeet has one variant; kokoro
-  needs a paired voicepack; voxtral-q4_k is gigabytes). Three plausible
-  shapes — (a) a `recommendedDefault: true` flag on `ModelDefinition`
-  + a "Recommended" badge in the cards, (b) a "Quick start" AppBar
-  action with a curated bottom-sheet ("Whisper Tiny + parakeet + a
-  kokoro voice"), (c) per-backend collapsible sections each with a
+  (whisper-tiny standalone; parakeet has one variant; kokoro
+  needs a voicepack; voxtral-q4_k is gigabytes). Three plausible
+  shapes — (a) `recommendedDefault: true` flag + "Recommended"
+  badge, (b) "Quick start" AppBar bottom-sheet with curated
+  combo, (c) per-backend collapsible sections each with a
   "Download default" header button. Pick one before implementing.
 
-**Where:** `lib/widgets/advanced_options_widget.dart` (new), swap the inline block in `transcription_screen.dart`. Also a new enum `EngineCapability { vad, beamSearch, bestOf, temperature, initialPrompt, translation, audioQA, grammar, streaming }` on `TranscriptionEngine` so the UI knows which controls to show.
+### 5.18 Test-suite speed — CoreML for whisper still pending
 
-**Risk:** low-medium. Each knob is independently wired — incremental shipping works. The FFI is already in place for most of these; we're adding surface, not behaviour.
+MTLBinaryArchive pipeline cache shipped (38× cold-start speedup)
+— see [HISTORY.md](HISTORY.md).
 
-### ~~5.11 LID + forced aligner wiring~~ — **DONE → [HISTORY.md](HISTORY.md)**
-
-### ~~5.12 Punctuation restoration (FireRedPunc)~~ — **DONE → [HISTORY.md](HISTORY.md)** (`fullstop-punc` multilang variant added in the May 2026 sweep)
-
-### ~~5.13 CrispASR registry discovery~~ — **DONE → [HISTORY.md](HISTORY.md)**
-
-### ~~5.14 TTS integration~~ — **DONE → [HISTORY.md](HISTORY.md)** (4 backends pre-sweep + 5 more added in May 2026)
-
-### ~~5.15 mimo-asr session dispatch~~ — **DONE → [HISTORY.md](HISTORY.md)**
-
-### ~~5.17 Quality gate + integration tests~~ — **DONE → [HISTORY.md](HISTORY.md)**
-
-### ~~5.18 Test-suite speed~~ — **MTLBinaryArchive done → [HISTORY.md](HISTORY.md)**; CoreML for whisper still open
-
-In-app side and the persistent Metal pipeline cache are both
-shipped now. **Persistent `MTLBinaryArchive` pipeline cache** landed
-in CrispASR commit `2665b1e5` (PLAN #88 / CrisperWeaver §5.18):
-
-* Cold start: 5888 ms whisper, 22.5 s wall (M1 Max,
-  whisper-tiny + jfk.mp3)
-* Warm start (cache complete): 370 ms whisper, 0.6 s wall — **38×
-  speedup**
-
-Auto-managed at `~/Library/Caches/ggml-metal/<device>.archive`
-(~683 KB per device); env vars `GGML_METAL_PIPELINE_CACHE` (path
-override) + `GGML_METAL_PIPELINE_CACHE_DISABLE=1` (opt out). Every
-CrispASR consumer benefits — CLI, CrisperWeaver, the test sweep,
-the OpenAI server. Full pre-sweep + benchmark detail in
-[HISTORY.md](HISTORY.md).
-
-**Still open**:
+**Still pending**:
 
 | Win | Projected speedup | Status |
 |---|---|---|
-| CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` build flag, ship paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2–3× | Deferred to a future CrispASR cycle |
+| CoreML for whisper on Apple Silicon (`WHISPER_USE_COREML=1` + paired `.mlmodelc`) | Whisper-tiny already 6 s; large-v3 → 2–3× | Deferred to a future CrispASR cycle |
 | Re-download q4_k variants for vibevoice / orpheus | vibevoice 17:22 → ~4 min projected; orpheus 11:50 → ~5 min | Blocked on HF availability |
 
-### ~~5.16 Build automation~~ — **DONE → [HISTORY.md](HISTORY.md)**
+### 5.22 iOS on-device verification — pending
 
-### ~~5.19 Real-time partial display during file transcribe~~ — **DONE → [HISTORY.md](HISTORY.md)** (chunked-whisper `onSegment` streaming wired through `AppStateNotifier.addSegment`)
+Static audit + xcframework bundling + plist cleanup all shipped
+— see [HISTORY.md](HISTORY.md). What's left needs an iPhone:
 
-### ~~5.20 Speaker name labels~~ — **DONE → [HISTORY.md](HISTORY.md)** (tap-to-rename chip + history-schema `speakerNames: Map<String, String>` with backward-compat loader)
+1. **Mic permission prompt** — First `record.hasPermission()` must
+   show the system mic prompt (`NSMicrophoneUsageDescription`
+   already set). Verify initial-grant + "denied → Settings →
+   toggle on" recovery.
+2. **Streaming mic** — `AudioRecorder.startStream` with PCM16 @
+   16 kHz is documented as iOS-supported but only the macOS path
+   has been exercised. Confirm sub-second chunk cadence + live
+   heartbeat.
+3. **Recording → playback transitions** — `just_audio` configured
+   with `AudioSessionConfiguration.speech()`; needs on-device
+   confirmation that switching mic → file → mic is smooth.
+4. **Background audio continuation** — `UIBackgroundModes =
+   [audio]` declared; verify streaming mic survives screen-lock.
+5. **Share intake** — "Open in CrisperWeaver" from Files / Mail
+   delivers a path through `receive_sharing_intent`; verify the
+   path is readable (security-scoped) and picked up correctly.
+6. **`FilePicker.pickFiles`** — UIDocumentPicker copies to temp;
+   verify the returned path is openable by `just_audio`.
+7. **CoreML companion `.mlmodelc`** — verify
+   `getApplicationDocumentsDirectory()` is writable for the
+   unzip target and that the companion actually loads ("Loading
+   Core ML model" in libwhisper logs).
+8. **`PrivacyInfo.xcprivacy`** — required for App Store Connect
+   uploads from May 2024. NSUserDefaults + FileTimestamp APIs
+   used; add the manifest before first TestFlight upload.
 
-### ~~5.21 Background download manager + Storage tab~~ — **DONE → [HISTORY.md](HISTORY.md)**
+**Risk:** medium-high. Item 1 (xcframework bundling) was the
+only launch-blocker and is done. The rest are quality issues
+that surface in use.
 
-### 5.22 iOS feature parity verification — AUDIT DONE; ON-DEVICE PASS PENDING
+**Pre-existing detail on the xcframework bundling +
+auto-fix audit:** [HISTORY.md → "iOS feature parity"](HISTORY.md).
+### 5.23 Batch transcription — scale-out, parallelism, save/resume
 
-**Static-audit fixes applied (no device needed):**
-* CoreML companion download was gated `Platform.isMacOS` only;
-  every modern iPhone has the Apple Neural Engine, so the
-  `.mlmodelc` is just as load-bearing on iOS. Now fires for both
-  (`lib/services/model_service.dart` near `_maybeFetchCoreMLCompanion`).
-* `ios/Runner/Info.plist` had two booby-traps that would have made
-  iOS launch noisy or unstable:
-  - `NSExtension { NSExtensionPointIdentifier =
-    com.apple.widgetkit-extension }` at the host-app level — that
-    key only belongs in an extension target's Info.plist; in the
-    main app it tells iOS to treat the host bundle as an extension.
-    Removed.
-  - `UIApplicationSceneManifest` referencing
-    `$(PRODUCT_MODULE_NAME).SceneDelegate`, but no `SceneDelegate.swift`
-    exists in the target. iOS 13+ would log a scene-connection failure
-    and fall back to the AppDelegate path on every launch. Removed
-    the manifest; a real `SceneDelegate.swift` has to land before we
-    re-introduce it.
-* The custom-models-dir picker is now hidden on iOS
-  (`lib/screens/settings_screen.dart`). On the iOS sandbox an
-  arbitrary host path is meaningless without security-scoped
-  bookmarks; the default `<app-docs>/models/whisper_cpp/` is the only
-  sane location until that flow is built.
+✅ **Shipped May 2026.** All four sub-questions (Q1 foundation,
+Q1 grouping + duration probe, Q2 v1 pipeline prefetch, Q2 v2
+N-way session pool with OOM pre-flight + worker-protocol
+expansion + drain-loop integration, Q3 resume-from-checkpoint,
+Q3 polish) shipped end-to-end. Full per-step write-up in
+[HISTORY.md → §5.23](HISTORY.md).
 
-**Still needs a real device:**
+**Still pending — small CrispASR-side follow-up:**
 
-1. **Native library bundling.** ✅ DONE — verified end-to-end on this
-   machine. Two new scripts wire it in:
-
-   - `scripts/build_ios_xcframework.sh` — slim iOS-only build (device +
-     simulator arm64 slices). The full upstream
-     `CrispASR/build-xcframework.sh` builds 7 Apple platform slices in
-     30–60 min and 7–20 GB of disk; this slim variant produces just the
-     two iOS slices in ~1.5 min once the cmake configure has run, with
-     the right CrispASR cmake flags discovered by trial:
-     - `-DCRISPASR_WITH_ESPEAK_NG=OFF` — kokoro otherwise links against
-       homebrew's macOS libespeak-ng, which doesn't satisfy iOS arm64
-       at link time. Kokoro on iOS therefore can't phonemize (one of
-       30+ backends affected; everything else works).
-     - Default `-DCRISPASR_COREML=OFF` when `IOS_MIN_OS_VERSION < 14`
-       (CoreML needs 14+). Bump the env var to enable.
-     - The combine step globs `src/${release_dir}/lib*.a` to pull in
-       all 30 per-backend static archives plus `libcrisp_audio.a`
-       from its sibling build dir; without those we get linker errors
-       for `_voxtral_init_from_file`, `_kokoro_init_from_file`, etc.
-     - Dedup `.o` files by basename across archives: `moonshine` and
-       `moonshine_streaming` both ship `moonshine-tokenizer.o`,
-       which would otherwise cause duplicate-symbol errors at the
-       `clang++ -dynamiclib -force_load combined.a` step. First lib
-       wins (alphabetical order on the per-lib subdirs).
-
-   - `scripts/wire_ios_xcframework.rb` — uses the xcodeproj Ruby gem
-     (already on disk via CocoaPods) to add the xcframework as a
-     linked + embedded framework on the Runner target, with
-     `CodeSignOnCopy` so Xcode signs it during the build, and adds
-     `$(PROJECT_DIR)/Frameworks` to FRAMEWORK_SEARCH_PATHS.
-     Idempotent.
-
-   Result: `flutter build ios --debug --no-codesign` produces a
-   `Runner.app/Frameworks/crispasr.framework` (~4.8 MB stripped, dSYM
-   separate) with `install_name = @rpath/crispasr.framework/crispasr`,
-   which already matches the third candidate in `package:crispasr`'s
-   `_libCandidates()`. `xcrun dyld_info -exports` confirms 322+
-   exported symbols including `_crispasr_session_open`,
-   `_kokoro_init_from_file`, `_voxtral_init_from_file`,
-   `_whisper_init_from_file`. The xcframework itself is gitignored
-   (regenerate via the build script); CI wires it via the new
-   release.yml steps.
-
-   Local rebuild after a CrispASR change:
-   `bash scripts/build_ios_xcframework.sh && flutter build ios`
-   (rerun `wire_ios_xcframework.rb` only if the pbxproj was wiped).
-2. **Mic permission prompt.** First `record.hasPermission()` call must
-   show the system mic prompt (`NSMicrophoneUsageDescription` is
-   already set). Verify both initial-grant and "denied → re-enter
-   Settings → toggle on" recovery.
-3. **Streaming mic.** `AudioRecorder.startStream` with PCM16 @ 16 kHz
-   is documented as iOS-supported but the macOS path is what's been
-   exercised. Confirm chunks arrive at sub-second cadence and the
-   live transcript heartbeat works.
-4. **`just_audio` playback.** ✅ Configured —
-   `_configureAudioSession()` in `lib/main.dart` calls
-   `AudioSession.instance.configure(AudioSessionConfiguration.speech())`
-   at startup (iOS/Android only). `speech()` is just_audio's
-   recommended preset for transcription apps: `playAndRecord` +
-   speaker override + bluetooth allow. Still needs on-device
-   confirmation that recording-→-playback transitions are smooth.
-5. **Background audio continuation.** `UIBackgroundModes = [audio]`
-   is declared but only takes effect once an audio session is active.
-   Verify that streaming mic survives a screen-lock.
-6. **Share intake.** "Open in CrisperWeaver" from Files / Mail
-   delivers a file path through `receive_sharing_intent`. Verify the
-   path is readable (security-scoped) and the transcription screen
-   picks it up.
-7. **`FilePicker.pickFiles`** for "Open audio file" on the
-   transcription screen — file_picker on iOS surfaces this through
-   UIDocumentPicker and copies into a temp location; verify the
-   returned path is openable by `just_audio`.
-8. **CoreML companion .mlmodelc.** After the fix above, verify
-   `getApplicationDocumentsDirectory()` returns a writable path on
-   iOS for the unzip target, and that the companion actually loads
-   (look for "Loading Core ML model" in the libwhisper logs).
-9. **`PrivacyInfo.xcprivacy`.** App Store Connect rejects iOS uploads
-   from May 2024 onwards that touch certain APIs without a privacy
-   manifest *file* (the `NSPrivacy*` keys currently in `Info.plist`
-   are ignored — they belong in a separate `PrivacyInfo.xcprivacy`).
-   We use NSUserDefaults and FileTimestamp APIs, so add a manifest
-   when prepping the first TestFlight build.
-
-**Risk:** medium-high. Item 1 (xcframework bundling) is the only
-launch-blocker; the rest are quality issues that surface in use.
-
-### 5.23 Batch transcription — scale-out, parallelism, save / resume
-
-**Status (May 2026):**
-
-* ✅ **Q1 (foundation)** — per-job JSON persistence under
-  `<app-docs>/batch/default/job-<id>.json`,
-  `BatchPersistenceService` (cross-platform `dart:io` + path_provider,
-  same pattern HistoryService ships on every platform),
-  `BatchQueueNotifier` mirrors every mutation to disk, app-start
-  hydration via `load()` in `main.dart`'s post-frame callback.
-  Running-when-killed jobs demoted to queued. Per-job filesystem-op
-  serializer keeps concurrent unawaited writes from racing each
-  other's rename. 25 new tests.
-* ✅ **Q3 (resume from checkpoint)** — append-only
-  `<id>.ckpt.jsonl` written by the drain loop on every onSegment;
-  `BatchJob.resumeOffsetSec` stamped at app-start from each
-  leftover checkpoint's last segment endTime;
-  `transcribeFile`/`engine.transcribe` gained an optional
-  `startOffsetSec` that routes via `_runChunkedWhisper(firstChunk)`
-  for whisper or `_trimLeadingSamples + shiftSegmentForResume` for
-  the session path; drain loop replays checkpointed segments into
-  AppState before dispatch so the user sees the recovered transcript
-  prefix without a flash. setDone deletes the checkpoint. 9 new
-  tests on the engine helper + load() hydration round-trip.
-
-**Still open:**
-
-* ✅ **Q1 sub-bullet: backend grouping reorder + duration pre-flight** —
-  shipped. Opt-in `Settings.groupBatchByBackend`; the drain loop calls
-  `reorderByGrouping()` at start when on, stable-sorting only queued
-  jobs by `(backend, modelId, language, createdAt)` so running/done/
-  error rows stay put. Duration probe via `AudioService.probeDuration`
-  (header-only just_audio read; throwaway player so no playback
-  conflict), wired through an injectable `durationProbe` parameter on
-  `BatchQueueNotifier` so unit tests stay hermetic. Queue card shows
-  the sum as a "~ Xm" badge — "~" prefix when some probes haven't
-  returned, exact when all measured. 12 new tests.
-* ✅ **Q2 v1 (pipeline parallelism)** — shipped.
-  `SettingsService.maxConcurrentTranscriptions` slider (1-4
-  desktop/Android, 1-2 iOS, persisted+clamped); when > 1 the drain
-  loop kicks off `AudioPrefetchService.prefetch(nextFilePath)` —
-  an `Isolate.run` worker decodes the audio in parallel with the
-  current file's GPU transcription. `AudioService.loadAudioFile`
-  consumes the cached PCM (or falls through to a synchronous
-  decode on cache miss). One session, one model copy, real win on
-  batches of compressed audio where decode is non-trivial wall
-  time. 9 new tests covering slider clamping + per-platform cap +
-  prefetch cache API.
-
-* ⏳ **Q2 v2 (true N-way session pool)** — foundations shipped
-  May 2026; drain-loop integration is the next increment.
-  Shipped:
-    * `MemoryEstimator` — cross-platform RAM probe (`sysctl
-      hw.memsize` on macOS, `/proc/meminfo` on Linux, `wmic` on
-      Windows; conservative platform-default constants for iOS /
-      Android where shelling out isn't allowed in the sandbox).
-      Computes projected RSS = `baseRss + N × on-disk-size × 1.6
-      overhead` and clamps N down to whatever fits in
-      `physicalMemory × 50% − 400 MB`. 9 tests covering missing
-      model / unknown mem / clamp math / pretty strings.
-    * `TranscriptionWorker` — top-level isolate entry. Opens its
-      own `CrispasrSession.openWithParams` (falls back to plain
-      `open` on older builds), bidirectional SendPort protocol
-      for `transcribe` / `shutdown` commands + segment streaming.
-      The cross-isolate Float32List passes by transfer (no copy).
-    * `TranscriptionWorkerPool` — `spawn(N, modelPath, ...)`
-      async ctor that brings N workers up in parallel, free-list
-      dispatcher with completer-based waiters, per-worker
-      `dead` flag for graceful degradation when a session opens
-      then later crashes, `shutdown()` clean teardown.
-    * `SettingsService.maxConcurrentSessions` — separate from the
-      v1 prefetch slider; persists, platform-clamped (iOS 2,
-      others 4). Settings UI shows live RAM projection
-      ("Projected RAM: 2.4 GB of 16.0 GB (per-worker: 320 MB)")
-      against the currently-selected default model, with an
-      orange "Clamped to N of M workers — model too big" hint
-      when the estimator already would refuse the slider value.
-
-  **Q2 v2.1 polish (May 2026): worker-protocol expansion + main-
-  isolate post-process pipeline.** Pool eligibility was originally
-  restricted to "vanilla transcribe" (no VAD / diarize / punc /
-  translate / target-lang / askPrompt / temperature / bestOf).
-  After auditing the underlying CrispASR C-ABI we found every one
-  of those features is reachable via existing session setters or
-  `crispasr_session_transcribe_vad` — the worker just wasn't
-  wiring them. The expansion:
-    * `TranscriptionWorker` carries the sticky setters
-      (setSourceLanguage / setTargetLanguage / setTranslate /
-      setAsk / setTemperature / setBestOf) and applies them
-      before every dispatch. Empty / default values reset, so the
-      previous job's bias doesn't leak forward.
-    * `TranscriptionWorker` accepts a vadModelPath +
-      SessionVadOptions and calls `session.transcribeVad(...)`
-      instead of bare `transcribe(...)` when supplied.
-    * Word timestamps now round-trip across the SendPort wire
-      (parakeet/canary/cohere emit them natively; the worker
-      preserves the list, the main-isolate maps it back to
-      TranscriptionWord on the receiving end).
-    * Diarization + punctuation run as main-isolate post-
-      processes on the segments after the pool returns. The
-      `TranscriptionService` got two new public methods —
-      `diarize(...)` and `restorePunctuation(...)` — exposing
-      the existing services so the pool dispatcher can call them
-      without going through the full transcribe pipeline. Plus
-      a `resolveVadModelPath(backend)` helper so the dispatcher
-      can hand a real path to the worker.
-    * `_jobCanUsePool` collapsed from 10 disqualifiers to 3
-      genuine ones: resume offset (chunked-whisper specific),
-      beam search (whisper-only), tdrz (whisper-only). Extracted
-      to a top-level `poolEligible(job, adv, enableDiarization)`
-      function in `lib/services/transcription_worker_pool.dart`
-      so it's unit-testable in isolation. 12 new eligibility
-      tests + 6 wire-format tests.
-
-  No C-ABI changes needed — every setter and `transcribe_vad`
-  were already shipped in CrispASR's session API. This commit is
-  pure CrisperWeaver-side wiring.
-
-  Drain-loop integration shipped May 2026 (option (a) — aggregate
-  batch view). Pool is opt-in via `Settings.maxConcurrentSessions`,
-  gated by `MemoryEstimator.estimate` at `_startBatchRun()` open
-  time. When the pool is alive, the drain loop:
-    1. fires `appStateNotifier.startTranscription()` ONCE at batch
-       open (instead of per-job),
-    2. dispatches "vanilla" jobs (no resume offset / VAD /
-       diarization / punctuation / translate / Q&A / beam-search /
-       best-of / tinydiarize — see `_jobCanUsePool` for the list)
-       to the pool with the in-flight set capped at `pool.size`,
-    3. handles pool-ineligible jobs serially within the same loop
-       (pool keeps running between them),
-    4. drops the live `addSegment` → AppState path for pool jobs
-       (segments still hit `.ckpt.jsonl`); the queue card is the
-       source of truth in aggregate mode,
-    5. on batch finish, fires one `completeTranscription` with
-       whatever segments AppState last held (or empty for an all-
-       parallel run),
-    6. tears the pool down in `finally` even on uncaught errors.
-  Spawn failures gracefully degrade to the serial+prefetch path.
-  Per-job pool dispatch failures mark the job as error and the
-  drain loop continues; one bad worker doesn't kill the batch.
-
-**Q3 deferred sub-items — all shipped May 2026:**
-
-* ✅ Mid-batch backend swap awareness — drain loop checks
-  `next.modelId` against the engine's `currentModelId` before each
-  job and calls `loadModel(jobModelId)` on mismatch. Falls back to
-  the current session on load failure (logged warning) so a stale
-  modelId from a deleted GGUF doesn't kill the queue.
-* ✅ iCloud-backup exclusion — new `crisperweaver/ios_helpers`
-  MethodChannel handler in `ios/Runner/AppDelegate.swift` exposes
-  `excludeFromBackup(path)` which calls
-  `URL.setResourceValues({isExcludedFromBackup: true})`. The Dart
-  wrapper in `lib/services/ios_helpers.dart` is a no-op on every
-  non-iOS platform, so `BatchPersistenceService._ensureDir` calls
-  it unconditionally at first directory create.
-* ✅ Localised resume snackbar — `BatchQueueNotifier` tracks
-  `lastLoadResumedCount` from the most recent `load()`;
-  `transcription_screen`'s post-frame callback reads it once and
-  shows a `SnackBar` saying "Recovered N interrupted
-  transcription(s) — hit Start to resume". Plural-aware ARBs in
-  en + de. Counter cleared via
-  `acknowledgeResumedJobsSnackbar()` so hot-reload doesn't double-
-  fire.
-
-**Original §5.23 design (for archive):**
-
-The single-file batch queue from §5.7 (shipped v0.1.4) handles a
-list of files serially with persisted progress. **The next slice
-is about scale: large queues, parallel workers, and reliable
-resume across crashes.** Three intertwined design questions; each
-needs a decision before code.
-
-#### Q1 — How do we handle *batches of tasks* effectively?
-
-Today's model: `BatchQueueService` holds a `List<TranscriptionJob>`
-in a Riverpod `StateNotifier`. Each job is queued → running → done
-| error. Serial drain; the loaded model context is shared across
-runs. Works fine for 5–20 files; falls over for:
-
-* **100s of files** — UI lag from rebuilding the whole list on
-  every progress tick; SharedPreferences blob grows past its
-  practical limit (~2 MB per platform); memory pressure if results
-  buffer in RAM.
-* **Mixed durations** — a 4 h podcast holds up 20 voice memos
-  behind it; user can't see "estimated done" without a length
-  probe.
-* **Heterogeneous backends** — a queue with whisper-en files +
-  qwen3-asr Chinese files re-opens the session every job.
-
-**Proposed shape**:
-- Migrate `BatchQueueService` storage from SharedPreferences to a
-  per-job JSON file under `<app-docs>/batch/<queue-id>/job-<n>.json`
-  (mirrors the existing `<app-docs>/history/` layout). One small
-  file per job; the index file just lists IDs + statuses + last-
-  modified-at.
-- Lazy load: keep only the visible window of jobs in memory; page
-  in / out as the user scrolls. Riverpod selector keys per job so
-  rebuilds are localised.
-- Group jobs by `(backend, modelId, language)` so consecutive
-  same-backend jobs reuse the loaded session; only swap the
-  session when the key changes. Reorder a queue into "backend-
-  bundles" on enqueue, opt-in via a Settings toggle (default off
-  to preserve user-visible order).
-- Pre-flight pass: probe each file's duration via the bundled
-  miniaudio decoder (already used by `AudioService`), store on
-  the job. Use the sum for a real ETA in the queue card.
-
-#### Q2 — How do we run *parallel workers*?
-
-CrispASR sessions aren't reentrant — concurrent FFI calls into one
-`whisper_context` corrupt the decoder state. Two viable paths:
-
-**Option A: one worker per Dart isolate, one session per isolate**.
-- Each isolate `loadLibrary` + opens its own `CrispasrSession` for
-  the same model. Memory cost: N × model size (whisper-tiny is
-  74 MB, large-v3 is 3 GB, voxtral 4B is ~2 GB — 4 isolates × 3 GB
-  is real money on a 16 GB Mac).
-- Concurrency: 2–4 workers on M1/M2 typically saturate the GPU
-  (Metal queue serialises kernels anyway), so the win is mostly
-  CPU-side prefill + post-processing overlapping with the next
-  file's decode.
-- The CrispASR Dart binding's FFI lookups are per-DynamicLibrary so
-  cross-isolate sharing of a single dylib reference needs
-  `Isolate.run` carrying the `DynamicLibrary` handle, which Dart
-  FFI does NOT support — each isolate has to `DynamicLibrary.open`
-  its own handle. That's OK but it's a real cost on first spin-up.
-
-**Option B: split work *within* one isolate via VAD chunking**.
-- The session API supports VAD-sliced transcription that returns
-  segments. For a 4 h file, we already chunk into 30 s windows
-  serially. With chunk-level parallelism each window could go
-  through a separate session in a separate isolate. Same memory
-  cost as Option A but per-FILE, not per-QUEUE.
-
-**Recommendation**: ship Option A (per-job worker) behind a
-Settings slider `Concurrent transcriptions: 1–4`. Default 1
-(today's behaviour); cap at 4 even on 32 GB hosts — beyond that
-Metal queue contention dominates. Option B is a future
-optimisation for ultra-long single files.
-
-**Cross-platform**: works on macOS / Linux / Windows / Android (all
-support multi-isolate FFI); iOS allows it too but the memory cap
-is tighter — clamp to 2 workers on iOS regardless of the slider.
-
-#### Q3 — Save / restore / resume across process restarts
-
-Today: serialised `BatchJobState` per queue lets a closed-and-
-reopened app pick up where it left off, but ONLY at file
-granularity. Mid-file crashes restart the whole file.
-
-**Proposed shape**:
-- Per-job checkpoint file `<app-docs>/batch/<queue-id>/job-<n>.ckpt.json`
-  storing `{lastCompletedSegmentEnd: 12.34, segments: [...]}`.
-- The engine's `onSegment` callback is already wired; route each
-  segment append into both the in-memory list AND an
-  append-only `.ckpt.jsonl`-style file. Crash → next start finds
-  the .ckpt, restarts the file from `lastCompletedSegmentEnd`
-  using chunked-whisper's offset machinery (which already exists
-  for >60 s files in `_runChunkedWhisper`).
-- On successful job completion, delete the `.ckpt` and finalise
-  the result into the history entry.
-- New "Resume from crash" snackbar on app start when stale
-  `.ckpt` files are detected; offer to resume or discard.
-
-**Risks**:
-- The "resume from offset" path only works for backends with
-  monotonic time emission (whisper, parakeet, canary, cohere).
-  LLM-based backends (voxtral, qwen3-asr, granite) emit one big
-  segment — no useful resume granularity. Tier the resume offer
-  per backend.
-- The `.ckpt` file format needs a version field; bumping it
-  requires migration code.
-
-**Test strategy**:
-- `batch_queue_service_test.dart` — round-trip a 50-job queue
-  through save + load, assert order + status preserved.
-- `batch_checkpoint_test.dart` — fake an `onSegment` stream that
-  fires N segments then throws; assert the `.ckpt` contains the
-  first N − 1, the resume restart begins at `segments.last.end`.
-- Integration smoke (opt-in slow): real `transcribeFile` on a
-  long WAV, kill the isolate mid-stream, restart, assert
-  segment-count + final transcript match the uninterrupted run.
-
-**Estimated effort**: ~3–4 days for Q1+Q3 (per-job JSON storage,
-checkpoint file, resume UI, tests); Q2 (parallel workers) is its
-own 1–2 days. Total ~1 week if both ship together.
-
-**Risk**: medium. Mostly Dart-side work, no new FFI. The biggest
-unknown is iOS memory pressure at 2 workers × voxtral-4B — needs
-on-device validation before defaulting to anything > 1.
+* Beam search via session API for granite / voxtral / qwen3 —
+  six of eleven beam-capable backends are wired (whisper +
+  kyutai-stt / moonshine / omniasr-LLM / glm-asr / firered);
+  the remaining three need their per-backend high-level
+  transcribe APIs to expose beam_size before
+  `crispasr_session_set_beam_size` can plumb through. Their
+  beam decode currently lives in CLI wrappers using
+  `core_beam_decode::run_with_probs`. ~1–1.5 days total
+  across the three families. Tracked as
+  [CrispASR PLAN §90](https://github.com/CrispStrobe/CrispASR/blob/main/PLAN.md).
 
 ---
 
