@@ -5,6 +5,21 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+## v0.5.0 — 2026-05-12
+
+Post-v0.4.1 sweep — closes Tier A + B + most of Tier C of the
+§5.1 competitor-gap audit, ships the §5.1.6 v3 local on-device
+LLM cleanup + summarisation that was gated on upstream CrispASR
+work, adds a four-layer responsive-UI pass for phones / narrow
+windows + Settings sub-screens on mobile, fills out platform-
+native share / receive on every OS (tiered transcript shares,
+multi-file inbound, transcript-file intake, Linux .desktop,
+iOS Share Extension template, macOS Open-With + Services menu),
+plus an assortment of macOS Tahoe / Swift 6 fixes. 17 commits,
+~16k lines added.
+
+Full per-section write-ups follow.
+
 ### §5.1 competitor-gap features — Tier A + B + most of C closed (May 2026)
 
 The post-v0.4.1 sweep. Audited against the common feature set of
