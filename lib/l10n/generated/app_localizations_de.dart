@@ -1834,6 +1834,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get synthOpenModelManagement => 'Modellverwaltung öffnen';
 
   @override
+  String defaultModelNotDownloaded(String modelId) {
+    return 'Standardmodell „$modelId“ ist noch nicht heruntergeladen.';
+  }
+
+  @override
+  String get openModels => 'Modelle öffnen';
+
+  @override
   String synthMissingDependency(String name) {
     return 'Fehlende Begleitdatei: $name';
   }

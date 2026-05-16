@@ -789,6 +789,9 @@
   "synthShareButton": "WAV speichern / teilen",
   "synthNoTtsModelsDownloaded": "Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.",
   "synthOpenModelManagement": "Modellverwaltung öffnen",
+  "defaultModelNotDownloaded": "Standardmodell „{modelId}“ ist noch nicht heruntergeladen.",
+  "@defaultModelNotDownloaded": {"placeholders": {"modelId": {"type": "String"}}},
+  "openModels": "Modelle öffnen",
   "synthMissingDependency": "Fehlende Begleitdatei: {name}",
   "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}},
 

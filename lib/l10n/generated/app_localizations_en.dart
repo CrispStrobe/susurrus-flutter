@@ -1819,6 +1819,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get synthOpenModelManagement => 'Open Model Management';
 
   @override
+  String defaultModelNotDownloaded(String modelId) {
+    return 'Default model \"$modelId\" isn\'t downloaded yet.';
+  }
+
+  @override
+  String get openModels => 'Open Models';
+
+  @override
   String synthMissingDependency(String name) {
     return 'Missing required companion file: $name';
   }

@@ -145,13 +145,34 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         Log.instance.w('ui', 'Default model load failed: $_modelName',
             error: e, stack: st);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)
-                  .transcriptionLoadFailed(e.toString())),
-              duration: const Duration(seconds: 6),
-            ),
-          );
+          final l = AppLocalizations.of(context);
+          // First-launch case: persisted default model exists but isn't
+          // downloaded yet. Show a friendly action-snackbar pointing at
+          // Model Management instead of dumping the raw exception text.
+          // Detect by string-matching the upstream's "is not downloaded
+          // yet" sentinel — there's no typed error code today.
+          final isNotDownloaded = e.toString().contains('is not downloaded');
+          if (isNotDownloaded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l.defaultModelNotDownloaded(_modelName)),
+                duration: const Duration(seconds: 8),
+                action: SnackBarAction(
+                  label: l.openModels,
+                  onPressed: () {
+                    if (mounted) context.push('/models');
+                  },
+                ),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l.transcriptionLoadFailed(e.toString())),
+                duration: const Duration(seconds: 6),
+              ),
+            );
+          }
         }
       }
     }

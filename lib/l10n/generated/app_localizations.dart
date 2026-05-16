@@ -3182,6 +3182,18 @@ abstract class AppLocalizations {
   /// **'Open Model Management'**
   String get synthOpenModelManagement;
 
+  /// No description provided for @defaultModelNotDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Default model \"{modelId}\" isn\'t downloaded yet.'**
+  String defaultModelNotDownloaded(String modelId);
+
+  /// No description provided for @openModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Models'**
+  String get openModels;
+
   /// No description provided for @synthMissingDependency.
   ///
   /// In en, this message translates to:
