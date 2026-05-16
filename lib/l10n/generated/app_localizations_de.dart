@@ -687,6 +687,104 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsOpenLogViewer => 'Protokoll-Ansicht öffnen';
 
   @override
+  String get settingsSpeakers => 'Sprecher';
+
+  @override
+  String get settingsSpeakersSubtitle =>
+      'Stimmen einspeichern, damit die Diarisierung Sprecher automatisch benennen kann.';
+
+  @override
+  String get speakersTitle => 'Sprecher';
+
+  @override
+  String get speakersEmpty =>
+      'Noch keine Sprecher eingespeichert. Tippen Sie auf +, um einen hinzuzufügen.';
+
+  @override
+  String get speakersPrivacyNote =>
+      'Stimmprofile werden ausschließlich lokal gespeichert. Nichts wird hochgeladen.';
+
+  @override
+  String get speakersDownloadModelHint =>
+      'Bitte zuerst das TitaNet-Modell in der Modellverwaltung herunterladen.';
+
+  @override
+  String get speakersAdd => 'Sprecher hinzufügen';
+
+  @override
+  String get speakersDeleteTitle => 'Eingespeicherten Sprecher löschen?';
+
+  @override
+  String speakersDeleteBody(String name) {
+    return 'Das Stimmprofil von $name wird von diesem Gerät entfernt.';
+  }
+
+  @override
+  String get speakersDeleteFailed => 'Profil konnte nicht gelöscht werden.';
+
+  @override
+  String get speakersEnrolTitle => 'Sprecher einspeichern';
+
+  @override
+  String get speakersSourceRecord => 'Aufnahme';
+
+  @override
+  String get speakersSourceFile => 'Datei wählen';
+
+  @override
+  String get speakersName => 'Sprechername';
+
+  @override
+  String get speakersNameRequired => 'Name ist erforderlich';
+
+  @override
+  String get speakersNameTaken =>
+      'Ein Sprecher mit diesem Namen ist bereits gespeichert.';
+
+  @override
+  String get speakersNoSample =>
+      'Bitte zuerst eine Audioprobe aufnehmen oder auswählen.';
+
+  @override
+  String get speakersEnrolButton => 'Einspeichern';
+
+  @override
+  String get speakersEnrolFailed =>
+      'Einspeichern fehlgeschlagen – bitte mit einer deutlicheren Probe erneut versuchen.';
+
+  @override
+  String get speakersRecord => 'Aufnahme starten';
+
+  @override
+  String get speakersRecordStop => 'Stopp';
+
+  @override
+  String speakersRecordHint(int seconds) {
+    return 'Tippen Sie, um $seconds s dieser Person sprechend aufzunehmen.';
+  }
+
+  @override
+  String speakersRecordingCountdown(int seconds) {
+    return 'Aufnahme läuft… noch $seconds s';
+  }
+
+  @override
+  String speakersRecordingDone(int seconds) {
+    return '$seconds s Audio aufgenommen.';
+  }
+
+  @override
+  String get speakersRecordNoPermission =>
+      'Mikrofon-Berechtigung wurde verweigert.';
+
+  @override
+  String get speakersPickHint =>
+      'Bitte eine Audiodatei mit einer deutlichen Probe dieser Person wählen.';
+
+  @override
+  String get speakersPickButton => 'Audiodatei wählen';
+
+  @override
   String get settingsSystemInfo => 'Systeminformation';
 
   @override
@@ -2010,6 +2108,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get advancedDiarizeXcorr => 'Stereo-Kreuzkorrelation';
+
+  @override
+  String get advancedSpeakerRecognition => 'Eingespeicherte Sprecher erkennen';
+
+  @override
+  String get advancedSpeakerRecognitionSubtitle =>
+      'Gleicht nach der Diarisierung jeden Sprecher-Cluster mit der lokalen Sprecher-Datenbank (Einstellungen → Sprecher) ab und ersetzt „Sprecher N“ durch den gespeicherten Namen, sobald die Übereinstimmung sicher ist. Benötigt das TitaNet-GGUF.';
 
   @override
   String get advancedTdrz => 'Tinydiarize-Sprecherwechsel (nur Whisper)';

@@ -1238,6 +1238,168 @@ abstract class AppLocalizations {
   /// **'Open log viewer'**
   String get settingsOpenLogViewer;
 
+  /// No description provided for @settingsSpeakers.
+  ///
+  /// In en, this message translates to:
+  /// **'Speakers'**
+  String get settingsSpeakers;
+
+  /// No description provided for @settingsSpeakersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enrol voices for automatic speaker labels in diarisation.'**
+  String get settingsSpeakersSubtitle;
+
+  /// No description provided for @speakersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speakers'**
+  String get speakersTitle;
+
+  /// No description provided for @speakersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No speakers enrolled yet. Tap + to add one.'**
+  String get speakersEmpty;
+
+  /// No description provided for @speakersPrivacyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice profiles are stored on-device only. Nothing is uploaded.'**
+  String get speakersPrivacyNote;
+
+  /// No description provided for @speakersDownloadModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the TitaNet model from Model Management before enrolling.'**
+  String get speakersDownloadModelHint;
+
+  /// No description provided for @speakersAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add speaker'**
+  String get speakersAdd;
+
+  /// No description provided for @speakersDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete enrolled speaker?'**
+  String get speakersDeleteTitle;
+
+  /// No description provided for @speakersDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s voice profile will be removed from this device.'**
+  String speakersDeleteBody(String name);
+
+  /// No description provided for @speakersDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete profile.'**
+  String get speakersDeleteFailed;
+
+  /// No description provided for @speakersEnrolTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enrol speaker'**
+  String get speakersEnrolTitle;
+
+  /// No description provided for @speakersSourceRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Record'**
+  String get speakersSourceRecord;
+
+  /// No description provided for @speakersSourceFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file'**
+  String get speakersSourceFile;
+
+  /// No description provided for @speakersName.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker name'**
+  String get speakersName;
+
+  /// No description provided for @speakersNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get speakersNameRequired;
+
+  /// No description provided for @speakersNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A speaker with this name is already enrolled.'**
+  String get speakersNameTaken;
+
+  /// No description provided for @speakersNoSample.
+  ///
+  /// In en, this message translates to:
+  /// **'Record or pick an audio sample first.'**
+  String get speakersNoSample;
+
+  /// No description provided for @speakersEnrolButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Enrol'**
+  String get speakersEnrolButton;
+
+  /// No description provided for @speakersEnrolFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not enrol — try a clearer sample.'**
+  String get speakersEnrolFailed;
+
+  /// No description provided for @speakersRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Start recording'**
+  String get speakersRecord;
+
+  /// No description provided for @speakersRecordStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get speakersRecordStop;
+
+  /// No description provided for @speakersRecordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to record a {seconds} s sample of this person speaking.'**
+  String speakersRecordHint(int seconds);
+
+  /// No description provided for @speakersRecordingCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording… {seconds} s left'**
+  String speakersRecordingCountdown(int seconds);
+
+  /// No description provided for @speakersRecordingDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Captured {seconds} s of audio.'**
+  String speakersRecordingDone(int seconds);
+
+  /// No description provided for @speakersRecordNoPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission was denied.'**
+  String get speakersRecordNoPermission;
+
+  /// No description provided for @speakersPickHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick any audio file with a clear sample of this person speaking.'**
+  String get speakersPickHint;
+
+  /// No description provided for @speakersPickButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose audio file'**
+  String get speakersPickButton;
+
   /// No description provided for @settingsSystemInfo.
   ///
   /// In en, this message translates to:
@@ -3457,6 +3619,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stereo cross-correlation'**
   String get advancedDiarizeXcorr;
+
+  /// No description provided for @advancedSpeakerRecognition.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify enrolled speakers'**
+  String get advancedSpeakerRecognition;
+
+  /// No description provided for @advancedSpeakerRecognitionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'After diarisation, match each speaker cluster against the on-device speaker DB (Settings → Speakers) and replace \'Speaker N\' with the enrolled name when confident. Requires the TitaNet GGUF.'**
+  String get advancedSpeakerRecognitionSubtitle;
 
   /// No description provided for @advancedTdrz.
   ///

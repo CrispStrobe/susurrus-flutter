@@ -683,6 +683,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsOpenLogViewer => 'Open log viewer';
 
   @override
+  String get settingsSpeakers => 'Speakers';
+
+  @override
+  String get settingsSpeakersSubtitle =>
+      'Enrol voices for automatic speaker labels in diarisation.';
+
+  @override
+  String get speakersTitle => 'Speakers';
+
+  @override
+  String get speakersEmpty => 'No speakers enrolled yet. Tap + to add one.';
+
+  @override
+  String get speakersPrivacyNote =>
+      'Voice profiles are stored on-device only. Nothing is uploaded.';
+
+  @override
+  String get speakersDownloadModelHint =>
+      'Download the TitaNet model from Model Management before enrolling.';
+
+  @override
+  String get speakersAdd => 'Add speaker';
+
+  @override
+  String get speakersDeleteTitle => 'Delete enrolled speaker?';
+
+  @override
+  String speakersDeleteBody(String name) {
+    return '$name\'s voice profile will be removed from this device.';
+  }
+
+  @override
+  String get speakersDeleteFailed => 'Failed to delete profile.';
+
+  @override
+  String get speakersEnrolTitle => 'Enrol speaker';
+
+  @override
+  String get speakersSourceRecord => 'Record';
+
+  @override
+  String get speakersSourceFile => 'Choose file';
+
+  @override
+  String get speakersName => 'Speaker name';
+
+  @override
+  String get speakersNameRequired => 'Name is required';
+
+  @override
+  String get speakersNameTaken =>
+      'A speaker with this name is already enrolled.';
+
+  @override
+  String get speakersNoSample => 'Record or pick an audio sample first.';
+
+  @override
+  String get speakersEnrolButton => 'Enrol';
+
+  @override
+  String get speakersEnrolFailed => 'Could not enrol — try a clearer sample.';
+
+  @override
+  String get speakersRecord => 'Start recording';
+
+  @override
+  String get speakersRecordStop => 'Stop';
+
+  @override
+  String speakersRecordHint(int seconds) {
+    return 'Tap to record a $seconds s sample of this person speaking.';
+  }
+
+  @override
+  String speakersRecordingCountdown(int seconds) {
+    return 'Recording… $seconds s left';
+  }
+
+  @override
+  String speakersRecordingDone(int seconds) {
+    return 'Captured $seconds s of audio.';
+  }
+
+  @override
+  String get speakersRecordNoPermission => 'Microphone permission was denied.';
+
+  @override
+  String get speakersPickHint =>
+      'Pick any audio file with a clear sample of this person speaking.';
+
+  @override
+  String get speakersPickButton => 'Choose audio file';
+
+  @override
   String get settingsSystemInfo => 'System information';
 
   @override
@@ -2002,6 +2096,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get advancedDiarizeXcorr => 'Stereo cross-correlation';
+
+  @override
+  String get advancedSpeakerRecognition => 'Identify enrolled speakers';
+
+  @override
+  String get advancedSpeakerRecognitionSubtitle =>
+      'After diarisation, match each speaker cluster against the on-device speaker DB (Settings → Speakers) and replace \'Speaker N\' with the enrolled name when confident. Requires the TitaNet GGUF.';
 
   @override
   String get advancedTdrz => 'Tinydiarize speaker turns (Whisper only)';

@@ -721,6 +721,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             }
           },
         ),
+        // §5.8.1 — On-device speaker DB (TitaNet enrolment).
+        ListTile(
+          title: Text(AppLocalizations.of(context).settingsSpeakers),
+          subtitle:
+              Text(AppLocalizations.of(context).settingsSpeakersSubtitle),
+          trailing: const Icon(Icons.people_outline),
+          onTap: () => context.push('/settings/speakers'),
+        ),
         ListTile(
           title: Text(AppLocalizations.of(context).settingsOpenLogViewer),
           trailing: const Icon(Icons.chevron_right),

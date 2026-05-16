@@ -18,6 +18,7 @@ import 'screens/settings_screen.dart';
 import 'screens/cloud_llm_settings_screen.dart';
 import 'screens/hotkey_settings_screen.dart';
 import 'screens/local_llm_settings_screen.dart';
+import 'screens/speaker_management_screen.dart';
 import 'screens/model_management_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/logs_screen.dart';
@@ -277,6 +278,11 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
             path: 'hotkey',
             name: 'settings-hotkey',
             builder: (context, state) => const HotkeySettingsScreen(),
+          ),
+          GoRoute(
+            path: 'speakers',
+            name: 'settings-speakers',
+            builder: (context, state) => const SpeakerManagementScreen(),
           ),
         ],
       ),
