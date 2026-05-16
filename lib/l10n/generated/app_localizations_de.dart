@@ -1833,6 +1833,36 @@ class AppLocalizationsDe extends AppLocalizations {
       'Höher = härtere Einschränkung, niedriger = weichere Empfehlung. Upstream-Standard ist 100; sinnvoller Bereich 50..200.';
 
   @override
+  String get advancedTranscribeWindowTitle =>
+      'Transkriptions-Fenster (Offset + Dauer)';
+
+  @override
+  String get advancedTranscribeWindowSubtitle =>
+      'Nur einen [Start, Start+Dauer)-Ausschnitt der Audio verarbeiten. Leer / 0 = gesamte Datei (Standard).';
+
+  @override
+  String advancedTranscribeWindowSubtitleActive(String start, String end) {
+    return 'Aktiv: ${start}s..${end}s der Datei. Zeitstempel bleiben absolut.';
+  }
+
+  @override
+  String get advancedTranscribeWindowEndOfFile => 'Datei-Ende';
+
+  @override
+  String get advancedTranscribeWindowStart => 'Start (Sekunden)';
+
+  @override
+  String get advancedTranscribeWindowStartHelper =>
+      'Versatz in die Datei. 0 = Anfang.';
+
+  @override
+  String get advancedTranscribeWindowDuration => 'Dauer (Sekunden)';
+
+  @override
+  String get advancedTranscribeWindowDurationHelper =>
+      '0 = bis zum Datei-Ende transkribieren.';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisierungs-Methode';
 
   @override

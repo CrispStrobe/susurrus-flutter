@@ -1824,6 +1824,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Higher = harder constraint, lower = softer suggestion. Upstream default is 100; useful range is 50..200.';
 
   @override
+  String get advancedTranscribeWindowTitle =>
+      'Transcribe window (offset + duration)';
+
+  @override
+  String get advancedTranscribeWindowSubtitle =>
+      'Process only a [start, start+duration) slice of the audio. Empty / 0 = transcribe the whole file (default).';
+
+  @override
+  String advancedTranscribeWindowSubtitleActive(String start, String end) {
+    return 'Active: ${start}s..${end}s of the file. Timestamps remain absolute on output.';
+  }
+
+  @override
+  String get advancedTranscribeWindowEndOfFile => 'end-of-file';
+
+  @override
+  String get advancedTranscribeWindowStart => 'Start (seconds)';
+
+  @override
+  String get advancedTranscribeWindowStartHelper =>
+      'Offset into the file. 0 = start.';
+
+  @override
+  String get advancedTranscribeWindowDuration => 'Duration (seconds)';
+
+  @override
+  String get advancedTranscribeWindowDurationHelper =>
+      '0 = transcribe until end-of-file.';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisation method';
 
   @override

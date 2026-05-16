@@ -5,6 +5,44 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.8 — Transcribe-window controls (`--offset-t / --duration`) (May 2026)
+
+CrispASR CLI's `--offset-t` + `--duration` flags now exist in
+CrisperWeaver. The user can pick a `[start, start+duration)`
+slice of any audio file and get only that range transcribed —
+useful for "minute 5..10 of this 2-hour podcast" without
+round-tripping through the audio editor's trim flow.
+
+- New AdvancedOptions fields `transcribeWindowStartSec` +
+  `transcribeWindowDurationSec` (both seconds, both default 0
+  = no window).
+- UI: ExpansionTile in AdvancedOptions widget — two
+  decimal-keyboard TextField widgets for start + duration.
+  Auto-expands when a window is set. Backend-agnostic (works
+  with every engine, since the slice happens at PCM level
+  before dispatch).
+- New static helper `CrispASREngine.sliceTranscribeWindow(buf,
+  sr, startSec, durationSec)` — bounds-safe, sample-rate
+  aware, identity short-circuit on no-window.
+- Wiring: both the serial `TranscriptionService.transcribeFile`
+  path AND the parallel pool dispatch in
+  `transcription_screen.dart` slice the PCM, then shift the
+  returned segment timestamps by the window start so they're
+  absolute in file time. The streaming `onSegment` callback is
+  wrapped on both paths so checkpointed segments also come
+  back absolute.
+- A user-set window overrides any resume offset (the explicit
+  pick wins over a checkpoint).
+- Preset round-trip persists the two new fields so "transcribe
+  the intro" presets survive app restart.
+
+Localisation: 8 new strings × 2 locales.
+
+Tests: 10 new sliceTranscribeWindow cases + a
+shiftSegmentForResume re-pin (offset arithmetic + zero-offset
+identity short-circuit). Full suite: 368 pass / 14 skip / 0 fail
+(was 358).
+
 ### §5.8 — GBNF grammar-constrained sampling (May 2026)
 
 Closes the long-deferred §5.8 plan item. Whisper transcripts

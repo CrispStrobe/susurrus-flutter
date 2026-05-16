@@ -860,6 +860,42 @@ class CrispASREngine implements TranscriptionEngine {
   }
 
   /// Shift a segment's timestamps by `offsetSeconds` for §5.23 Q3
+  /// §5.8 — CrispASR CLI's `--offset-t` + `--duration` window
+  /// slice. Returns the [start, start+duration) sample range of
+  /// [samples] as a fresh Float32List. Empty / zero window
+  /// (start == 0 AND duration == 0) returns the original buffer
+  /// unchanged so the no-window case skips a copy.
+  ///
+  /// Bounds-safe: a start past end-of-buffer returns an empty
+  /// view; a duration past end-of-buffer is clamped to end.
+  /// Negative inputs are coerced to 0 (the AdvancedOptions UI
+  /// already does this but the helper guards regardless).
+  ///
+  /// Public for `test/transcribe_window_test.dart`.
+  static Float32List sliceTranscribeWindow(
+    Float32List samples,
+    int sampleRate,
+    double startSec,
+    double durationSec,
+  ) {
+    final cleanStart = startSec.isFinite && startSec > 0 ? startSec : 0.0;
+    final cleanDur =
+        durationSec.isFinite && durationSec > 0 ? durationSec : 0.0;
+    if (cleanStart == 0.0 && cleanDur == 0.0) return samples;
+    final startIdx = (cleanStart * sampleRate).round();
+    if (startIdx >= samples.length) {
+      return Float32List(0);
+    }
+    if (cleanDur == 0.0) {
+      // Open-ended duration: from startIdx to end-of-buffer.
+      return Float32List.sublistView(samples, startIdx);
+    }
+    final endIdx = (startIdx + cleanDur * sampleRate)
+        .round()
+        .clamp(startIdx, samples.length);
+    return Float32List.sublistView(samples, startIdx, endIdx);
+  }
+
   /// resume-from-checkpoint. Same arithmetic as [shiftSegmentByOffset]
   /// but skips the chunked-whisper metadata stamping — appropriate
   /// when the offset originates from a checkpoint replay (whisper

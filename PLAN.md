@@ -275,10 +275,14 @@ completeness — May 2026"](HISTORY.md). What's still pending:
 * **CrispASR CLI features missing from CrisperWeaver** — found
   during the §5.23 beam-search audit, listed here so the next
   parity pass doesn't have to rediscover them:
-  - `--offset-t` / `--duration` — process only a [t0, t0+d)
-    audio window. Useful for "transcribe minute 5–10 of this
-    podcast." Needs engine-side slice + timestamp shift (same
-    machinery as resume-offset, bilateral). ~1 day.
+  - ✅ `--offset-t` / `--duration` — **shipped May 2026**.
+    Two AdvancedOptions fields + UI in the widget; the screen +
+    service layer slices the PCM and shifts segment timestamps
+    back to absolute file time via the existing
+    `shiftSegmentForResume` helper. New static
+    `CrispASREngine.sliceTranscribeWindow` handles the
+    sample-rate-aware slice math. 10 unit tests pin the edge
+    cases.
   - `--alt N` / `--alt-n` — alternative token candidates with
     probabilities. Power-user feature; needs C-ABI plumbing for
     alt-decoder output + UI. ~2 days.

@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:crispasr/crispasr.dart' as crispasr;
 
+import '../engines/crispasr_engine.dart' show CrispASREngine;
 import '../engines/engine_factory.dart';
 import '../engines/transcription_engine.dart';
 import 'audio_service.dart';
@@ -116,6 +117,17 @@ class AdvancedTranscribeOptions {
   /// Whisper's `grammar_penalty` scalar (upstream default 100.0).
   final double grammarPenalty;
 
+  /// §5.8 — `--offset-t` equivalent. Transcribe-window start
+  /// (seconds). 0 = start of file. Backend-agnostic: the service
+  /// slices the PCM before dispatch and shifts returned segment
+  /// timestamps back to absolute file time.
+  final double transcribeWindowStartSec;
+
+  /// §5.8 — `--duration` equivalent. Transcribe-window duration
+  /// (seconds). 0 = no cap, transcribe to end-of-file from
+  /// [transcribeWindowStartSec].
+  final double transcribeWindowDurationSec;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -138,6 +150,8 @@ class AdvancedTranscribeOptions {
     this.grammarText = '',
     this.grammarRootRule = 'root',
     this.grammarPenalty = 100.0,
+    this.transcribeWindowStartSec = 0.0,
+    this.transcribeWindowDurationSec = 0.0,
   });
 }
 
@@ -273,9 +287,38 @@ class TranscriptionService {
       final audioData = await _audioService.loadAudioFile(audioFile);
       onProgress?.call(0.1);
 
+      // §5.8 — `--offset-t / --duration` window. When set, slice
+      // here so the engine only sees the requested slice; we then
+      // shift returned segment timestamps by the window start so
+      // they're absolute in file time. A user-set window overrides
+      // any resume offset (the explicit pick wins over a checkpoint).
+      final hasWindow = advanced.transcribeWindowStartSec > 0 ||
+          advanced.transcribeWindowDurationSec > 0;
+      final samples = hasWindow
+          ? CrispASREngine.sliceTranscribeWindow(
+              audioData.samples,
+              audioData.sampleRate,
+              advanced.transcribeWindowStartSec,
+              advanced.transcribeWindowDurationSec)
+          : audioData.samples;
+      // When windowing, pass startOffsetSec=0 to the engine (the
+      // slice already done above means there's nothing for the
+      // engine to trim) and shift returned segments here.
+      // Otherwise honour the caller's resume offset.
+      final engineStartOffset = hasWindow ? 0.0 : startOffsetSec;
+      final segmentShift =
+          hasWindow ? advanced.transcribeWindowStartSec : 0.0;
+      void Function(TranscriptionSegment)? wrappedOnSegment;
+      if (onSegment != null) {
+        wrappedOnSegment = segmentShift > 0
+            ? (seg) => onSegment(CrispASREngine.shiftSegmentForResume(seg,
+                offsetSeconds: segmentShift))
+            : onSegment;
+      }
+
       // Step 2: Perform transcription (60% of progress)
-      final engineSegments = await _performTranscription(
-        audioData.samples,
+      var engineSegments = await _performTranscription(
+        samples,
         language: language,
         enableWordTimestamps: enableWordTimestamps,
         translate: translate,
@@ -288,10 +331,16 @@ class TranscriptionService {
         temperature: temperature,
         bestOf: bestOf,
         advanced: advanced,
-        startOffsetSec: startOffsetSec,
+        startOffsetSec: engineStartOffset,
         onProgress: (progress) => onProgress?.call(0.1 + progress * 0.6),
-        onSegment: onSegment,
+        onSegment: wrappedOnSegment,
       );
+      if (segmentShift > 0) {
+        engineSegments = engineSegments
+            .map((s) => CrispASREngine.shiftSegmentForResume(s,
+                offsetSeconds: segmentShift))
+            .toList(growable: false);
+      }
 
       onProgress?.call(0.7);
 

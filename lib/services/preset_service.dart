@@ -160,6 +160,8 @@ Map<String, dynamic> _advancedOptionsToJson(AdvancedOptions o) =>
       'grammarText': o.grammarText,
       'grammarRootRule': o.grammarRootRule,
       'grammarPenalty': o.grammarPenalty,
+      'transcribeWindowStartSec': o.transcribeWindowStartSec,
+      'transcribeWindowDurationSec': o.transcribeWindowDurationSec,
     };
 
 AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
@@ -212,6 +214,10 @@ AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
     grammarRootRule: (j['grammarRootRule'] as String?) ?? 'root',
     grammarPenalty:
         ((j['grammarPenalty'] as num?) ?? 100.0).toDouble(),
+    transcribeWindowStartSec:
+        ((j['transcribeWindowStartSec'] as num?) ?? 0.0).toDouble(),
+    transcribeWindowDurationSec:
+        ((j['transcribeWindowDurationSec'] as num?) ?? 0.0).toDouble(),
   );
 }
 

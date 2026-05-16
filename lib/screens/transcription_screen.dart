@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../utils/audio_utils.dart';
 
 import '../main.dart';
+import '../engines/crispasr_engine.dart' show CrispASREngine;
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/audio_prefetch_service.dart';
@@ -1287,6 +1288,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         grammarText: adv.grammarText,
         grammarRootRule: adv.grammarRootRule,
         grammarPenalty: adv.grammarPenalty,
+        transcribeWindowStartSec: adv.transcribeWindowStartSec,
+        transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
       );
 
       // §5.1.2 vocabulary merge — resolve the active backend
@@ -1428,6 +1431,8 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       grammarText: adv.grammarText,
       grammarRootRule: adv.grammarRootRule,
       grammarPenalty: adv.grammarPenalty,
+      transcribeWindowStartSec: adv.transcribeWindowStartSec,
+      transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
     );
 
     // Load the model once for the whole batch.
@@ -1856,6 +1861,20 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final started = DateTime.now();
     try {
       final audioData = await audioService.loadAudioFile(File(job.filePath));
+      // §5.8 — `--offset-t / --duration` window slice. Pre-slice
+      // the PCM here so the engine only processes the requested
+      // [start, start+duration) range; we shift the returned
+      // segment timestamps by `windowStart` so they stay absolute
+      // in file time. Empty window (0/0) is a no-op.
+      final windowedSamples = CrispASREngine.sliceTranscribeWindow(
+        audioData.samples,
+        audioData.sampleRate,
+        adv.transcribeWindowStartSec,
+        adv.transcribeWindowDurationSec,
+      );
+      final windowStartShift = adv.transcribeWindowStartSec > 0
+          ? adv.transcribeWindowStartSec
+          : 0.0;
       // §5.1.2 — vocabulary biasing merges into whichever prompt
       // field the active backend uses (initial_prompt or askPrompt).
       // Pool workers consume both via their sticky setter
@@ -1871,7 +1890,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             )
           : adv.askPrompt;
       var segments = await pool.dispatch(
-        samples: audioData.samples,
+        samples: windowedSamples,
         language: language,
         targetLanguage:
             adv.targetLanguage.isEmpty ? null : adv.targetLanguage,
@@ -1898,9 +1917,27 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         grammarRootRule: adv.grammarRootRule,
         grammarPenalty: adv.grammarPenalty,
         onSegment: (seg) {
-          unawaited(persistence.appendSegmentToCheckpoint(job.id, seg));
+          // Apply the window shift here too so the checkpoint /
+          // streamed-into-UI timestamps match the post-loop shift
+          // applied to `segments` below.
+          final shifted = windowStartShift > 0
+              ? CrispASREngine.shiftSegmentForResume(seg,
+                  offsetSeconds: windowStartShift)
+              : seg;
+          unawaited(persistence.appendSegmentToCheckpoint(
+              job.id, shifted));
         },
       );
+      // §5.8 — shift every returned segment's timestamps by the
+      // window start so they're absolute in file time. The pool
+      // workers don't know about windowing (the slice happens
+      // here before dispatch), so the shift has to happen here.
+      if (windowStartShift > 0) {
+        segments = segments
+            .map((s) => CrispASREngine.shiftSegmentForResume(s,
+                offsetSeconds: windowStartShift))
+            .toList(growable: false);
+      }
       // Main-isolate post-process: diarize + punctuate. Same code
       // path the serial transcribeFile() uses; we just call into
       // the services directly here since we already have the raw

@@ -3170,6 +3170,54 @@ abstract class AppLocalizations {
   /// **'Higher = harder constraint, lower = softer suggestion. Upstream default is 100; useful range is 50..200.'**
   String get advancedGrammarPenaltyHelper;
 
+  /// No description provided for @advancedTranscribeWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe window (offset + duration)'**
+  String get advancedTranscribeWindowTitle;
+
+  /// No description provided for @advancedTranscribeWindowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Process only a [start, start+duration) slice of the audio. Empty / 0 = transcribe the whole file (default).'**
+  String get advancedTranscribeWindowSubtitle;
+
+  /// No description provided for @advancedTranscribeWindowSubtitleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active: {start}s..{end}s of the file. Timestamps remain absolute on output.'**
+  String advancedTranscribeWindowSubtitleActive(String start, String end);
+
+  /// No description provided for @advancedTranscribeWindowEndOfFile.
+  ///
+  /// In en, this message translates to:
+  /// **'end-of-file'**
+  String get advancedTranscribeWindowEndOfFile;
+
+  /// No description provided for @advancedTranscribeWindowStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start (seconds)'**
+  String get advancedTranscribeWindowStart;
+
+  /// No description provided for @advancedTranscribeWindowStartHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Offset into the file. 0 = start.'**
+  String get advancedTranscribeWindowStartHelper;
+
+  /// No description provided for @advancedTranscribeWindowDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration (seconds)'**
+  String get advancedTranscribeWindowDuration;
+
+  /// No description provided for @advancedTranscribeWindowDurationHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'0 = transcribe until end-of-file.'**
+  String get advancedTranscribeWindowDurationHelper;
+
   /// No description provided for @advancedDiarizeMethod.
   ///
   /// In en, this message translates to:

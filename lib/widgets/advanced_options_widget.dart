@@ -195,6 +195,20 @@ class AdvancedOptions {
   /// than a hard constraint; the recommended range is 50..200.
   final double grammarPenalty;
 
+  /// Transcribe-window start (seconds). 0 = start of file.
+  /// Pairs with [transcribeWindowDurationSec] — together they
+  /// implement the equivalent of CrispASR CLI's `--offset-t` +
+  /// `--duration`. Backend-agnostic — the screen slices the PCM
+  /// before dispatch and the existing `startOffsetSec` shift
+  /// brings segment timestamps back to absolute file time.
+  final double transcribeWindowStartSec;
+
+  /// Transcribe-window duration (seconds). 0 = no cap, transcribe
+  /// to the end of the file from [transcribeWindowStartSec].
+  /// Useful for "transcribe minute 5..10 of this 2-hour podcast"
+  /// without round-tripping through the audio editor's trim flow.
+  final double transcribeWindowDurationSec;
+
   /// §5.1.2 — Custom-vocabulary boost list. Persistent across runs;
   /// the user manages it in Advanced Options as removable chips
   /// (brand names, acronyms, technical jargon, people's names).
@@ -250,6 +264,8 @@ class AdvancedOptions {
     this.grammarText = '',
     this.grammarRootRule = 'root',
     this.grammarPenalty = 100.0,
+    this.transcribeWindowStartSec = 0.0,
+    this.transcribeWindowDurationSec = 0.0,
   });
 
   AdvancedOptions copyWith({
@@ -285,6 +301,8 @@ class AdvancedOptions {
     String? grammarText,
     String? grammarRootRule,
     double? grammarPenalty,
+    double? transcribeWindowStartSec,
+    double? transcribeWindowDurationSec,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -319,6 +337,10 @@ class AdvancedOptions {
         grammarText: grammarText ?? this.grammarText,
         grammarRootRule: grammarRootRule ?? this.grammarRootRule,
         grammarPenalty: grammarPenalty ?? this.grammarPenalty,
+        transcribeWindowStartSec:
+            transcribeWindowStartSec ?? this.transcribeWindowStartSec,
+        transcribeWindowDurationSec:
+            transcribeWindowDurationSec ?? this.transcribeWindowDurationSec,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -664,6 +686,11 @@ class _AdvancedDecodingSectionState
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
         if (opts.restorePunctuation) _buildPuncFamilyRow(context, opts),
+        // Transcribe window — CrispASR CLI's --offset-t / --duration
+        // equivalent. Backend-agnostic; the screen slices the PCM
+        // before dispatch and the existing startOffsetSec shift
+        // brings segment timestamps back to absolute file time.
+        _buildTranscribeWindowRow(context, opts),
         // Performance — LID accelerator + thread count. Honoured by
         // crispasr_detect_language_pcm directly. ASR-side perf flags
         // need to be set at session-open time and aren't runtime-
@@ -1120,6 +1147,85 @@ class _AdvancedDecodingSectionState
         ),
         Text(l.advancedGrammarPenaltyHelper,
             style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+      ],
+    );
+  }
+
+  /// CrispASR CLI `--offset-t` / `--duration` equivalent. Two
+  /// seconds-input fields wrapped in an ExpansionTile so they
+  /// don't clutter the section when unused. Backend-agnostic
+  /// (the screen-level slicing applies to every engine path).
+  Widget _buildTranscribeWindowRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    final hasWindow = opts.transcribeWindowStartSec > 0 ||
+        opts.transcribeWindowDurationSec > 0;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      initiallyExpanded: hasWindow,
+      title: Text(l.advancedTranscribeWindowTitle),
+      subtitle: Text(
+        hasWindow
+            ? l.advancedTranscribeWindowSubtitleActive(
+                opts.transcribeWindowStartSec.toStringAsFixed(1),
+                opts.transcribeWindowDurationSec == 0
+                    ? l.advancedTranscribeWindowEndOfFile
+                    : opts.transcribeWindowDurationSec.toStringAsFixed(1))
+            : l.advancedTranscribeWindowSubtitle,
+        style: const TextStyle(fontSize: 11),
+      ),
+      children: [
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                initialValue: opts.transcribeWindowStartSec == 0
+                    ? ''
+                    : opts.transcribeWindowStartSec.toStringAsFixed(1),
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
+                decoration: InputDecoration(
+                  labelText: l.advancedTranscribeWindowStart,
+                  helperText: l.advancedTranscribeWindowStartHelper,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) {
+                  final parsed = double.tryParse(v.trim());
+                  ref.read(advancedOptionsProvider.notifier).state =
+                      opts.copyWith(
+                          transcribeWindowStartSec:
+                              parsed == null || parsed < 0 ? 0.0 : parsed);
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextFormField(
+                initialValue: opts.transcribeWindowDurationSec == 0
+                    ? ''
+                    : opts.transcribeWindowDurationSec.toStringAsFixed(1),
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
+                decoration: InputDecoration(
+                  labelText: l.advancedTranscribeWindowDuration,
+                  helperText:
+                      l.advancedTranscribeWindowDurationHelper,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) {
+                  final parsed = double.tryParse(v.trim());
+                  ref.read(advancedOptionsProvider.notifier).state =
+                      opts.copyWith(
+                          transcribeWindowDurationSec:
+                              parsed == null || parsed < 0 ? 0.0 : parsed);
+                },
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
