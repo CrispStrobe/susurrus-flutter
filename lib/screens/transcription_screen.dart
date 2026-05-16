@@ -135,11 +135,24 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final ok = await service.initialize(
       preferredEngine: settings.preferredEngine,
     );
-    if (ok) {
+    if (ok && _modelName.isNotEmpty) {
       try {
         await service.loadModel(_modelName);
-      } catch (_) {
-        // Non-fatal
+      } catch (e, st) {
+        // Non-fatal — the user can still pick a different model from the
+        // dropdown — but surface it so they don't silently end up with
+        // "no model loaded" later (e.g. when trying to stream).
+        Log.instance.w('ui', 'Default model load failed: $_modelName',
+            error: e, stack: st);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .transcriptionLoadFailed(e.toString())),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
       }
     }
     if (mounted) setState(() => _engineReady = ok);
@@ -1187,10 +1200,21 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   }
 
   Future<void> _selectAudioFile() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.audio,
-      allowMultiple: true,
-    );
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.pickFiles(
+        type: FileType.audio,
+        allowMultiple: true,
+      );
+    } catch (e, st) {
+      Log.instance.e('ui', 'File picker threw', error: e, stack: st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('File picker failed: $e')),
+        );
+      }
+      return;
+    }
 
     if (result != null && result.files.isNotEmpty) {
       final paths = result.files
@@ -1235,8 +1259,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final filePath = _selectedFilePath ?? recordedPath;
 
     if (filePath == null && _urlController.text.isEmpty) {
-      _showErrorDialog(
-          'Please select an audio file, enter a URL, or make a recording.');
+      _showErrorDialog(AppLocalizations.of(context).transcribeNoSource);
       return;
     }
 

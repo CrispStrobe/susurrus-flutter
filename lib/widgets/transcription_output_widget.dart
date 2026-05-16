@@ -93,6 +93,7 @@ class _TranscriptionOutputWidgetState
   }
 
   Widget _buildControls() {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
@@ -102,9 +103,9 @@ class _TranscriptionOutputWidgetState
           // tabs pushed the header past ~130px and overflowed short windows.
           TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(text: 'Segments'),
-              Tab(text: 'Full Text'),
+            tabs: [
+              Tab(text: l.tabSegments),
+              Tab(text: l.tabFullText),
             ],
           ),
 

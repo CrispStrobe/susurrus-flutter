@@ -2318,6 +2318,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get streamingNoModelLoaded =>
+      'Kein Modell geladen. Wähle ein Modell aus dem Dropdown oben (es lädt automatisch, falls heruntergeladen), oder öffne die Modellverwaltung, um zuerst eines herunterzuladen.';
+
+  @override
+  String get transcribeNoSource =>
+      'Bitte wähle eine Audiodatei, gib eine URL ein oder nimm eine Aufnahme auf.';
+
+  @override
   String get voiceBakeTitle => 'Stimme backen (WAV → GGUF)';
 
   @override

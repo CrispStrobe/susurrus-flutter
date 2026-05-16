@@ -956,6 +956,8 @@
   "recorderStreamSessionTooltip": "Live mic transcribe through the active backend's streaming arm (kyutai-stt / moonshine-streaming / voxtral4b). Falls back to Whisper sliding-window when the backend has no native stream API.",
   "streamingNotAvailableForBackend": "The active backend ({backend}) has no streaming arm. Switch to whisper, kyutai-stt, moonshine-streaming, or voxtral4b.",
   "@streamingNotAvailableForBackend": {"placeholders": {"backend": {"type": "String"}}},
+  "streamingNoModelLoaded": "No model loaded yet. Pick a model from the dropdown above (it'll auto-load if downloaded), or open Model Management to download one first.",
+  "transcribeNoSource": "Please select an audio file, enter a URL, or make a recording.",
 
   "voiceBakeTitle": "Bake voice (WAV → GGUF)",
   "voiceBakeOpenTooltip": "Bake a Chatterbox voice from a WAV reference",

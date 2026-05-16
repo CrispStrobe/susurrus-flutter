@@ -351,8 +351,11 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
+              // Reserve space for the on-screen keyboard so tapping the
+              // text field doesn't overflow the Column on iPad / iPhone.
+              // On desktop `viewInsets.bottom` is 0 so this is a no-op.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -956,6 +956,8 @@
   "recorderStreamSessionTooltip": "Live-Transkription über den aktiven Backend-Streamer (kyutai-stt / moonshine-streaming / voxtral4b). Fällt auf Whisper-Sliding-Window zurück, wenn das Backend keinen Streaming-Pfad bietet.",
   "streamingNotAvailableForBackend": "Das aktive Backend ({backend}) hat keinen Streaming-Pfad. Wechsle zu whisper, kyutai-stt, moonshine-streaming oder voxtral4b.",
   "@streamingNotAvailableForBackend": {"placeholders": {"backend": {"type": "String"}}},
+  "streamingNoModelLoaded": "Kein Modell geladen. Wähle ein Modell aus dem Dropdown oben (es lädt automatisch, falls heruntergeladen), oder öffne die Modellverwaltung, um zuerst eines herunterzuladen.",
+  "transcribeNoSource": "Bitte wähle eine Audiodatei, gib eine URL ein oder nimm eine Aufnahme auf.",
 
   "voiceBakeTitle": "Stimme backen (WAV → GGUF)",
   "voiceBakeOpenTooltip": "Erzeugt aus einer WAV-Referenz eine Chatterbox-Stimme",

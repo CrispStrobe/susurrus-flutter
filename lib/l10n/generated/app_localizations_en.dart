@@ -2304,6 +2304,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get streamingNoModelLoaded =>
+      'No model loaded yet. Pick a model from the dropdown above (it\'ll auto-load if downloaded), or open Model Management to download one first.';
+
+  @override
+  String get transcribeNoSource =>
+      'Please select an audio file, enter a URL, or make a recording.';
+
+  @override
   String get voiceBakeTitle => 'Bake voice (WAV → GGUF)';
 
   @override

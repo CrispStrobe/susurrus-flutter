@@ -392,15 +392,26 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
   /// Stream-mode entry point. Opens a live PCM stream and feeds it
   /// into the engine's `transcribeStream`. Each commit replaces the
   /// running transcription text in app state, so the UI shows the
-  /// rolling 10 s window's text live. Whisper-only today — others
-  /// don't expose the streaming session API.
+  /// rolling 10 s window's text live. Eligible backends are whisper,
+  /// kyutai-stt, moonshine-streaming, voxtral4b — anything else
+  /// surfaces the streamingNotAvailableForBackend error.
   Future<void> _startStreamRecording() async {
     final audioService = ref.read(audioServiceProvider);
     final transcriptionService = ref.read(transcriptionServiceProvider);
     final engine = transcriptionService.currentEngine;
-    if (engine == null || !engine.supportsStreaming) {
+    final status = transcriptionService.getEngineStatus();
+    final l = AppLocalizations.of(context);
+    if (engine == null) {
+      _showErrorDialog(l.streamingNoModelLoaded);
+      return;
+    }
+    if (status.currentModelId == null) {
+      _showErrorDialog(l.streamingNoModelLoaded);
+      return;
+    }
+    if (!engine.supportsStreaming) {
       _showErrorDialog(
-          AppLocalizations.of(context).streamingRequiresWhisper);
+          l.streamingNotAvailableForBackend(status.currentModelId ?? 'unknown'));
       return;
     }
 
@@ -498,8 +509,14 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
     final l = AppLocalizations.of(context);
     final transcriptionService = ref.read(transcriptionServiceProvider);
     final engine = transcriptionService.currentEngine;
-    if (engine == null || !engine.supportsStreaming) {
-      _showErrorDialog(l.streamingRequiresWhisper);
+    final status = transcriptionService.getEngineStatus();
+    if (engine == null || status.currentModelId == null) {
+      _showErrorDialog(l.streamingNoModelLoaded);
+      return;
+    }
+    if (!engine.supportsStreaming) {
+      _showErrorDialog(
+          l.streamingNotAvailableForBackend(status.currentModelId ?? 'unknown'));
       return;
     }
     final svc = ref.read(systemAudioCaptureServiceProvider);
@@ -591,6 +608,15 @@ class _AudioRecorderWidgetState extends ConsumerState<AudioRecorderWidget>
         _isPaused = false;
         _recordingPath = path;
       });
+
+      // Auto-select the recording so the user can hit Transcribe
+      // immediately. Tapping "Use Recording" still works (it shows
+      // the confirmation snackbar + stops any active playback) but
+      // shouldn't be required — the universal expectation is
+      // "I recorded → that's what I want to transcribe".
+      if (path != null) {
+        ref.read(selectedAudioPathProvider.notifier).state = path;
+      }
 
       _timer?.cancel();
       _pulseController.stop();

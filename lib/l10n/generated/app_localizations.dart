@@ -3962,6 +3962,18 @@ abstract class AppLocalizations {
   /// **'The active backend ({backend}) has no streaming arm. Switch to whisper, kyutai-stt, moonshine-streaming, or voxtral4b.'**
   String streamingNotAvailableForBackend(String backend);
 
+  /// No description provided for @streamingNoModelLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No model loaded yet. Pick a model from the dropdown above (it\'ll auto-load if downloaded), or open Model Management to download one first.'**
+  String get streamingNoModelLoaded;
+
+  /// No description provided for @transcribeNoSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an audio file, enter a URL, or make a recording.'**
+  String get transcribeNoSource;
+
   /// No description provided for @voiceBakeTitle.
   ///
   /// In en, this message translates to:
