@@ -815,20 +815,90 @@ class _TranscriptionOutputWidgetState
     final index = widget.segments.indexOf(segment);
     if (index < 0) return;
     final controller = TextEditingController(text: segment.text);
+    // §5.1.11 — pre-compute the per-word alt-candidate chips. Each
+    // entry contains the rendered word text, the leading-space-trimmed
+    // display string, and the alt list (already sorted descending by
+    // p on the C side). Empty list = "no alts on this segment", which
+    // collapses the suggestions block entirely.
+    final altSuggestions = <_WordAltSuggestion>[];
+    final segWords = segment.words;
+    if (segWords != null) {
+      for (final w in segWords) {
+        if (w.alts.isEmpty) continue;
+        final displayWord = w.word.startsWith(' ')
+            ? w.word.substring(1)
+            : w.word;
+        if (displayWord.isEmpty) continue;
+        altSuggestions.add(_WordAltSuggestion(
+          original: w.word,
+          display: displayWord,
+          alts: w.alts,
+        ));
+      }
+    }
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(ctx).outputEditSegment),
         content: SizedBox(
           width: responsiveDialogWidth(ctx, designed: 480),
-          child: TextField(
-            controller: controller,
-            maxLines: 6,
-            autofocus: true,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: segment.formattedTime,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: controller,
+                maxLines: 6,
+                autofocus: true,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: segment.formattedTime,
+                ),
+              ),
+              if (altSuggestions.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.of(ctx).outputEditAltSuggestions,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final s in altSuggestions)
+                      _AltSuggestionChip(
+                        suggestion: s,
+                        onPick: (replacement) {
+                          // Replace the first occurrence of the
+                          // word in the working buffer. Picks are
+                          // single-shot per chip per session; we
+                          // keep the chip visible so the user can
+                          // still pick a different alt if they
+                          // change their mind, but the original
+                          // word disappears from the textfield on
+                          // first replace.
+                          final cur = controller.text;
+                          final replacementClean =
+                              replacement.startsWith(' ')
+                                  ? replacement.substring(1)
+                                  : replacement;
+                          final next = cur.replaceFirst(
+                              s.display, replacementClean);
+                          controller.text = next;
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppLocalizations.of(ctx).outputEditAltSuggestionsHint,
+                  style: const TextStyle(
+                      fontSize: 11, color: Colors.black54),
+                ),
+              ],
+            ],
           ),
         ),
         actions: [
@@ -1781,6 +1851,81 @@ class _SummarizeSection extends StatelessWidget {
                     style: const TextStyle(fontSize: 13)),
               ),
         ],
+      ),
+    );
+  }
+}
+
+/// §5.1.11 — Bundle for the per-word alt suggestion. Carries the
+/// original word text (with whatever leading-space marker Whisper
+/// produced), the display-ready trimmed version, and the alt
+/// candidate list. Built inside _editSegment and consumed by
+/// `_AltSuggestionChip`.
+class _WordAltSuggestion {
+  final String original;
+  final String display;
+  final List<TranscriptionWordAlt> alts;
+
+  const _WordAltSuggestion({
+    required this.original,
+    required this.display,
+    required this.alts,
+  });
+}
+
+/// §5.1.11 — A single tappable chip showing one word that has
+/// runner-up candidates. Tapping opens a popup menu with each alt
+/// (text + percent), ordered descending by probability. Selecting
+/// invokes [onPick] with the alt's text — the parent dialog rewrites
+/// the working textfield. The chip stays visible after a pick so the
+/// user can change their mind.
+class _AltSuggestionChip extends StatelessWidget {
+  final _WordAltSuggestion suggestion;
+  final void Function(String replacement) onPick;
+
+  const _AltSuggestionChip({
+    required this.suggestion,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: AppLocalizations.of(context).outputEditAltPickTooltip,
+      onSelected: onPick,
+      itemBuilder: (ctx) {
+        return [
+          for (final a in suggestion.alts)
+            PopupMenuItem<String>(
+              value: a.text,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    a.text.startsWith(' ')
+                        ? a.text.substring(1)
+                        : a.text,
+                    style: const TextStyle(fontFamily: 'monospace'),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('${(a.p * 100).toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                          fontSize: 11, color: Colors.black54)),
+                ],
+              ),
+            ),
+        ];
+      },
+      child: Chip(
+        avatar: const Icon(Icons.touch_app, size: 14),
+        label: Text(suggestion.display,
+            style: const TextStyle(
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+              decorationStyle: TextDecorationStyle.dotted,
+            )),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
