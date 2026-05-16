@@ -608,6 +608,107 @@ from 0 decimals (which rounded most sub-1% probabilities to
   scaffolding nontrivial; the live test + the unit / preset
   tests already cover the data path end-to-end).
 
+### §5.8.1 Named speaker recognition (TitaNet + SpeakerDB) — May 2026
+
+Closes the "Speaker 0 / Speaker 1" gap in diarisation output.
+Before this pass, recording every 1:1 with the same team
+member gave you a transcript that called them "Speaker 0" on
+Monday and "Speaker 1" on Tuesday — useless for search /
+review. Now the user enrols a voice once and every future
+transcription rewrites the numeric cluster labels to the real
+name when there's a confident match.
+
+**Pure CrisperWeaver wiring** — the upstream `CrispasrTitaNet`
+(192-d L2-normalised speaker embedder) + `CrispasrSpeakerDB`
+(file-per-speaker on-disk profile DB) bindings were already
+exported through the public CrispASR Dart library; this pass
+is the consumer side.
+
+* `lib/services/speaker_id_service.dart`: lazy-opens TitaNet
+  + SpeakerDB (multi-second load), serialises concurrent
+  matchers with a `Completer` so two parallel diarisation
+  passes can't double-init the C side, and exposes
+  `isAvailable` / `matchSegment` / `enroll` / `listSpeakers`
+  / `deleteSpeaker` / `dispose`. DB dir is
+  `<app-docs>/speakers/` so the privacy story holds — nothing
+  ever leaves the device. Resolves the TitaNet GGUF by
+  basename prefix (`titanet*`) against
+  `ModelService.getWhisperCppModels`, mirroring the LID
+  service's lookup shape.
+* `lib/services/model_service.dart`: new
+  `titanet-large-f16` `ModelDefinition` pointing at
+  `cstr/titanet-large-GGUF` (~43 MB). `kind: ModelKind.lid`
+  so it groups under the LID filter chip in Model
+  Management; `backend: 'titanet'` so it doesn't collide
+  with the language-ID dispatch path. `_kindForBackend` also
+  routes `titanet` → `ModelKind.lid` for any future
+  auto-probed registry rows.
+* `lib/services/diarization_service.dart`: optional second
+  pass after `crispasr.diarizeSegments`. For each unique
+  cluster, picks the **longest segment** as the
+  representative (most stable TitaNet embedding — the model
+  was trained on ≥3 s utterances), slices a centred
+  3-second chunk of the loaded PCM, runs **one** TitaNet
+  match per cluster (embeddings are roughly stable per
+  speaker — re-running per segment would burn CPU for
+  nothing), and builds a `Map<int, String>` of
+  cluster → name. The final segment-rewrite loop only
+  replaces `"Speaker N"` when the map has an entry; below-
+  threshold clusters keep their numeric labels. Failure
+  modes (TitaNet not downloaded, DB empty, embedding
+  threw) all degrade silently to numeric labels.
+* `AdvancedOptions.enableSpeakerRecognition` (default
+  false): bool gate plumbed through
+  `AdvancedTranscribeOptions` →
+  `TranscriptionService.transcribeFile` and the standalone
+  `TranscriptionService.diarize` (used by the §5.23 Q2 v2
+  parallel-pool path). Hidden in the UI when
+  `diarizeMethod == energy` (stereo channel IDs already
+  disambiguate; speaker ID would add nothing). Preset
+  round-trip pinned.
+* `lib/screens/speaker_management_screen.dart` at
+  `/settings/speakers`: list + delete + enrol. Enrol flow
+  has two source modes (a 10-second live mic recording —
+  mirrors the voice-clone wizard's capture step — or a file
+  picker for any audio CrispASR can decode); name
+  uniqueness validated against the on-disk list before
+  enrol. Privacy note pinned to the screen header so users
+  see "stays on-device" before they hand over a sample.
+
+**Tests** —
+`test/speaker_id_live_test.dart` (slow-tagged) pins two
+invariants:
+
+* SpeakerDB filesystem round-trip: enrol a synthetic
+  L2-normalised vector into a temp dir, close, re-open,
+  observe count == 1 and a near-1.0 cosine score on the
+  same vector. Exercises the on-disk format the binding
+  owns without going through TitaNet — keeps the test
+  cheap to run.
+* TitaNet end-to-end: embed `test/jfk-2s.wav`, enrol the
+  result as "jfk", re-embed the same clip, match against
+  the DB, assert score ≥ 0.7 (upstream default
+  confidence threshold). Self-match is essentially 1.0 on
+  TitaNet so the floor leaves wide margin against
+  floating-point drift on any platform.
+
+Both skip cleanly when the dylib / GGUF aren't on disk OR
+when the locally built libcrispasr predates the TitaNet ABI
+— that's environment state, not a regression in this
+codebase. Default-suite coverage extends
+`test/advanced_options_test.dart` and
+`test/preset_service_test.dart` for the new toggle's default
++ copyWith + JSON round-trip.
+
+**Privacy contract** — the SpeakerDB lives in app docs only.
+No cloud sync, no telemetry, no opt-in remote enrolment.
+This is intentional and load-bearing: CrisperWeaver's whole
+positioning is on-device privacy, and a voice biometric
+quietly uploaded somewhere would undo that overnight. Any
+future "share enrolled speakers across devices" feature
+would have to ship explicit user-controlled export /
+import, not silent sync.
+
 ---
 
 ## Pre-sweep §5.x roadmap items — shipped

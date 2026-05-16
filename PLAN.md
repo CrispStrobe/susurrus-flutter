@@ -229,23 +229,9 @@ Open items only below.
   exists.
 
 * ~~**5.8.1 Named speaker recognition (TitaNet + SpeakerDB)**~~ —
-  **shipped May 2026**. New `SpeakerIdService` wraps the
-  upstream `CrispasrTitaNet` (192-d L2-normalised embeddings)
-  + `CrispasrSpeakerDB` (file-per-speaker on-disk profile DB
-  under `<app-docs>/speakers/` — nothing leaves the device).
-  New `titanet-large-f16` registry entry (~43 MB, shows up
-  under the LID filter chip in Model Management). Diarisation
-  post-process picks the longest segment per cluster, takes a
-  centred ~3 s PCM slice, runs one TitaNet match per cluster,
-  rewrites `segment.speaker` with the enrolled name when score
-  ≥ 0.7. New Settings → Speakers screen
-  (`/settings/speakers`) for enrol / list / delete via a
-  10-second live recording or any decodeable audio file; new
-  AdvancedOptions toggle, default off. Filesystem round-trip
-  + TitaNet end-to-end tests both `slow`-tagged + skip
-  cleanly when the dylib / GGUF aren't on disk; preset
-  round-trip + default-toggle test run in the default suite.
-  See [CHANGELOG → "§5.8.1 — Named speaker recognition"](CHANGELOG.md).
+  **shipped May 2026**. See
+  [HISTORY.md → "§5.8.1 Named speaker recognition"](HISTORY.md)
+  for the full write-up.
 
 * ~~**5.1.10 Audio enhancement before transcribe**~~ —
   **shipped May 2026 (CrispASR 0.5.12 + CrisperWeaver)**.
