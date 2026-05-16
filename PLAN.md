@@ -197,13 +197,23 @@ Open items only below.
   and iOS Share Extension *template files* + setup doc. What's
   still pending:
 
-  - **iOS Share Extension target wiring** — the Swift / plist /
-    entitlements files are checked in under
-    `ios/ShareExtension/`; the one-time Xcode target creation
-    + App Group capability + scheme wiring is described in
-    `docs/ios-share-extension-setup.md`. Run that once on a
-    dev machine to land the extension; no further code changes
-    needed.
+  - ~~**iOS Share Extension target wiring**~~ — **shipped
+    (build side) May 2026**.
+    `scripts/wire_ios_share_extension.rb` lands the
+    PBXNativeTarget / build configurations / Embed App
+    Extensions phase / Runner CODE_SIGN_ENTITLEMENTS /
+    App Groups SystemCapability into `Runner.xcodeproj`.
+    `ios/ShareExtension/RSIShareViewController.swift` vendors
+    the extension-safe subset of receive_sharing_intent v1.8.1
+    so the extension target doesn't link the upstream
+    framework (which calls extension-disallowed
+    `addApplicationDelegate`). End-to-end codesigned build
+    verified: Runner.app + Runner.app/PlugIns/ShareExtension.appex
+    both carry the
+    `com.apple.security.application-groups =
+    [group.com.crispstrobe.crisperweaver]` entitlement under
+    team N9XSJ4M3GT. Only the on-device tap-Share smoke test
+    in Voice Memos remains.
   - ~~**macOS Open-With handler**~~ — **shipped May 2026**.
     `OpenWithReceiver.swift` + Dart-side `DesktopOpenWithBridge`
     feed Finder's Open With / `open foo.wav` from the terminal
@@ -215,10 +225,19 @@ Open items only below.
     NSServices entry + `AppDelegate.transcribeAudio(_:userData:error:)`
     + `NSApp.servicesProvider = self` in
     `applicationDidFinishLaunching`.
-  - **Windows file association** — best done at install time
-    via an MSIX manifest (`uap:Extension Category=
-    "windows.fileTypeAssociation"`). Out of scope until an
-    MSIX packaging step exists.
+  - ~~**Windows file association**~~ — **shipped (config
+    side) May 2026**. MSIX packaging wired via the `msix` pub
+    package + `msix_config:` block in `pubspec.yaml`. The
+    Windows job in `release.yml` runs `flutter pub run
+    msix:create` after the standard build and uploads the
+    resulting `.msix` alongside the existing `.zip`; the MSIX
+    declares file-type associations for audio + subtitle types
+    (`.wav` / `.mp3` / `.m4a` / `.flac` / `.ogg` / `.aac` /
+    `.opus` / `.wma` / `.srt` / `.vtt`). Sideload-only for now
+    — Microsoft Store registration is on the roadmap; the
+    `pubspec.yaml` block flips to `store: true` + Partner
+    Center-issued publisher when that lands. Manual smoke
+    test on a real Windows machine still pending.
 
 * **5.1.9 Subtitle burning into video** — User selects a video
   file + transcript, gets a video with hardcoded subs. FFmpeg

@@ -71,4 +71,6 @@ windows/flutter/ephemeral/
 # large / platform-specific to live in git. See README "Android / iOS".
 android/app/src/main/jniLibs/**/*.so
 ios/Runner/Frameworks/*.xcframework
+ios/build/
 macos/Runner/Frameworks/libwhisper.dylib
+/handover-prompts/

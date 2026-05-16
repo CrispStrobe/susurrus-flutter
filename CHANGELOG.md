@@ -5,6 +5,90 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### Windows — MSIX packaging + Explorer file associations
+
+Closes the long-standing "Windows is the only desktop without
+Open-With integration" gap.
+
+What landed:
+
+- New `msix_config:` block in `pubspec.yaml` (uses the
+  `msix: ^3.16` dev_dependency) declaring publisher /
+  identity / version / logo, and the file-extension list
+  `.wav / .mp3 / .m4a / .flac / .ogg / .aac / .opus / .wma /
+  .srt / .vtt`. Capabilities pruned to `internetClient` —
+  `runFullTrust` (auto-added for non-UWP Flutter apps) gives
+  normal Win32 file access without needing UWP-style
+  `removableStorage` etc.
+- Windows job in `.github/workflows/release.yml` runs
+  `flutter pub run msix:create --verbose` after the standard
+  Windows build + DLL bundle step, then uploads
+  `crisper_weaver-windows-x64.msix` (+ sha256) alongside the
+  existing portable `.zip`.
+- Sideload-only for now (`store: false`, unsigned). README's
+  CI & releases section gained an "Installing on Windows"
+  block walking users through Unblock → double-click →
+  Install → Open With. Microsoft Store registration is on
+  the roadmap; flipping `store: true` + Partner Center
+  publisher is what's left for that.
+
+Manual `.msix` smoke test on a real Windows machine remains
+pending.
+
+### iOS Share Extension — fully wired (smoke test pending)
+
+The ShareExtension target now lands end-to-end via
+`scripts/wire_ios_share_extension.rb`. Codesigned debug build
+verified locally: `Runner.app/PlugIns/ShareExtension.appex` is
+present, signed by team N9XSJ4M3GT under bundle id
+`com.crispstrobe.crisperweaver.ShareExtension`, and both
+Runner.app and the .appex carry the
+`com.apple.security.application-groups =
+[group.com.crispstrobe.crisperweaver]` entitlement so the
+extension-side App Group write / main-app-side read interop is
+intact.
+
+What the script does:
+
+- Adds a PBXNativeTarget `ShareExtension` with
+  app-extension product type, Debug / Release / Profile build
+  configurations mirroring Runner (incl. Runner's
+  DEVELOPMENT_TEAM for automatic codesigning), and the
+  checked-in `ShareExtension/Info.plist` +
+  `ShareExtension/ShareExtension.entitlements` wired via
+  `CODE_SIGN_ENTITLEMENTS`.
+- Adds Sources phase with `ShareViewController.swift` +
+  `RSIShareViewController.swift` (vendored, see below).
+- Adds an Embed App Extensions copy-files phase on Runner
+  pointing at the .appex, placed immediately after the
+  Frameworks phase to avoid the new build system's cycle
+  detection through `ProcessInfoPlistFile`.
+- **Fixes a pre-existing gap on the Runner side**: the
+  checked-in `Runner/Runner.entitlements` was never wired to
+  Runner's `CODE_SIGN_ENTITLEMENTS`, so Runner.app shipped
+  without the App Group entitlement. Diagnosed via
+  `codesign -d --entitlements -`. Script now sets that build
+  setting (idempotent: skips if already set).
+- Adds `com.apple.ApplicationGroups.iOS` SystemCapability on
+  both targets so Signing & Capabilities reflects the
+  enabled checkbox.
+
+`ios/ShareExtension/RSIShareViewController.swift` is a 280-line
+vendor of the extension-safe subset of `receive_sharing_intent`
+v1.8.1. Vendored (not pod-linked) because the upstream plugin
+calls `FlutterPluginRegistrar.addApplicationDelegate`, which is
+`@available(iOSApplicationExtension, unavailable)` — strict
+extension link fails. The main Runner target keeps the pod
+normally; App Group `UserDefaults` round-trip is byte-compatible
+because both sides serialise `[SharedMediaFile]` under the same
+`kUserDefaultsKey`.
+
+Companion Podfile change: dropped the `target 'ShareExtension'`
+block (extension is framework-free now).
+
+Pending: on-device tap-Share smoke test (open Voice Memos →
+Share → CrisperWeaver should appear in the half-sheet).
+
 ### §5.8.1 — Named speaker recognition (TitaNet + SpeakerDB)
 
 Closes the "Speaker 0 / Speaker 1" gap in diarisation output:
