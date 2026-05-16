@@ -1863,6 +1863,60 @@ class AppLocalizationsDe extends AppLocalizations {
       '0 = bis zum Datei-Ende transkribieren.';
 
   @override
+  String get advancedFallbackThresholdsTitle => 'Whisper-Decoder-Fallbacks';
+
+  @override
+  String get advancedFallbackThresholdsSubtitle =>
+      'Steuert, wann der Decoder mit höherer Temperatur erneut decodiert oder Audio als Stille einstuft. Standardwerte entsprechen whisper.cpp.';
+
+  @override
+  String get advancedFallbackThresholdsSubtitleActive =>
+      'Eigene Schwellen aktiv — Standardwerte sind 2.4 / -1.0 / 0.6 / 0.2.';
+
+  @override
+  String get advancedFallbackThresholdsReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String advancedEntropyThold(String value) {
+    return 'Entropie-Schwelle: $value';
+  }
+
+  @override
+  String get advancedEntropyTholdHelper =>
+      'Token-Entropie, ab der ein Fallback-Durchlauf startet. Standard 2.4. Niedriger = strenger (mehr Wiederholungen); höher gegen exzessive Retries.';
+
+  @override
+  String advancedLogprobThold(String value) {
+    return 'Logprob-Schwelle: $value';
+  }
+
+  @override
+  String get advancedLogprobTholdHelper =>
+      'Durchschnittliche Log-Wahrscheinlichkeit, ab der ein Fallback-Durchlauf startet. Standard -1.0. Negativer = toleranter gegenüber verrauschter Decodierung.';
+
+  @override
+  String advancedNoSpeechThold(String value) {
+    return 'Keine-Sprache-Schwelle: $value';
+  }
+
+  @override
+  String get advancedNoSpeechTholdHelper =>
+      'Schwelle des Silence-Detectors. Standard 0.6. Höher = weniger aggressives Stille-Gating (behält leise Sprache).';
+
+  @override
+  String advancedTemperatureInc(String value) {
+    return 'Temperatur-Inkrement: $value';
+  }
+
+  @override
+  String get advancedTemperatureIncDisabled =>
+      'Temperatur-Inkrement: 0 (Fallback deaktiviert)';
+
+  @override
+  String get advancedTemperatureIncHelper =>
+      'Temperaturschritt pro Fallback-Durchlauf. Standard 0.2. Auf 0 setzen, um die Fallback-Schleife komplett zu deaktivieren (entspricht --no-fallback).';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisierungs-Methode';
 
   @override

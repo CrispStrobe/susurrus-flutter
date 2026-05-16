@@ -3218,6 +3218,84 @@ abstract class AppLocalizations {
   /// **'0 = transcribe until end-of-file.'**
   String get advancedTranscribeWindowDurationHelper;
 
+  /// No description provided for @advancedFallbackThresholdsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper decoder fallbacks'**
+  String get advancedFallbackThresholdsTitle;
+
+  /// No description provided for @advancedFallbackThresholdsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tune when the decoder retries at a higher temperature or treats audio as silence. Defaults match stock whisper.cpp.'**
+  String get advancedFallbackThresholdsSubtitle;
+
+  /// No description provided for @advancedFallbackThresholdsSubtitleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom thresholds active — defaults are 2.4 / -1.0 / 0.6 / 0.2.'**
+  String get advancedFallbackThresholdsSubtitleActive;
+
+  /// No description provided for @advancedFallbackThresholdsReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get advancedFallbackThresholdsReset;
+
+  /// No description provided for @advancedEntropyThold.
+  ///
+  /// In en, this message translates to:
+  /// **'Entropy threshold: {value}'**
+  String advancedEntropyThold(String value);
+
+  /// No description provided for @advancedEntropyTholdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Per-token entropy that triggers a fallback pass. Default 2.4. Lower = stricter (more retries on hard audio); raise to suppress excessive retries.'**
+  String get advancedEntropyTholdHelper;
+
+  /// No description provided for @advancedLogprobThold.
+  ///
+  /// In en, this message translates to:
+  /// **'Logprob threshold: {value}'**
+  String advancedLogprobThold(String value);
+
+  /// No description provided for @advancedLogprobTholdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Average log-probability cutoff that triggers a fallback pass. Default -1.0. More negative = more tolerant of noisy decoding.'**
+  String get advancedLogprobTholdHelper;
+
+  /// No description provided for @advancedNoSpeechThold.
+  ///
+  /// In en, this message translates to:
+  /// **'No-speech threshold: {value}'**
+  String advancedNoSpeechThold(String value);
+
+  /// No description provided for @advancedNoSpeechTholdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Silence detector cutoff. Default 0.6. Higher = less aggressive silence gating (keeps faint speech).'**
+  String get advancedNoSpeechTholdHelper;
+
+  /// No description provided for @advancedTemperatureInc.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature increment: {value}'**
+  String advancedTemperatureInc(String value);
+
+  /// No description provided for @advancedTemperatureIncDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature increment: 0 (fallback disabled)'**
+  String get advancedTemperatureIncDisabled;
+
+  /// No description provided for @advancedTemperatureIncHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).'**
+  String get advancedTemperatureIncHelper;
+
   /// No description provided for @advancedDiarizeMethod.
   ///
   /// In en, this message translates to:

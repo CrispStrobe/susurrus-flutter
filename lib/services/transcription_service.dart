@@ -117,6 +117,14 @@ class AdvancedTranscribeOptions {
   /// Whisper's `grammar_penalty` scalar (upstream default 100.0).
   final double grammarPenalty;
 
+  /// Whisper decoder-fallback thresholds. See AdvancedOptions for
+  /// per-field semantics. Whisper-only; other backends silently
+  /// ignore because their wparams have no analog.
+  final double entropyThold;
+  final double logprobThold;
+  final double noSpeechThold;
+  final double temperatureInc;
+
   /// §5.8 — `--offset-t` equivalent. Transcribe-window start
   /// (seconds). 0 = start of file. Backend-agnostic: the service
   /// slices the PCM before dispatch and shifts returned segment
@@ -150,6 +158,10 @@ class AdvancedTranscribeOptions {
     this.grammarText = '',
     this.grammarRootRule = 'root',
     this.grammarPenalty = 100.0,
+    this.entropyThold = 2.4,
+    this.logprobThold = -1.0,
+    this.noSpeechThold = 0.6,
+    this.temperatureInc = 0.2,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });

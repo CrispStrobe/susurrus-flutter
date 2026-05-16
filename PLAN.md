@@ -286,11 +286,15 @@ completeness — May 2026"](HISTORY.md). What's still pending:
   - `--alt N` / `--alt-n` — alternative token candidates with
     probabilities. Power-user feature; needs C-ABI plumbing for
     alt-decoder output + UI. ~2 days.
-  - Whisper decoder fallback thresholds (`--word-thold`,
-    `--entropy-thold`, `--logprob-thold`, `--no-speech-thold`,
-    `--no-fallback`, `--temperature-inc`) — already in the Dart
-    binding, just not in the UI. ~half day to surface as
-    Advanced Options rows + localised strings.
+  - ✅ Whisper decoder fallback thresholds (`--entropy-thold`,
+    `--logprob-thold`, `--no-speech-thold`, `--temperature-inc`
+    / `--no-fallback`) — **shipped May 2026 (CrispASR 0.5.10 +
+    CrisperWeaver)**. PLAN's earlier claim that they were "in
+    the Dart binding, just not in the UI" was wrong; the C ABI
+    + Dart binding + UI all needed adding. `--word-thold` not
+    surfaced — its CLI semantics (per-word print filter) don't
+    map cleanly to a whisper_full_params field. `--no-fallback`
+    is `temperature_inc = 0` (whisper.cpp's actual semantics).
   - ✅ Subtitle line formatting `--max-len` / `--split-on-word`
     (May 2026) — see HISTORY. `--split-on-punct` still pending;
     needs upstream Dart-binding work first.

@@ -1854,6 +1854,60 @@ class AppLocalizationsEn extends AppLocalizations {
       '0 = transcribe until end-of-file.';
 
   @override
+  String get advancedFallbackThresholdsTitle => 'Whisper decoder fallbacks';
+
+  @override
+  String get advancedFallbackThresholdsSubtitle =>
+      'Tune when the decoder retries at a higher temperature or treats audio as silence. Defaults match stock whisper.cpp.';
+
+  @override
+  String get advancedFallbackThresholdsSubtitleActive =>
+      'Custom thresholds active — defaults are 2.4 / -1.0 / 0.6 / 0.2.';
+
+  @override
+  String get advancedFallbackThresholdsReset => 'Reset to defaults';
+
+  @override
+  String advancedEntropyThold(String value) {
+    return 'Entropy threshold: $value';
+  }
+
+  @override
+  String get advancedEntropyTholdHelper =>
+      'Per-token entropy that triggers a fallback pass. Default 2.4. Lower = stricter (more retries on hard audio); raise to suppress excessive retries.';
+
+  @override
+  String advancedLogprobThold(String value) {
+    return 'Logprob threshold: $value';
+  }
+
+  @override
+  String get advancedLogprobTholdHelper =>
+      'Average log-probability cutoff that triggers a fallback pass. Default -1.0. More negative = more tolerant of noisy decoding.';
+
+  @override
+  String advancedNoSpeechThold(String value) {
+    return 'No-speech threshold: $value';
+  }
+
+  @override
+  String get advancedNoSpeechTholdHelper =>
+      'Silence detector cutoff. Default 0.6. Higher = less aggressive silence gating (keeps faint speech).';
+
+  @override
+  String advancedTemperatureInc(String value) {
+    return 'Temperature increment: $value';
+  }
+
+  @override
+  String get advancedTemperatureIncDisabled =>
+      'Temperature increment: 0 (fallback disabled)';
+
+  @override
+  String get advancedTemperatureIncHelper =>
+      'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisation method';
 
   @override

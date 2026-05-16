@@ -87,6 +87,14 @@ void main() {
         grammarText: 'root ::= "yes" | "no"\n',
         grammarRootRule: 'root',
         grammarPenalty: 75.0,
+        // Whisper decoder-fallback thresholds — every field set
+        // to a non-default value so a regression in any one of
+        // them surfaces here instead of silently reverting to the
+        // stock whisper.cpp default.
+        entropyThold: 3.0,
+        logprobThold: -2.0,
+        noSpeechThold: 0.45,
+        temperatureInc: 0.0, // = `--no-fallback`
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -107,6 +115,14 @@ void main() {
       expect(restored.grammarText, 'root ::= "yes" | "no"\n');
       expect(restored.grammarRootRule, 'root');
       expect(restored.grammarPenalty, 75.0);
+      // Whisper decoder-fallback thresholds. A "hard audio"
+      // preset should survive restart with all four overrides
+      // intact — defaults silently sneaking back in would
+      // change behaviour without the user noticing.
+      expect(restored.entropyThold, 3.0);
+      expect(restored.logprobThold, -2.0);
+      expect(restored.noSpeechThold, 0.45);
+      expect(restored.temperatureInc, 0.0);
     });
 
     test('missing keys fall through to ctor defaults', () {

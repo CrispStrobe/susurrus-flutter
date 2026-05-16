@@ -553,6 +553,27 @@ class CrispASREngine implements TranscriptionEngine {
             'setBestOf rejected by ${_session?.backend}: $e');
       }
     }
+    // Whisper decoder-fallback thresholds (whisper-only — other
+    // backends silently no-op). Always fire so a slider tweak
+    // takes effect on the next transcribe and a previous job's
+    // override doesn't stick. Pre-0.5.10 dylibs lack the symbol;
+    // we swallow UnsupportedError and continue with stock defaults.
+    if (_session != null) {
+      try {
+        _session!.setFallbackThresholds(
+          entropyThold: advanced.entropyThold,
+          logprobThold: advanced.logprobThold,
+          noSpeechThold: advanced.noSpeechThold,
+          temperatureInc: advanced.temperatureInc,
+        );
+      } on UnsupportedError catch (e) {
+        Log.instance.d('crispasr',
+            'setFallbackThresholds unsupported on this dylib: $e');
+      } catch (e) {
+        Log.instance.d('crispasr',
+            'setFallbackThresholds rejected by ${_session?.backend}: $e');
+      }
+    }
     // §5.8 — GBNF grammar (whisper-only). Always fire on every
     // dispatch (including empty text) so a previous job's grammar
     // doesn't carry over. Invalid GBNF surfaces as ArgumentError

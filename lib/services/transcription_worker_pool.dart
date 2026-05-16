@@ -284,6 +284,10 @@ class TranscriptionWorkerPool {
     String grammarText = '',
     String grammarRootRule = 'root',
     double grammarPenalty = 100.0,
+    double entropyThold = 2.4,
+    double logprobThold = -1.0,
+    double noSpeechThold = 0.6,
+    double temperatureInc = 0.2,
     void Function(TranscriptionSegment seg)? onSegment,
   }) async {
     final worker = await _acquire();
@@ -346,6 +350,13 @@ class TranscriptionWorkerPool {
         'grammarText': grammarText,
         'grammarRootRule': grammarRootRule,
         'grammarPenalty': grammarPenalty,
+        // Whisper decoder-fallback thresholds — always sent so a
+        // slider tweak takes effect on the next job without a
+        // worker restart. Pre-0.5.10 dylibs ignore.
+        'entropyThold': entropyThold,
+        'logprobThold': logprobThold,
+        'noSpeechThold': noSpeechThold,
+        'temperatureInc': temperatureInc,
         'replyPort': replyReceive.sendPort,
       });
       return await completer.future;

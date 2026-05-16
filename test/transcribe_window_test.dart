@@ -18,7 +18,9 @@ void main() {
   Float32List makeBuf(int seconds) {
     final n = seconds * 16000;
     final out = Float32List(n);
-    for (var i = 0; i < n; i++) out[i] = i.toDouble();
+    for (var i = 0; i < n; i++) {
+      out[i] = i.toDouble();
+    }
     return out;
   }
 
@@ -96,7 +98,9 @@ void main() {
     test('non-16 kHz sample rate scales the slice correctly', () {
       // 1 s of fake audio at 48 kHz.
       final buf48k = Float32List(48000);
-      for (var i = 0; i < buf48k.length; i++) buf48k[i] = i.toDouble();
+      for (var i = 0; i < buf48k.length; i++) {
+        buf48k[i] = i.toDouble();
+      }
       // 0.25 s..0.75 s = 0.5 s = 24000 samples.
       final out =
           CrispASREngine.sliceTranscribeWindow(buf48k, 48000, 0.25, 0.5);

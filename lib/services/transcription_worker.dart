@@ -165,6 +165,14 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
     final grammarRootRule = raw['grammarRootRule'] as String? ?? 'root';
     final grammarPenalty =
         (raw['grammarPenalty'] as num?)?.toDouble() ?? 100.0;
+    // Whisper decoder-fallback thresholds (whisper-only; other
+    // backends silently ignore).
+    final entropyThold = (raw['entropyThold'] as num?)?.toDouble() ?? 2.4;
+    final logprobThold = (raw['logprobThold'] as num?)?.toDouble() ?? -1.0;
+    final noSpeechThold =
+        (raw['noSpeechThold'] as num?)?.toDouble() ?? 0.6;
+    final temperatureInc =
+        (raw['temperatureInc'] as num?)?.toDouble() ?? 0.2;
 
     try {
       // Apply sticky session-state setters before dispatch. Empty
@@ -217,6 +225,16 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
       try {
         session.setBeamSize(beamSize);
       } on Object catch (_) {}
+      // Whisper decoder-fallback thresholds. Pre-0.5.10 dylibs
+      // lack the symbol — UnsupportedError gets swallowed.
+      try {
+        session.setFallbackThresholds(
+          entropyThold: entropyThold,
+          logprobThold: logprobThold,
+          noSpeechThold: noSpeechThold,
+          temperatureInc: temperatureInc,
+        );
+      } on Object catch (_) {/* old dylib or non-whisper backend */}
       // GBNF grammar (whisper-only — the C side silently no-ops on
       // other backends because grammar_active never flips true for
       // them, but the setter itself is whisper-aware). Empty text

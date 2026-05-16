@@ -195,6 +195,27 @@ class AdvancedOptions {
   /// than a hard constraint; the recommended range is 50..200.
   final double grammarPenalty;
 
+  /// Whisper decoder-fallback thresholds. All four feed
+  /// `whisper_full_params` on the whisper transcribe path
+  /// (silently ignored by other backends — none have an analog).
+  /// Defaults match whisper_full_default_params so unmodified
+  /// sliders behave like stock whisper.cpp.
+  ///
+  /// * [entropyThold] (2.4) — per-token entropy that triggers
+  ///   a fallback pass. Lower = stricter; raise on hard audio.
+  /// * [logprobThold] (-1.0) — avg log-probability cutoff that
+  ///   triggers a fallback pass. More negative = more
+  ///   tolerant of noisy decoding.
+  /// * [noSpeechThold] (0.6) — silence detector cutoff. Higher
+  ///   = less aggressive silence gating.
+  /// * [temperatureInc] (0.2) — temperature step per fallback
+  ///   pass. 0.0 disables the fallback loop entirely
+  ///   (the CLI's `--no-fallback`).
+  final double entropyThold;
+  final double logprobThold;
+  final double noSpeechThold;
+  final double temperatureInc;
+
   /// Transcribe-window start (seconds). 0 = start of file.
   /// Pairs with [transcribeWindowDurationSec] — together they
   /// implement the equivalent of CrispASR CLI's `--offset-t` +
@@ -264,6 +285,10 @@ class AdvancedOptions {
     this.grammarText = '',
     this.grammarRootRule = 'root',
     this.grammarPenalty = 100.0,
+    this.entropyThold = 2.4,
+    this.logprobThold = -1.0,
+    this.noSpeechThold = 0.6,
+    this.temperatureInc = 0.2,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });
@@ -301,6 +326,10 @@ class AdvancedOptions {
     String? grammarText,
     String? grammarRootRule,
     double? grammarPenalty,
+    double? entropyThold,
+    double? logprobThold,
+    double? noSpeechThold,
+    double? temperatureInc,
     double? transcribeWindowStartSec,
     double? transcribeWindowDurationSec,
   }) =>
@@ -337,6 +366,10 @@ class AdvancedOptions {
         grammarText: grammarText ?? this.grammarText,
         grammarRootRule: grammarRootRule ?? this.grammarRootRule,
         grammarPenalty: grammarPenalty ?? this.grammarPenalty,
+        entropyThold: entropyThold ?? this.entropyThold,
+        logprobThold: logprobThold ?? this.logprobThold,
+        noSpeechThold: noSpeechThold ?? this.noSpeechThold,
+        temperatureInc: temperatureInc ?? this.temperatureInc,
         transcribeWindowStartSec:
             transcribeWindowStartSec ?? this.transcribeWindowStartSec,
         transcribeWindowDurationSec:
@@ -682,6 +715,12 @@ class _AdvancedDecodingSectionState
         // the transcription worker only calls setGrammar when text
         // is non-empty so other backends don't take an extra trip.
         _buildGrammarRows(context, opts),
+        // Whisper decoder-fallback thresholds (Whisper-only).
+        // Five-slider ExpansionTile — defaults reproduce
+        // whisper_full_default_params exactly so leaving every
+        // slider alone matches stock whisper.cpp. Power-user
+        // knob; collapses when defaults are in effect.
+        _buildFallbackThresholdsRow(context, opts),
         // Punctuation family picker — only visible when "Restore
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
@@ -1148,6 +1187,139 @@ class _AdvancedDecodingSectionState
         Text(l.advancedGrammarPenaltyHelper,
             style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
       ],
+    );
+  }
+
+  /// Whisper decoder-fallback thresholds. Five sliders mapped
+  /// 1-to-1 onto wparams.*_thold + wparams.temperature_inc.
+  /// Collapsed by default so the tile doesn't dominate the
+  /// section for users who aren't tuning whisper.
+  Widget _buildFallbackThresholdsRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    final atDefaults = opts.entropyThold == 2.4 &&
+        opts.logprobThold == -1.0 &&
+        opts.noSpeechThold == 0.6 &&
+        opts.temperatureInc == 0.2;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      // Initially expanded when the user already overrode any
+      // threshold — that signals they care; otherwise stay
+      // collapsed to keep the section scannable.
+      initiallyExpanded: !atDefaults,
+      title: Text(l.advancedFallbackThresholdsTitle),
+      subtitle: Text(
+        atDefaults
+            ? l.advancedFallbackThresholdsSubtitle
+            : l.advancedFallbackThresholdsSubtitleActive,
+        style: const TextStyle(fontSize: 11),
+      ),
+      children: [
+        _fallbackSlider(
+          context: context,
+          label: l.advancedEntropyThold(opts.entropyThold.toStringAsFixed(2)),
+          helper: l.advancedEntropyTholdHelper,
+          value: opts.entropyThold,
+          min: 0.0,
+          max: 5.0,
+          divisions: 50,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(entropyThold: v),
+        ),
+        _fallbackSlider(
+          context: context,
+          label: l.advancedLogprobThold(opts.logprobThold.toStringAsFixed(2)),
+          helper: l.advancedLogprobTholdHelper,
+          value: opts.logprobThold,
+          min: -5.0,
+          max: 0.0,
+          divisions: 50,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(logprobThold: v),
+        ),
+        _fallbackSlider(
+          context: context,
+          label: l.advancedNoSpeechThold(
+              opts.noSpeechThold.toStringAsFixed(2)),
+          helper: l.advancedNoSpeechTholdHelper,
+          value: opts.noSpeechThold,
+          min: 0.0,
+          max: 1.0,
+          divisions: 20,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(noSpeechThold: v),
+        ),
+        _fallbackSlider(
+          context: context,
+          label: opts.temperatureInc == 0.0
+              ? l.advancedTemperatureIncDisabled
+              : l.advancedTemperatureInc(
+                  opts.temperatureInc.toStringAsFixed(2)),
+          helper: l.advancedTemperatureIncHelper,
+          value: opts.temperatureInc,
+          min: 0.0,
+          max: 1.0,
+          divisions: 20,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(temperatureInc: v),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton.icon(
+            icon: const Icon(Icons.restart_alt, size: 16),
+            label: Text(l.advancedFallbackThresholdsReset),
+            onPressed: () =>
+                ref.read(advancedOptionsProvider.notifier).state =
+                    opts.copyWith(
+                        entropyThold: 2.4,
+                        logprobThold: -1.0,
+                        noSpeechThold: 0.6,
+                        temperatureInc: 0.2),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Internal builder for one threshold row — label + value +
+  /// slider + helper text. Stripped-down version of the synth
+  /// screen's `_buildSampleSlider` because we don't need the
+  /// snapping / quantisation logic here (each threshold has its
+  /// own native float resolution).
+  Widget _fallbackSlider({
+    required BuildContext context,
+    required String label,
+    required String helper,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Slider(
+            min: min,
+            max: max,
+            divisions: divisions,
+            value: value.clamp(min, max),
+            label: value.toStringAsFixed(2),
+            onChanged: onChanged,
+          ),
+          Text(helper,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+        ],
+      ),
     );
   }
 

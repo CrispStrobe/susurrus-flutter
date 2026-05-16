@@ -5,6 +5,44 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### Whisper decoder-fallback thresholds (May 2026)
+
+The four CLI flags `--entropy-thold`, `--logprob-thold`,
+`--no-speech-thold`, `--temperature-inc` (which doubles as
+`--no-fallback`) now exist as CrisperWeaver sliders. Tunable
+parameters that control when the decoder retries at a higher
+temperature (hard / noisy audio) or treats a segment as
+silence; defaults reproduce whisper.cpp's stock behaviour, so
+sliders left alone change nothing.
+
+Upstream (CrispASR 0.5.10):
+
+- New crispasr_session fields entropy_thold (2.4),
+  logprob_thold (-1.0), no_speech_thold (0.6), temperature_inc
+  (0.2). Whisper transcribe dispatch writes them into
+  whisper_full_params on every call.
+- New C-ABI crispasr_session_set_fallback_thresholds(s,
+  entropy, logprob, nospeech, tinc). temperature_inc clamped
+  to [0,1]; 0 disables the fallback loop entirely.
+- Dart binding: CrispasrSession.setFallbackThresholds(...)
+  with named params; pre-0.5.10 dylibs raise UnsupportedError.
+
+CrisperWeaver:
+
+- New AdvancedOptions fields (whisper-only): entropyThold,
+  logprobThold, noSpeechThold, temperatureInc. Wired through
+  AdvancedTranscribeOptions, preset JSON round-trip, both the
+  pool dispatch path AND the engine-direct path.
+- UI: ExpansionTile in the Whisper-only section with four
+  sliders + a "Reset to defaults" link. Title subtitle flags
+  when any override is active; temperature_inc shows
+  "(fallback disabled)" when set to 0.
+
+Tests: preset_service_test.dart round-trip extended to pin
+all four thresholds. Symbol-presence pin added to upstream
+bindings_smoke_test.dart. Full suite: 368 pass / 14 skip / 0
+fail.
+
 ### §5.8 — Transcribe-window controls (`--offset-t / --duration`) (May 2026)
 
 CrispASR CLI's `--offset-t` + `--duration` flags now exist in
