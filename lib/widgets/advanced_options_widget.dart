@@ -103,6 +103,14 @@ class AdvancedOptions {
   /// `pyannote-v3-seg-*.gguf` GGUF to be on disk.
   final crispasr.DiarizeMethod diarizeMethod;
 
+  /// §5.8.1 — Resolve diarised "Speaker N" labels to enrolled speaker
+  /// names using TitaNet + SpeakerDB. Requires the TitaNet GGUF to be
+  /// downloaded and at least one speaker enrolled via Settings →
+  /// Speakers. No-op when [diarizeMethod] is `energy` (stereo channel
+  /// IDs are already meaningful) or when no model / DB profiles are
+  /// present.
+  final bool enableSpeakerRecognition;
+
   // -------------------------------------------------------------------
   // LID method (CrispASR 0.4.6+ `crispasr_detect_language_pcm`).
   // -------------------------------------------------------------------
@@ -314,6 +322,7 @@ class AdvancedOptions {
     this.vadMinSilenceMs = 100,
     this.vadSpeechPadMs = 30,
     this.diarizeMethod = crispasr.DiarizeMethod.vadTurns,
+    this.enableSpeakerRecognition = false,
     this.lidMethod = crispasr.LidMethod.whisper,
     this.tdrz = false,
     this.tokenTimestamps = false,
@@ -360,6 +369,7 @@ class AdvancedOptions {
     int? vadMinSilenceMs,
     int? vadSpeechPadMs,
     crispasr.DiarizeMethod? diarizeMethod,
+    bool? enableSpeakerRecognition,
     crispasr.LidMethod? lidMethod,
     bool? tdrz,
     bool? tokenTimestamps,
@@ -405,6 +415,8 @@ class AdvancedOptions {
         vadMinSilenceMs: vadMinSilenceMs ?? this.vadMinSilenceMs,
         vadSpeechPadMs: vadSpeechPadMs ?? this.vadSpeechPadMs,
         diarizeMethod: diarizeMethod ?? this.diarizeMethod,
+        enableSpeakerRecognition:
+            enableSpeakerRecognition ?? this.enableSpeakerRecognition,
         lidMethod: lidMethod ?? this.lidMethod,
         tdrz: tdrz ?? this.tdrz,
         tokenTimestamps: tokenTimestamps ?? this.tokenTimestamps,
@@ -760,6 +772,10 @@ class _AdvancedDecodingSectionState
         // unconditionally; the screen-level diarize flag gates whether
         // anything happens.
         _buildDiarizationMethodRow(context, opts),
+        // §5.8.1 — Resolve diarised cluster labels to enrolled
+        // speakers via TitaNet. Hidden when the diarisation method is
+        // `energy` (stereo channel IDs already disambiguate speakers).
+        _buildSpeakerRecognitionRow(context, opts),
         // Whisper-only tdrz toggle (tinydiarize). Hidden on session
         // backends because the model file format differs.
         _buildTdrzRow(context, opts),
@@ -1115,6 +1131,24 @@ class _AdvancedDecodingSectionState
               opts.copyWith(diarizeMethod: v);
         },
       ),
+    );
+  }
+
+  Widget _buildSpeakerRecognitionRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (opts.diarizeMethod == crispasr.DiarizeMethod.energy) {
+      return const SizedBox.shrink();
+    }
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(l.advancedSpeakerRecognition),
+      subtitle: Text(l.advancedSpeakerRecognitionSubtitle,
+          style: const TextStyle(fontSize: 11)),
+      value: opts.enableSpeakerRecognition,
+      onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(enableSpeakerRecognition: v),
     );
   }
 

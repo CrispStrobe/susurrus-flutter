@@ -5,6 +5,45 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.8.1 — Named speaker recognition (TitaNet + SpeakerDB)
+
+Closes the "Speaker 0 / Speaker 1" gap in diarisation output:
+users can now enrol voices once and see every future
+transcription replace the numeric labels with the real names
+when there's a confident match.
+
+What landed:
+
+- New `SpeakerIdService` wraps the upstream `CrispasrTitaNet`
+  (192-d L2-normalised embeddings) + `CrispasrSpeakerDB`
+  (file-per-speaker on-disk profile DB, stored under
+  `<app-docs>/speakers/` — nothing leaves the device).
+- New `titanet-large-f16` entry in the model registry
+  (`cstr/titanet-large-GGUF`, ~43 MB) — shows up under the LID
+  filter chip in Model Management.
+- Diarisation post-process: when `enableSpeakerRecognition` is
+  on, after the numeric labels come back from
+  `crispasr.diarizeSegments` we pick the longest segment per
+  cluster, extract a centred ~3 s PCM slice, run one TitaNet
+  match per cluster, and rewrite the segment `speaker` field
+  with the enrolled name when score ≥ 0.7 (upstream default).
+  Silently falls through to numeric labels otherwise.
+- New Settings → Speakers screen (`/settings/speakers`): list,
+  delete, and enrol via either a 10-second live recording or
+  any decodeable audio file. Privacy note pinned prominently
+  in the screen header.
+- New AdvancedOptions toggle ("Identify enrolled speakers"),
+  hidden when the diarisation method is `energy` (stereo
+  channel IDs already disambiguate). Preset round-trip pinned;
+  default off so users without TitaNet downloaded pay zero
+  cost.
+- Tests: filesystem round-trip (enrol → reopen → match) and
+  end-to-end TitaNet pipeline (embed → enrol → re-match the
+  same WAV → score ≥ 0.7) — both tag-gated under `slow` and
+  skip cleanly when the dylib / GGUF aren't on disk. Preset
+  round-trip + AdvancedOptions default tests run in the
+  default suite.
+
 ### §5.8 — Whisper alt-token capture (`--alt N` parity, May 2026)
 
 Closes out the last open `whisper-cli`-equivalent gap. Power-user
@@ -428,8 +467,8 @@ user-impacting gaps:
 
 Wired-but-already-shipping surfaces: 60 of 85 upstream calls.
 Genuinely upstream-pending: GBNF grammar-constrained sampling
-(§5.8), audio enhancement (§5.1.10), TitaNet / SpeakerDB —
-none of these are exposed by the upstream Dart binding yet.
+(§5.8), audio enhancement (§5.1.10) — both since shipped.
+TitaNet / SpeakerDB also shipped via §5.8.1 in Unreleased.
 `LidMethod.firered` / `.ecapa` are reachable through the
 integer-typed `CrispasrSession.detectLanguage`, but the
 enum-typed top-level `detectLanguagePcm` still only covers

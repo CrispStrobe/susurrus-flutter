@@ -36,6 +36,7 @@ import 'services/history_service.dart';
 import 'services/log_service.dart';
 import 'services/native_licenses.dart';
 import 'services/share_intake_service.dart';
+import 'services/speaker_id_service.dart';
 import 'services/transcription_service.dart';
 import 'services/model_service.dart';
 import 'services/hotkey_service.dart';
@@ -441,7 +442,12 @@ final modelServiceProvider = Provider<ModelService>((ref) {
 final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
   final audioService = ref.watch(audioServiceProvider);
   final modelService = ref.watch(modelServiceProvider);
-  return TranscriptionService(audioService, modelService);
+  final speakerIdService = ref.watch(speakerIdServiceProvider);
+  return TranscriptionService(
+    audioService,
+    modelService,
+    speakerIdService: speakerIdService,
+  );
 });
 
 /// Path to the audio file the user has selected or just recorded — used to

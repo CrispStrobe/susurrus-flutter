@@ -1275,6 +1275,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         vadMinSilenceMs: adv.vadMinSilenceMs,
         vadSpeechPadMs: adv.vadSpeechPadMs,
         diarizeMethod: adv.diarizeMethod,
+        enableSpeakerRecognition: adv.enableSpeakerRecognition,
         lidMethod: adv.lidMethod,
         tdrz: adv.tdrz,
         tokenTimestamps: adv.tokenTimestamps,
@@ -1996,6 +1997,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
             minSpeakers: minSpeakers,
             maxSpeakers: maxSpeakers,
             method: advancedRun.diarizeMethod,
+            enableSpeakerRecognition: advancedRun.enableSpeakerRecognition,
           );
         } catch (e, st) {
           Log.instance.w('batch', 'diarize (pool post-process) failed',

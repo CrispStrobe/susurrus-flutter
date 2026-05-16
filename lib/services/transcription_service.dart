@@ -13,6 +13,7 @@ import 'log_service.dart';
 import 'model_service.dart';
 import 'diarization_service.dart';
 import 'punc_service.dart';
+import 'speaker_id_service.dart';
 import 'vad_service.dart';
 
 /// Bundles the CrispASR 0.6 parity decoder/diarisation/LID knobs that
@@ -46,6 +47,12 @@ class AdvancedTranscribeOptions {
   /// extra model; `pyannote` requires `pyannote-v3-seg-*.gguf` to be on
   /// disk and falls back to `vadTurns` when missing.
   final crispasr.DiarizeMethod diarizeMethod;
+
+  /// §5.8.1 — Resolve diarised cluster labels to enrolled speaker
+  /// names via TitaNet. Requires the TitaNet GGUF + at least one
+  /// enrolled speaker; silently passes through numeric labels when
+  /// the prerequisites aren't met.
+  final bool enableSpeakerRecognition;
 
   /// LID classifier. `whisper` reuses any multilingual ggml-*.bin
   /// already downloaded; `silero` needs its own ~16 MB GGUF.
@@ -161,6 +168,7 @@ class AdvancedTranscribeOptions {
     this.vadMinSilenceMs = 100,
     this.vadSpeechPadMs = 30,
     this.diarizeMethod = crispasr.DiarizeMethod.vadTurns,
+    this.enableSpeakerRecognition = false,
     this.lidMethod = crispasr.LidMethod.whisper,
     this.tdrz = false,
     this.tokenTimestamps = false,
@@ -194,6 +202,7 @@ class AdvancedTranscribeOptions {
 class TranscriptionService {
   final AudioService _audioService;
   final ModelService _modelService;
+  final SpeakerIdService? _speakerIdService;
   late final DiarizationService _diarizationService;
   final EngineManager _engineManager = EngineManager();
   late final VadService _vadService;
@@ -208,10 +217,17 @@ class TranscriptionService {
   /// detection without plumbing a new return type through every layer.
   TranscriptionResult? lastResult;
 
-  TranscriptionService(this._audioService, this._modelService) {
+  TranscriptionService(
+    this._audioService,
+    this._modelService, {
+    SpeakerIdService? speakerIdService,
+  }) : _speakerIdService = speakerIdService {
     _puncService = PuncService(modelService: _modelService);
     _vadService = VadService(modelService: _modelService);
-    _diarizationService = DiarizationService(modelService: _modelService);
+    _diarizationService = DiarizationService(
+      modelService: _modelService,
+      speakerIdService: _speakerIdService,
+    );
   }
 
   bool get isTranscribing => _isTranscribing;
@@ -412,6 +428,7 @@ class TranscriptionService {
           minSpeakers: minSpeakers,
           maxSpeakers: maxSpeakers,
           method: advanced.diarizeMethod,
+          enableSpeakerRecognition: advanced.enableSpeakerRecognition,
           onProgress: (progress) => onProgress?.call(0.75 + progress * 0.2),
         );
       }
@@ -718,6 +735,7 @@ class TranscriptionService {
     int? minSpeakers,
     int? maxSpeakers,
     crispasr.DiarizeMethod method = crispasr.DiarizeMethod.vadTurns,
+    bool enableSpeakerRecognition = false,
   }) {
     return _diarizationService.diarizeSegments(
       audioData,
@@ -725,6 +743,7 @@ class TranscriptionService {
       minSpeakers: minSpeakers,
       maxSpeakers: maxSpeakers,
       method: method,
+      enableSpeakerRecognition: enableSpeakerRecognition,
     );
   }
 

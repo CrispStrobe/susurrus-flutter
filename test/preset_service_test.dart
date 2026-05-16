@@ -38,6 +38,7 @@ void main() {
       expect(restored.vadMinSilenceMs, opts.vadMinSilenceMs);
       expect(restored.vadSpeechPadMs, opts.vadSpeechPadMs);
       expect(restored.diarizeMethod, opts.diarizeMethod);
+      expect(restored.enableSpeakerRecognition, opts.enableSpeakerRecognition);
       expect(restored.lidMethod, opts.lidMethod);
       expect(restored.tdrz, opts.tdrz);
       expect(restored.tokenTimestamps, opts.tokenTimestamps);
@@ -71,6 +72,7 @@ void main() {
         vadMinSilenceMs: 200,
         vadSpeechPadMs: 50,
         diarizeMethod: crispasr.DiarizeMethod.pyannote,
+        enableSpeakerRecognition: true,
         lidMethod: crispasr.LidMethod.silero,
         tdrz: true,
         tokenTimestamps: true,
@@ -115,6 +117,7 @@ void main() {
       expect(restored.bestOf, 5);
       expect(restored.vadBackend, VadBackend.firered);
       expect(restored.diarizeMethod, crispasr.DiarizeMethod.pyannote);
+      expect(restored.enableSpeakerRecognition, true);
       expect(restored.lidMethod, crispasr.LidMethod.silero);
       expect(restored.targetLanguage, 'de');
       expect(restored.askPrompt, 'Summarize');

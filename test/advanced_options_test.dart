@@ -201,6 +201,9 @@ void main() {
       expect(opts.vadSpeechPadMs, 30);
       expect(opts.tdrz, isFalse);
       expect(opts.tokenTimestamps, isFalse);
+      expect(opts.enableSpeakerRecognition, isFalse,
+          reason: '§5.8.1 — off by default so users without TitaNet '
+              'downloaded pay zero cost');
       expect(opts.puncFamily, 'firered');
       // Perf defaults: GPU off (so first run on a Metal box doesn't
       // surprise the user), flash-attn on (matches CrispASR CLI), 4
@@ -214,6 +217,7 @@ void main() {
         vadMinSpeechMs: 400,
         tdrz: true,
         tokenTimestamps: true,
+        enableSpeakerRecognition: true,
         puncFamily: 'fullstop',
         lidUseGpu: true,
         lidFlashAttn: false,
@@ -223,6 +227,7 @@ void main() {
       expect(tuned.vadMinSpeechMs, 400);
       expect(tuned.tdrz, isTrue);
       expect(tuned.tokenTimestamps, isTrue);
+      expect(tuned.enableSpeakerRecognition, isTrue);
       expect(tuned.puncFamily, 'fullstop');
       expect(tuned.lidUseGpu, isTrue);
       expect(tuned.lidFlashAttn, isFalse);

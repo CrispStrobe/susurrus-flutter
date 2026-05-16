@@ -144,6 +144,7 @@ Map<String, dynamic> _advancedOptionsToJson(AdvancedOptions o) =>
       'vadMinSilenceMs': o.vadMinSilenceMs,
       'vadSpeechPadMs': o.vadSpeechPadMs,
       'diarizeMethod': o.diarizeMethod.name,
+      'enableSpeakerRecognition': o.enableSpeakerRecognition,
       'lidMethod': o.lidMethod.name,
       'tdrz': o.tdrz,
       'tokenTimestamps': o.tokenTimestamps,
@@ -205,6 +206,8 @@ AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
     vadSpeechPadMs: (j['vadSpeechPadMs'] as int?) ?? 30,
     diarizeMethod: enumFromName(crispasr.DiarizeMethod.values,
         j['diarizeMethod'] as String?, crispasr.DiarizeMethod.vadTurns),
+    enableSpeakerRecognition:
+        (j['enableSpeakerRecognition'] as bool?) ?? false,
     lidMethod: enumFromName(crispasr.LidMethod.values,
         j['lidMethod'] as String?, crispasr.LidMethod.whisper),
     tdrz: (j['tdrz'] as bool?) ?? false,
