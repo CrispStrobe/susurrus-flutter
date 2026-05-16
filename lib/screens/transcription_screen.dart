@@ -1223,8 +1223,18 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
   Future<void> _selectAudioFile() async {
     FilePickerResult? result;
     try {
+      // FileType.audio on iOS routes through MPMediaPickerController
+      // (Apple Music library) — wrong picker for our case (we want
+      // recorded files in Files / iCloud Drive, not music tracks) AND
+      // it requires NSAppleMusicUsageDescription. Use FileType.custom
+      // with explicit extensions so iOS picks the document picker on
+      // every platform.
       result = await FilePicker.pickFiles(
-        type: FileType.audio,
+        type: FileType.custom,
+        allowedExtensions: const [
+          'wav', 'mp3', 'm4a', 'flac', 'ogg', 'aac',
+          'opus', 'wma', 'aif', 'aiff', 'mp4'
+        ],
         allowMultiple: true,
       );
     } catch (e, st) {
