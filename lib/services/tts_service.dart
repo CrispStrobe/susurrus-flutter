@@ -420,6 +420,13 @@ class TtsService {
     var off = 44;
     for (var i = 0; i < samples.length; i++) {
       var s = samples[i];
+      // NaN / Infinity slip past the clamp below (NaN compares
+      // false to every threshold), and `.round()` then throws
+      // "Unsupported operation: Infinity or NaN toInt". Some
+      // backends (kokoro observed) emit a handful of non-finite
+      // samples on the trailing edge of synthesis; treat those as
+      // silent rather than failing the whole WAV write.
+      if (!s.isFinite) s = 0.0;
       if (s > 1.0) s = 1.0;
       if (s < -1.0) s = -1.0;
       bd.setInt16(off, (s * 32767).round(), Endian.little);
