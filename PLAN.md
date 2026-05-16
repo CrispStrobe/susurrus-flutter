@@ -334,12 +334,20 @@ completeness — May 2026"](HISTORY.md). What's still pending:
       AppLocalizations, both of which need scaffolding to pump
       headlessly. Unit + preset round-trip tests cover the
       data plumbing; the UI test is a nice-to-have.
-    - **Live-tagged end-to-end test**. Real transcription with
-      `altN: 3` against a downloaded `ggml-tiny.en.bin`,
-      asserting ≥1 returned word has alts and the chosen word
-      sits above the top alt by probability. Needs a model on
-      CI; defer until the slow-tagged test infrastructure
-      grows that hook.
+    - ~~**Live-tagged end-to-end test**~~ —
+      **shipped May 2026** as
+      `flutter/crispasr/test/alt_tokens_live_test.dart` on the
+      CrispASR side. Real transcription with `altN: 3` against
+      `ggml-tiny.en.bin` + `samples/jfk.wav`; asserts ≥1
+      returned word has alts, every alt's p ∈ [0, 1] and the
+      list is descending by p, chosen token is excluded from
+      its own alts, and `setAltN(0)` on a re-decode clears
+      them. Tagged `live` so `dart test` without
+      `CRISPASR_LIB` + `CRISPASR_MODEL` skips silently. On
+      the dev box whisper-tiny produces 22/22 words with
+      runner-ups on the JFK clip (representative output:
+      "Americans → America(4.85%), americ(3.84%),
+      American(3.35%)").
   - ✅ Whisper decoder fallback thresholds (`--entropy-thold`,
     `--logprob-thold`, `--no-speech-thold`, `--temperature-inc`
     / `--no-fallback`) — **shipped May 2026 (CrispASR 0.5.10 +
