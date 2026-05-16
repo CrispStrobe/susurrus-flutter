@@ -5,6 +5,93 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.8 — Whisper alt-token capture (`--alt N` parity, May 2026)
+
+Closes out the last open `whisper-cli`-equivalent gap. Power-user
+feature for technical / proper-noun-heavy recordings where the
+Whisper first-choice token is plausible but wrong (`kubectl` →
+`cubicle`); off by default.
+
+Upstream (CrispASR 0.5.13):
+
+- Whisper internals capture top-N runners-up at each greedy
+  decode step into a parallel `alts` vector on the segment,
+  mirrored through fallback retries, `result_len` truncation,
+  and the `max_len` wrap-segment splitter. New
+  `wparams.alt_n` (default 0 = off; beam search excluded
+  because siblings are beam-conditional, not greedy
+  alternatives).
+- Six new public whisper getters
+  (`whisper_full_get_token_n_alts` / `_alt_id` / `_alt_p`
+  + `_from_state` variants).
+- New C-ABI: `crispasr_params_set_alt_n` (low-level), sticky
+  `crispasr_session_set_alt_n` (session), per-token accessors
+  (`crispasr_token_n_alts` / `_alt_id` / `_alt_p` /
+  `_alt_text`), and per-word session-result accessors
+  (`crispasr_session_result_word_n_alts` / `_alt_text` /
+  `_alt_p`).
+- The whisper session-transcribe path (which previously
+  returned only segment-level text) now populates `seg.words`
+  via the unified `emit_words_from_tokens` helper —
+  side-benefit aligning whisper's session API with what
+  parakeet / canary already produced.
+- Dart binding: new `AltToken` value class + `Word.alts`
+  (default `const []`); `TranscribeOptions.altN`;
+  `CrispasrSession.setAltN(int)`. Pre-0.5.13 dylibs raise
+  `UnsupportedError` so apps graceful-degrade. Pubspec
+  → 0.5.13. Smoke-test pins all nine new symbols.
+
+CrisperWeaver:
+
+- New `AdvancedOptions.altN` — 0..5 slider in the Whisper-only
+  section. UI caps at 5 because Whisper's tail past the top few
+  candidates is vanishingly small (memory ≈ 50 KB/min at the
+  cap). Mirrored on `AdvancedTranscribeOptions` + preset JSON
+  round-trip.
+- `TranscriptionWord` grows an `alts` field (new
+  `TranscriptionWordAlt` value class). Both
+  `_mapWhisperSegments` (low-level whisper path) and
+  `_mapSessionSegments` (unified session API) project the alts
+  through to the engine boundary.
+- `CrispasrEngine` and the isolate worker pool fire
+  `session.setAltN` on every dispatch; `UnsupportedError` is
+  swallowed so old dylibs still work (alts UI just stays
+  hidden).
+- **Transcript editor**: when a segment's words have alts, a
+  Wrap of dotted-underline chips renders beneath the
+  TextField — one chip per word with non-empty alts. Tap a
+  chip → popup menu of "alt text + percent" descending by p;
+  pick an entry → `replaceFirst` the original word in the
+  working buffer. Editable text stays a plain TextField so
+  cursor / undo / multi-line keep working. Off-by-default —
+  empty alts collapse the suggestions block, leaving the
+  dialog indistinguishable from the pre-feature version.
+- Whisper sub-word BPE means a multi-token word like
+  "kubectl" → ["kub","ect","l"] surfaces alts for the first
+  content token ("kub") only. Full word-level enumeration
+  would need a per-word token-tree expansion; deferred. The
+  UI help string flags the caveat.
+- l10n: EN + DE strings for the slider + the editor
+  suggestions block.
+
+Tests:
+
+- `test/advanced_options_test.dart` — new "§5.1.11
+  alt-token capture (altN)" group: default 0, `copyWith`
+  preserves / mutates / clears, neighbouring sliders
+  unaffected.
+- `test/preset_service_test.dart` — `altN = 3` round-trips
+  through the JSON cycle alongside the other non-default
+  fields.
+- CrispASR smoke test pins all nine new symbols against the
+  freshly-built dylib.
+
+Full suite: 376 pass / 16 skip / 0 fail. Deferred follow-ups
+tracked in [PLAN.md → §5.8 `--alt N`](PLAN.md): beam-search alt
+capture (different semantics), full word-level alt enumeration,
+a widget test for the alt-picker popover, and a live-tagged
+end-to-end test against a real model.
+
 ### §5.1.10 — Audio enhancement before transcribe (May 2026)
 
 Field-recording quality was bottlenecked by Whisper's noise

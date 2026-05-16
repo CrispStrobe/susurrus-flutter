@@ -486,6 +486,108 @@ through `AdvancedTranscribeOptions` to `crispasr.TranscribeOptions`
 on the whisper file path. Both fields round-trip through
 PresetService JSON. Hidden on non-whisper backends.
 
+### §5.8 Whisper alt-token capture (`--alt N`) — May 2026
+
+Closes out the last open `whisper-cli`-equivalent gap. Whisper's
+per-step softmax produces a full distribution over the vocab; the
+existing API only surfaced the chosen token, which is plausible
+but wrong often enough on technical / proper-noun-heavy audio
+(`kubectl` → `cubicle`, `Ergodicity` → `Argo-disity`, …) that the
+manual-edit workflow assumed users already knew the right text.
+This pass exposes the top-N runner-up candidates per token so an
+editor can offer tap-to-pick over ambiguous words — the workflow
+Otter.ai shipped years ago and no local-first competitor has.
+
+**Lands across four layers** (paired commits in CrispASR `0.5.13`
++ CrisperWeaver):
+
+* **whisper internals** (`CrispASR/src/crispasr.cpp` +
+  `include/crispasr.h`): new `whisper_alt_token` struct + a
+  parallel `alts` vector on `whisper_sequence` and
+  `whisper_segment`, mirrored at every
+  `tokens.{clear,push_back,resize}` site so the per-step alts
+  stay in lockstep with the chosen tokens through the
+  fallback-temperature loop, the truncation-to-`result_len` pass,
+  and the `max_len` wrap-segment splitter. Capture happens
+  inside `whisper_sample_token` (greedy + sampled), reusing the
+  already-computed `decoder.probs`. Beam search is deliberately
+  excluded — siblings are beam-conditional rather than greedy
+  alternatives. New params field `wparams.alt_n` (default 0 =
+  off). Six new public getters
+  (`whisper_full_get_token_n_alts` / `_alt_id` / `_alt_p` plus
+  `_from_state` variants). The whisper *session* transcribe path
+  (which previously returned only segment-level text) now
+  populates `seg.words` via `emit_words_from_tokens` with
+  `token_timestamps = true`, bringing it in line with
+  parakeet / canary and unlocking session-level word alts as a
+  side-effect.
+* **C-ABI** (`CrispASR/src/crispasr_c_api.cpp`): new
+  `crispasr_params_set_alt_n` (low-level), sticky
+  `crispasr_session_set_alt_n` (session, matches the
+  `setFallbackThresholds` / `setWhisperDecodeExtras` pattern),
+  plus per-token accessors (`crispasr_token_n_alts` / `_alt_id`
+  / `_alt_p` / `_alt_text`) and per-word session-result
+  accessors (`crispasr_session_result_word_n_alts` / `_alt_text`
+  / `_alt_p`). `crispasr_session_seg::word` grows a `word_alt`
+  subtype + `alts` list; `emit_words_from_tokens` attaches the
+  first content-bearing token's alts to the emitted word
+  (whisper sub-word BPE means alts for "kubectl" cover the
+  discriminating "kub" token only — full word-level enumeration
+  would need a per-word token-tree expansion, deferred).
+* **Dart binding** (`CrispASR/flutter/crispasr/`): new
+  `AltToken` value class + `Word.alts` (defaults to `const []`
+  so existing call-sites stay source-compatible), pumped through
+  both the low-level `_collectSegments` path (via
+  `crispasr_token_*` + `whisper_token_to_str`) and the unified
+  `_readSegments` session path (via the new
+  `_word_n_alts` / `_alt_text` / `_alt_p` getters). Sticky
+  `CrispasrSession.setAltN(int)` raises `UnsupportedError` on
+  pre-0.5.13 dylibs so apps can graceful-degrade.
+  `TranscribeOptions.altN` (default 0) plumbs through the
+  low-level path. Pubspec bumped to `0.5.13`;
+  `bindings_smoke_test.dart` pins all nine new symbols.
+* **CrisperWeaver**: `AdvancedOptions.altN` — a 0..5 slider in
+  the Whisper-only section of Advanced Options. UI caps at 5
+  because Whisper's distribution past the top few candidates is
+  vanishingly small; memory is ~50 KB/min of audio at the cap.
+  `TranscriptionWordAlt` value class + `TranscriptionWord.alts`
+  field; both `_mapWhisperSegments` (low-level) and
+  `_mapSessionSegments` (session) project the alts list through
+  to the engine boundary. `CrispasrEngine` and the isolate
+  worker pool both fire `session.setAltN` on every dispatch
+  (swallowing `UnsupportedError` for pre-0.5.13 dylibs);
+  AdvancedTranscribeOptions mirrors the field so the worker-pool
+  payload carries it from the transcribe screen all the way to
+  the FFI call. Preset round-trip pinned.
+
+**Editor UI** (`lib/widgets/transcription_output_widget.dart`):
+the segment-edit dialog now renders a Wrap of dotted-underline
+chips beneath the TextField — one chip per word with non-empty
+alts. Tap a chip → popup menu of "alt text + percent" descending
+by probability; pick an entry → `replaceFirst` the original word
+in the working buffer. The TextField stays a plain editable
+buffer so cursor / undo / multi-line all keep working; the chips
+are an additive affordance, not a replacement for free-edit.
+Off-by-default: when `altN = 0` or the loaded libcrispasr is
+pre-0.5.13, every `TranscriptionWord.alts` is empty and the
+suggestions block collapses entirely — the dialog is
+indistinguishable from the pre-feature version for every user
+who doesn't opt in.
+
+l10n: EN + DE strings for the slider + the editor suggestions
+block.
+
+**Still pending** — low-priority follow-ups, all tracked in
+[PLAN.md → §5.8 `--alt N`](PLAN.md):
+
+* Beam-search alt capture (different semantics; defer until
+  asked).
+* Full word-level alt enumeration via per-word token-tree
+  expansion.
+* Widget test for the alt-picker popover (Riverpod + l10n
+  scaffolding nontrivial).
+* Live-tagged end-to-end test against a downloaded model.
+
 ---
 
 ## Pre-sweep §5.x roadmap items — shipped

@@ -297,9 +297,49 @@ completeness — May 2026"](HISTORY.md). What's still pending:
     `CrispASREngine.sliceTranscribeWindow` handles the
     sample-rate-aware slice math. 10 unit tests pin the edge
     cases.
-  - `--alt N` / `--alt-n` — alternative token candidates with
-    probabilities. Power-user feature; needs C-ABI plumbing for
-    alt-decoder output + UI. ~2 days.
+  - ✅ `--alt N` / `--alt-n` — alternative-candidate tokens —
+    **shipped May 2026 (CrispASR 0.5.13 + CrisperWeaver)**. Full
+    write-up in [HISTORY.md → "§5.8 Whisper alt-token capture
+    (`--alt N`)"](HISTORY.md). Four-layer landing: whisper
+    internals capture top-N runners-up on each greedy step into
+    a parallel `alts` vector on the segment; C-ABI exposes both
+    low-level token accessors and per-word session-result
+    accessors; Dart binding surfaces them as `Word.alts` (with
+    a new `AltToken` value class) and a sticky
+    `CrispasrSession.setAltN(int)`; CrisperWeaver wires `altN`
+    through AdvancedOptions / preset round-trip / worker pool
+    and renders a tap-to-pick chip row in the segment edit
+    dialog. Closes out the §5.8 CLI-parity gap.
+
+    Still-pending follow-ups (low priority — v1 covers the
+    common case):
+    - **Beam-search alt capture**. Beam siblings are
+      beam-conditional, not greedy alternatives, so v1 only
+      fires on greedy. A meaningful beam-aware "show the K
+      sibling beams' divergence point" UX would need a different
+      whisper-side capture path and a different chip shape
+      (sibling-walk rather than tap-to-pick). Defer until a
+      user actually asks.
+    - **Full word-level alt enumeration**. Whisper tokens are
+      sub-word BPE, so a multi-token word like "kubectl" →
+      `["kub","ect","l"]` only surfaces alts for the first
+      content token ("kub" → "cub" / "tu" / …). Computing
+      alternative WHOLE words would require a per-word
+      token-tree expansion — out of scope for v1; the
+      first-token alts cover most real ambiguity in practice.
+      Documented in the C-ABI helper comment + the UI help
+      string.
+    - **Widget test for the alt-picker popover**. The
+      transcript-editor edit dialog uses Riverpod providers +
+      AppLocalizations, both of which need scaffolding to pump
+      headlessly. Unit + preset round-trip tests cover the
+      data plumbing; the UI test is a nice-to-have.
+    - **Live-tagged end-to-end test**. Real transcription with
+      `altN: 3` against a downloaded `ggml-tiny.en.bin`,
+      asserting ≥1 returned word has alts and the chosen word
+      sits above the top alt by probability. Needs a model on
+      CI; defer until the slow-tagged test infrastructure
+      grows that hook.
   - ✅ Whisper decoder fallback thresholds (`--entropy-thold`,
     `--logprob-thold`, `--no-speech-thold`, `--temperature-inc`
     / `--no-fallback`) — **shipped May 2026 (CrispASR 0.5.10 +
