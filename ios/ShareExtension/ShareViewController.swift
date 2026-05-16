@@ -37,7 +37,10 @@
 import UIKit
 import Social
 import MobileCoreServices
-import receive_sharing_intent
+// RSIShareViewController is vendored at
+// ios/ShareExtension/RSIShareViewController.swift (extension-safe
+// subset of receive_sharing_intent v1.8.1). See the header comment
+// in that file for why we vendor instead of linking the pod.
 
 class ShareViewController: RSIShareViewController {
     // RSIShareViewController auto-redirects to the host app

@@ -38,6 +38,20 @@ target 'Runner' do
   end
 end
 
+# Share Extension — intentionally no pod dependencies. We vendor
+# RSIShareViewController + its supporting types directly in
+# ios/ShareExtension/RSIShareViewController.swift to keep the
+# extension framework-free. See that file's header for why; tl;dr:
+# the upstream receive_sharing_intent pod calls
+# FlutterPluginRegistrar.addApplicationDelegate which is marked
+# unavailable in app extensions, so linking the framework into a
+# strict extension target fails. The main Runner target keeps the
+# pod normally via flutter_install_all_ios_pods above.
+target 'ShareExtension' do
+  use_frameworks!
+  use_modular_headers!
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
