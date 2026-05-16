@@ -577,6 +577,26 @@ who doesn't opt in.
 l10n: EN + DE strings for the slider + the editor suggestions
 block.
 
+**Live verification** —
+`flutter/crispasr/test/alt_tokens_live_test.dart` on the
+CrispASR side opens a session against `ggml-tiny.en.bin`,
+sets `altN: 3`, transcribes `samples/jfk.wav`, and asserts
+the four core invariants: ≥1 word has alts, every p ∈ [0, 1]
+and the list descends, the chosen token is excluded from its
+own alts, and `setAltN(0)` actually clears on a re-decode.
+Tagged `live` so a normal `dart test` skips it; runs against
+the freshly built dylib on dev boxes. Representative result
+on the M1 dev box: 22/22 words on JFK get runner-ups
+("Americans → America(4.85%), americ(3.84%),
+American(3.35%)" — real morphological alternatives, real
+case variants, real punctuation contenders). macOS debug
+binary builds clean.
+
+Post-merge polish: bumped the alt-picker popup precision
+from 0 decimals (which rounded most sub-1% probabilities to
+`0%`) to 1 decimal, so users see real values like `0.0%` vs
+`3.4%` when picking between candidates.
+
 **Still pending** — low-priority follow-ups, all tracked in
 [PLAN.md → §5.8 `--alt N`](PLAN.md):
 
@@ -585,8 +605,8 @@ block.
 * Full word-level alt enumeration via per-word token-tree
   expansion.
 * Widget test for the alt-picker popover (Riverpod + l10n
-  scaffolding nontrivial).
-* Live-tagged end-to-end test against a downloaded model.
+  scaffolding nontrivial; the live test + the unit / preset
+  tests already cover the data path end-to-end).
 
 ---
 

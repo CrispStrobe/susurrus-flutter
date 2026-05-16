@@ -85,12 +85,30 @@ Tests:
   fields.
 - CrispASR smoke test pins all nine new symbols against the
   freshly-built dylib.
+- CrispASR live test
+  (`flutter/crispasr/test/alt_tokens_live_test.dart`,
+  tagged `live`) drives the full stack against
+  `ggml-tiny.en.bin` + `samples/jfk.wav`. Asserts ≥1 word
+  has alts, p ∈ [0, 1] descending, chosen token excluded
+  from own alts, and `setAltN(0)` actually clears on
+  re-decode. Whisper-tiny on JFK produces 22/22 words with
+  runner-ups in practice ("Americans → America(4.85%),
+  americ(3.84%), American(3.35%)"). macOS debug binary
+  builds clean.
+
+Post-merge polish (same release window):
+
+- Alt-picker popup now renders probabilities at 1 decimal
+  precision (`0.0%` / `3.4%`) instead of 0 decimals (which
+  rounded most sub-1% alts to `0%`, useless for picking the
+  real candidate out of noise).
 
 Full suite: 376 pass / 16 skip / 0 fail. Deferred follow-ups
 tracked in [PLAN.md → §5.8 `--alt N`](PLAN.md): beam-search alt
 capture (different semantics), full word-level alt enumeration,
-a widget test for the alt-picker popover, and a live-tagged
-end-to-end test against a real model.
+and a widget test for the alt-picker popover. The live-tagged
+end-to-end test that was originally on this list shipped in
+the same release.
 
 ### §5.1.10 — Audio enhancement before transcribe (May 2026)
 
