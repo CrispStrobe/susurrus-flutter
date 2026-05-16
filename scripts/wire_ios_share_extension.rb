@@ -113,8 +113,16 @@ ext.build_configurations.each do |config|
   s['SKIP_INSTALL']              = 'NO'
   s['LD_RUNPATH_SEARCH_PATHS']   = ['$(inherited)', '@executable_path/Frameworks',
                                     '@executable_path/../../Frameworks']
-  s['MARKETING_VERSION']         = '$(MARKETING_VERSION)'
-  s['CURRENT_PROJECT_VERSION']   = '$(FLUTTER_BUILD_NUMBER)'
+  # Literal version values. The extension's Info.plist references
+  # `$(MARKETING_VERSION)` + `$(CURRENT_PROJECT_VERSION)`. Pointing
+  # those at `$(FLUTTER_BUILD_NUMBER)` doesn't work here because
+  # FLUTTER_BUILD_NUMBER is defined in Flutter/Generated.xcconfig
+  # which Runner includes but the extension does not — so the
+  # interpolation resolves to an empty string and the install fails
+  # with MIInstallerErrorDomain error 33 (MissingBundleVersion).
+  # Hard-coding here matches Xcode's default extension template.
+  s['MARKETING_VERSION']         = '1.0'
+  s['CURRENT_PROJECT_VERSION']   = '1'
   s['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
   s['DEVELOPMENT_TEAM']          = runner_dev_team if runner_dev_team
   # Extension is strict-extension-safe — RSIShareViewController is
