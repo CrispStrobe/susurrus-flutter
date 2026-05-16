@@ -1803,6 +1803,36 @@ class AppLocalizationsDe extends AppLocalizations {
   String get advancedLidMethodEcapa => 'ECAPA-TDNN (107 Sprachen, ~42 MB GGUF)';
 
   @override
+  String get advancedGrammarTitle => 'GBNF-Grammatik (nur Whisper)';
+
+  @override
+  String get advancedGrammarSubtitle =>
+      'Erzwingt strukturierte Ausgabe (JSON / SKU / Telefonnummern / …). Leer = keine Einschränkung.';
+
+  @override
+  String get advancedGrammarSubtitleActive =>
+      'Grammatik aktiv — die Ausgabe wird durch diese GBNF beschränkt.';
+
+  @override
+  String get advancedGrammarTextLabel => 'GBNF-Quelltext';
+
+  @override
+  String get advancedGrammarRootRule => 'Startregel';
+
+  @override
+  String get advancedGrammarRootRuleHelper =>
+      'Symbolname, mit dem das Parsing beginnt. Die GBNF-Konvention ist \"root\".';
+
+  @override
+  String advancedGrammarPenalty(String value) {
+    return 'Grammatik-Penalty: $value';
+  }
+
+  @override
+  String get advancedGrammarPenaltyHelper =>
+      'Höher = härtere Einschränkung, niedriger = weichere Empfehlung. Upstream-Standard ist 100; sinnvoller Bereich 50..200.';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisierungs-Methode';
 
   @override

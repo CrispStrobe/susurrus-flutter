@@ -84,6 +84,9 @@ void main() {
         vocabulary: ['API', 'kubectl', 'Alice'],
         maxLen: 80,
         splitOnWord: true,
+        grammarText: 'root ::= "yes" | "no"\n',
+        grammarRootRule: 'root',
+        grammarPenalty: 75.0,
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -98,6 +101,12 @@ void main() {
       expect(restored.vocabulary, ['API', 'kubectl', 'Alice']);
       expect(restored.maxLen, 80);
       expect(restored.splitOnWord, true);
+      // §5.8 — GBNF fields round-trip with the rest. A user
+      // saving a "force-JSON" preset should pick it up later
+      // without re-typing the grammar.
+      expect(restored.grammarText, 'root ::= "yes" | "no"\n');
+      expect(restored.grammarRootRule, 'root');
+      expect(restored.grammarPenalty, 75.0);
     });
 
     test('missing keys fall through to ctor defaults', () {

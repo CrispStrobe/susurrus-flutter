@@ -5,6 +5,53 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.8 — GBNF grammar-constrained sampling (May 2026)
+
+Closes the long-deferred §5.8 plan item. Whisper transcripts
+can now be forced into a structured shape — JSON, SKU patterns,
+phone numbers, or any other context-free grammar the user can
+write in GBNF.
+
+Upstream (CrispASR 0.5.9):
+
+- `examples/grammar-parser.{h,cpp}` promoted to `src/` so
+  libcrispasr links the GBNF parser.
+- New C ABI `crispasr_session_set_grammar_text(session,
+  gbnf_text, root_rule, penalty)` parses the source once at
+  setter time, stores the rule graph on the session, and the
+  whisper transcribe dispatch threads it through
+  `wparams.grammar_rules` / `n_grammar_rules` / `i_start_rule`
+  / `grammar_penalty`. Auto-switches to beam search
+  (grammar-constrained sampling requires beam ≥ 2); beam_size
+  defaults to 5 when the user left it at default 1.
+- Dart binding: `CrispasrSession.setGrammar(text, rootRule:,
+  penalty:)` plus a convenience `clearGrammar()`. Invalid
+  GBNF / unknown root rules raise ArgumentError; pre-0.5.9
+  dylibs raise UnsupportedError for graceful fallback.
+
+CrisperWeaver:
+
+- New AdvancedOptions fields — `grammarText`, `grammarRootRule`,
+  `grammarPenalty` — surfaced as an ExpansionTile in the
+  Whisper-only section of the Advanced Options widget. Multi-
+  line monospace TextField for the GBNF source plus sliders
+  for the root-rule name + penalty value (0..200, slider
+  divisions every 5).
+- Transcription worker + worker pool dispatch fire
+  `session.setGrammar(text, rootRule, penalty)` on every
+  transcribe call (empty text clears any prior grammar from
+  the session). Invalid GBNF surfaces as a worker error reply
+  so the user gets an actionable snackbar.
+- Preset round-trip persists the new fields so a "force JSON"
+  preset survives app restart.
+
+Tests: +1 round-trip case in preset_service_test.dart pins the
+grammar fields, plus 3 upstream Dart smoke tests in
+`CrispASR/flutter/crispasr/test/grammar_test.dart` exercising
+parse / re-set / clear / invalid-source / unknown-root paths
+against a real libcrispasr + ggml-tiny.en.bin. Full
+CrisperWeaver suite: 358 pass / 14 skip.
+
 ### Match CrispASR upstream — LID picker Firered + Ecapa (May 2026)
 
 Closes the LID picker gap from the previous TTS-sampling pass.

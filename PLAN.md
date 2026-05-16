@@ -252,28 +252,25 @@ Open items only below.
 Most of §5.8 is shipped — see [HISTORY.md → "Advanced Options
 completeness — May 2026"](HISTORY.md). What's still pending:
 
-* **GBNF (grammar-constrained sampling)** — Whisper-only, niche
-  but valuable for structured output (force JSON / SKUs / phone-
-  number shape). **Deferred**: needs new CrispASR work, not just
-  CrisperWeaver UI. Six concrete steps:
-  1. Promote `CrispASR/examples/grammar-parser.{h,cpp}` → `src/`
-     so libcrispasr links it (currently CLI-only).
-  2. New C-ABI `crispasr_session_set_grammar_text(s, gbnf,
-     rule_name, penalty)` that calls `grammar_parser::parse` and
-     stores the parsed `whisper_grammar_element` graph in the
-     session.
-  3. Thread the parsed rules into `wparams.grammar_rules` /
-     `n_grammar_rules` / `grammar_rule` / `grammar_penalty` on
-     every whisper transcribe dispatch.
-  4. Dart binding `CrispasrSession.setGrammar(text, rule,
-     penalty)` with the usual `providesSymbol` guard.
-  5. CrisperWeaver UI: `grammarText` + `grammarRule` +
-     `grammarPenalty` in `AdvancedOptions`, multiline TextField
-     gated on `_activeBackend() == 'whisper'`, plumbed through
-     `CrispASREngine.transcribe`.
-  6. Tests on both repos.
-  Estimated 2–3 days. Track here until prioritised; matching
-  entry in CrispASR PLAN.
+* ~~**GBNF (grammar-constrained sampling)**~~ —
+  **shipped May 2026 (CrispASR 0.5.9 + CrisperWeaver)**. All
+  six steps landed:
+  1. `grammar-parser.{h,cpp}` promoted to `CrispASR/src/`.
+  2. C ABI `crispasr_session_set_grammar_text` added with
+     parse + symbol-resolution + session-level storage.
+  3. wparams.grammar_rules / n_grammar_rules / i_start_rule /
+     grammar_penalty wired into the whisper transcribe path.
+  4. Dart `CrispasrSession.setGrammar(text, rootRule:,
+     penalty:)` + `clearGrammar()` with UnsupportedError /
+     ArgumentError mapping.
+  5. CrisperWeaver Advanced Options: ExpansionTile with the
+     multi-line GBNF TextField + root-rule field + penalty
+     slider; Whisper-only gating; wired through both the
+     worker pool path AND the engine-direct path.
+  6. Tests: upstream Dart smoke (parse / re-set / clear /
+     invalid / unknown-root, 3/3 green against real
+     libcrispasr + ggml-tiny.en.bin) plus a preset round-trip
+     case in CrisperWeaver.
 
 * **CrispASR CLI features missing from CrisperWeaver** — found
   during the §5.23 beam-search audit, listed here so the next

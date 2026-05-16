@@ -171,6 +171,30 @@ class AdvancedOptions {
   /// Whisper-only; no-op for CTC / LLM-session backends.
   final bool splitOnWord;
 
+  /// §5.8 — GBNF grammar source. Non-empty enables grammar-
+  /// constrained sampling on whisper (forces beam search; auto-
+  /// bumps beam_size to 5 when the user left it at default 1).
+  /// Empty means "no constraint" (verbatim transcription).
+  /// Whisper-only — every other backend ignores the field.
+  ///
+  /// Example forcing JSON output:
+  /// ```gbnf
+  /// root  ::= "{" key ":" value "}"
+  /// key   ::= "\"" [a-zA-Z]+ "\""
+  /// value ::= [0-9]+
+  /// ```
+  final String grammarText;
+
+  /// §5.8 — Root rule symbol name for [grammarText]. The GBNF
+  /// convention is "root"; users with a multi-section grammar
+  /// can override to start parsing from a different rule.
+  final String grammarRootRule;
+
+  /// §5.8 — Whisper's `grammar_penalty` scalar (upstream default
+  /// 100.0). Lower values make the grammar a "suggestion" rather
+  /// than a hard constraint; the recommended range is 50..200.
+  final double grammarPenalty;
+
   /// §5.1.2 — Custom-vocabulary boost list. Persistent across runs;
   /// the user manages it in Advanced Options as removable chips
   /// (brand names, acronyms, technical jargon, people's names).
@@ -223,6 +247,9 @@ class AdvancedOptions {
     this.vocabulary = const [],
     this.maxLen = 0,
     this.splitOnWord = false,
+    this.grammarText = '',
+    this.grammarRootRule = 'root',
+    this.grammarPenalty = 100.0,
   });
 
   AdvancedOptions copyWith({
@@ -255,6 +282,9 @@ class AdvancedOptions {
     List<String>? vocabulary,
     int? maxLen,
     bool? splitOnWord,
+    String? grammarText,
+    String? grammarRootRule,
+    double? grammarPenalty,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -286,6 +316,9 @@ class AdvancedOptions {
         vocabulary: vocabulary ?? this.vocabulary,
         maxLen: maxLen ?? this.maxLen,
         splitOnWord: splitOnWord ?? this.splitOnWord,
+        grammarText: grammarText ?? this.grammarText,
+        grammarRootRule: grammarRootRule ?? this.grammarRootRule,
+        grammarPenalty: grammarPenalty ?? this.grammarPenalty,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -621,6 +654,12 @@ class _AdvancedDecodingSectionState
         // hides itself when maxLen == 0 to avoid a no-op toggle.
         _buildMaxLenRow(context, opts),
         _buildSplitOnWordRow(context, opts),
+        // §5.8 — GBNF grammar-constrained sampling (Whisper-only).
+        // Multi-line TextField for the GBNF source plus a slider
+        // for grammar_penalty. Empty text means "no constraint";
+        // the transcription worker only calls setGrammar when text
+        // is non-empty so other backends don't take an extra trip.
+        _buildGrammarRows(context, opts),
         // Punctuation family picker — only visible when "Restore
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
@@ -1008,6 +1047,80 @@ class _AdvancedDecodingSectionState
       value: opts.splitOnWord,
       onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
           opts.copyWith(splitOnWord: v),
+    );
+  }
+
+  /// §5.8 — GBNF grammar-constrained sampling. Whisper-only;
+  /// renders as an ExpansionTile so the multi-line TextField + the
+  /// penalty slider don't dominate the Advanced section for users
+  /// who aren't doing structured output.
+  Widget _buildGrammarRows(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    final hasGrammar = opts.grammarText.trim().isNotEmpty;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      // Initially expanded only when the user already has a grammar
+      // typed in — otherwise the tile stays collapsed to keep the
+      // Advanced section scannable.
+      initiallyExpanded: hasGrammar,
+      title: Text(l.advancedGrammarTitle),
+      subtitle: Text(
+        hasGrammar ? l.advancedGrammarSubtitleActive : l.advancedGrammarSubtitle,
+        style: const TextStyle(fontSize: 11),
+      ),
+      children: [
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: opts.grammarText,
+          minLines: 3,
+          maxLines: 12,
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          decoration: InputDecoration(
+            labelText: l.advancedGrammarTextLabel,
+            hintText:
+                'root ::= "{" key ":" value "}"\nkey   ::= "\\"" [a-zA-Z]+ "\\""\nvalue ::= [0-9]+',
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: (v) {
+            ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(grammarText: v);
+          },
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: opts.grammarRootRule,
+          decoration: InputDecoration(
+            labelText: l.advancedGrammarRootRule,
+            helperText: l.advancedGrammarRootRuleHelper,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: (v) {
+            ref.read(advancedOptionsProvider.notifier).state =
+                opts.copyWith(
+                    grammarRootRule: v.trim().isEmpty ? 'root' : v.trim());
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+            l.advancedGrammarPenalty(
+                opts.grammarPenalty.toStringAsFixed(1)),
+            style: Theme.of(context).textTheme.bodySmall),
+        Slider(
+          min: 0.0,
+          max: 200.0,
+          divisions: 40,
+          value: opts.grammarPenalty.clamp(0.0, 200.0),
+          label: opts.grammarPenalty.toStringAsFixed(1),
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(grammarPenalty: v),
+        ),
+        Text(l.advancedGrammarPenaltyHelper,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+      ],
     );
   }
 

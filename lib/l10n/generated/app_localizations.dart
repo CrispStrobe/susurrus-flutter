@@ -3122,6 +3122,54 @@ abstract class AppLocalizations {
   /// **'ECAPA-TDNN (107 languages, ~42 MB GGUF)'**
   String get advancedLidMethodEcapa;
 
+  /// No description provided for @advancedGrammarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'GBNF grammar (Whisper only)'**
+  String get advancedGrammarTitle;
+
+  /// No description provided for @advancedGrammarSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force a structured output shape (JSON / SKU / phone numbers / …). Empty = no constraint.'**
+  String get advancedGrammarSubtitle;
+
+  /// No description provided for @advancedGrammarSubtitleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Grammar active — output will be constrained to this GBNF.'**
+  String get advancedGrammarSubtitleActive;
+
+  /// No description provided for @advancedGrammarTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'GBNF source'**
+  String get advancedGrammarTextLabel;
+
+  /// No description provided for @advancedGrammarRootRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Root rule'**
+  String get advancedGrammarRootRule;
+
+  /// No description provided for @advancedGrammarRootRuleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Symbol name to start parsing from. The GBNF convention is \"root\".'**
+  String get advancedGrammarRootRuleHelper;
+
+  /// No description provided for @advancedGrammarPenalty.
+  ///
+  /// In en, this message translates to:
+  /// **'Grammar penalty: {value}'**
+  String advancedGrammarPenalty(String value);
+
+  /// No description provided for @advancedGrammarPenaltyHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher = harder constraint, lower = softer suggestion. Upstream default is 100; useful range is 50..200.'**
+  String get advancedGrammarPenaltyHelper;
+
   /// No description provided for @advancedDiarizeMethod.
   ///
   /// In en, this message translates to:

@@ -157,6 +157,9 @@ Map<String, dynamic> _advancedOptionsToJson(AdvancedOptions o) =>
       'vocabulary': o.vocabulary,
       'maxLen': o.maxLen,
       'splitOnWord': o.splitOnWord,
+      'grammarText': o.grammarText,
+      'grammarRootRule': o.grammarRootRule,
+      'grammarPenalty': o.grammarPenalty,
     };
 
 AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
@@ -205,6 +208,10 @@ AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
     vocabulary: ((j['vocabulary'] as List?)?.cast<String>()) ?? const [],
     maxLen: (j['maxLen'] as int?) ?? 0,
     splitOnWord: (j['splitOnWord'] as bool?) ?? false,
+    grammarText: (j['grammarText'] as String?) ?? '',
+    grammarRootRule: (j['grammarRootRule'] as String?) ?? 'root',
+    grammarPenalty:
+        ((j['grammarPenalty'] as num?) ?? 100.0).toDouble(),
   );
 }
 

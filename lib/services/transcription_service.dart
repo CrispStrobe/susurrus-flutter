@@ -104,6 +104,18 @@ class AdvancedTranscribeOptions {
   /// Whisper-only; no-op when [maxLen] = 0.
   final bool splitOnWord;
 
+  /// §5.8 — GBNF grammar source. Non-empty enables grammar-
+  /// constrained sampling on whisper (forces beam search; auto-
+  /// bumps beam_size to 5 when the user left it at default 1).
+  /// Empty means "no constraint". Whisper-only.
+  final String grammarText;
+
+  /// Root rule symbol name to start parsing from. Default "root".
+  final String grammarRootRule;
+
+  /// Whisper's `grammar_penalty` scalar (upstream default 100.0).
+  final double grammarPenalty;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -123,6 +135,9 @@ class AdvancedTranscribeOptions {
     this.asrNGpuLayers = -1,
     this.maxLen = 0,
     this.splitOnWord = false,
+    this.grammarText = '',
+    this.grammarRootRule = 'root',
+    this.grammarPenalty = 100.0,
   });
 }
 

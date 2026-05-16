@@ -553,6 +553,29 @@ class CrispASREngine implements TranscriptionEngine {
             'setBestOf rejected by ${_session?.backend}: $e');
       }
     }
+    // §5.8 — GBNF grammar (whisper-only). Always fire on every
+    // dispatch (including empty text) so a previous job's grammar
+    // doesn't carry over. Invalid GBNF surfaces as ArgumentError
+    // and we re-throw so the user gets a user-actionable message;
+    // UnsupportedError (pre-0.5.9 dylib) is silently ignored — the
+    // C side wouldn't have honoured grammar anyway.
+    if (_session != null) {
+      try {
+        _session!.setGrammar(advanced.grammarText,
+            rootRule: advanced.grammarRootRule,
+            penalty: advanced.grammarPenalty);
+      } on UnsupportedError catch (e) {
+        Log.instance.d('crispasr',
+            'setGrammar unsupported on this dylib: $e');
+      } on ArgumentError {
+        // Re-throw so the caller can surface a snackbar — the
+        // user typed an invalid GBNF and we want them to know.
+        rethrow;
+      } catch (e) {
+        Log.instance.d('crispasr',
+            'setGrammar rejected by ${_session?.backend}: $e');
+      }
+    }
     if (!_isInitialized) {
       throw const EngineInitializationException(
         'Engine not initialized',

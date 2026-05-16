@@ -1794,6 +1794,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'ECAPA-TDNN (107 languages, ~42 MB GGUF)';
 
   @override
+  String get advancedGrammarTitle => 'GBNF grammar (Whisper only)';
+
+  @override
+  String get advancedGrammarSubtitle =>
+      'Force a structured output shape (JSON / SKU / phone numbers / …). Empty = no constraint.';
+
+  @override
+  String get advancedGrammarSubtitleActive =>
+      'Grammar active — output will be constrained to this GBNF.';
+
+  @override
+  String get advancedGrammarTextLabel => 'GBNF source';
+
+  @override
+  String get advancedGrammarRootRule => 'Root rule';
+
+  @override
+  String get advancedGrammarRootRuleHelper =>
+      'Symbol name to start parsing from. The GBNF convention is \"root\".';
+
+  @override
+  String advancedGrammarPenalty(String value) {
+    return 'Grammar penalty: $value';
+  }
+
+  @override
+  String get advancedGrammarPenaltyHelper =>
+      'Higher = harder constraint, lower = softer suggestion. Upstream default is 100; useful range is 50..200.';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisation method';
 
   @override

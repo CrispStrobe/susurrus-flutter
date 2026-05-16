@@ -158,6 +158,13 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
     final vadMinSpeechMs = (raw['vadMinSpeechMs'] as num?)?.toInt();
     final vadMinSilenceMs = (raw['vadMinSilenceMs'] as num?)?.toInt();
     final vadSpeechPadMs = (raw['vadSpeechPadMs'] as num?)?.toInt();
+    // §5.8 — GBNF grammar-constrained sampling (whisper-only).
+    // Empty string = clear any prior grammar; non-empty = parse +
+    // bind + force beam search at whisper_full time.
+    final grammarText = raw['grammarText'] as String? ?? '';
+    final grammarRootRule = raw['grammarRootRule'] as String? ?? 'root';
+    final grammarPenalty =
+        (raw['grammarPenalty'] as num?)?.toDouble() ?? 100.0;
 
     try {
       // Apply sticky session-state setters before dispatch. Empty
@@ -210,6 +217,27 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
       try {
         session.setBeamSize(beamSize);
       } on Object catch (_) {}
+      // GBNF grammar (whisper-only — the C side silently no-ops on
+      // other backends because grammar_active never flips true for
+      // them, but the setter itself is whisper-aware). Empty text
+      // always fires too so a previous job's grammar doesn't stick.
+      try {
+        session.setGrammar(grammarText,
+            rootRule: grammarRootRule, penalty: grammarPenalty);
+      } on UnsupportedError {
+        // Pre-0.5.9 dylib — log + carry on unconstrained. The C
+        // side wouldn't have honoured grammar anyway.
+      } on ArgumentError catch (e) {
+        // Invalid GBNF / unknown root rule — surface up as an
+        // error reply so the caller can show a user-actionable
+        // snackbar. Other UnsupportedError / generic catches
+        // continue to silently degrade.
+        replyPort.send(<String, Object?>{
+          'type': 'error',
+          'message': 'invalid GBNF grammar: ${e.message}',
+        });
+        continue;
+      } on Object catch (_) {/* old dylib / unsupported */}
 
       // VAD-on path uses transcribeVad; bare transcribe otherwise.
       // session.transcribe[Vad] are synchronous FFI calls.

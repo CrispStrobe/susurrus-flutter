@@ -1284,6 +1284,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         asrNGpuLayers: adv.asrNGpuLayers,
         maxLen: adv.maxLen,
         splitOnWord: adv.splitOnWord,
+        grammarText: adv.grammarText,
+        grammarRootRule: adv.grammarRootRule,
+        grammarPenalty: adv.grammarPenalty,
       );
 
       // §5.1.2 vocabulary merge — resolve the active backend
@@ -1422,6 +1425,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       asrNGpuLayers: adv.asrNGpuLayers,
       maxLen: adv.maxLen,
       splitOnWord: adv.splitOnWord,
+      grammarText: adv.grammarText,
+      grammarRootRule: adv.grammarRootRule,
+      grammarPenalty: adv.grammarPenalty,
     );
 
     // Load the model once for the whole batch.
@@ -1885,6 +1891,12 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         vadMinSpeechMs: advancedRun.vadMinSpeechMs,
         vadMinSilenceMs: advancedRun.vadMinSilenceMs,
         vadSpeechPadMs: advancedRun.vadSpeechPadMs,
+        // §5.8 — GBNF grammar (Whisper-only). The worker
+        // unconditionally fires session.setGrammar(...) on every
+        // dispatch so an empty string clears any prior grammar.
+        grammarText: adv.grammarText,
+        grammarRootRule: adv.grammarRootRule,
+        grammarPenalty: adv.grammarPenalty,
         onSegment: (seg) {
           unawaited(persistence.appendSegmentToCheckpoint(job.id, seg));
         },
