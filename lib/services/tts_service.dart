@@ -122,9 +122,38 @@ class TtsService {
       // try.
       final def = modelService.lookupDefinition(modelName);
       final backend = def?.backend;
-      final s = (backend == null || backend.isEmpty)
-          ? crispasr.CrispasrSession.open(modelPath)
-          : crispasr.CrispasrSession.open(modelPath, backend: backend);
+      // Force kokoro onto CPU on every platform — current libcrispasr
+      // (~CrispASR 0.6.6) regressed somewhere in the Metal-backend
+      // layer: when GPU is on, kokoro's duration-predictor stage
+      // ends up with several tensors not attached
+      // (`ggml_metal_buffer_get_id: error: tensor X buffer is nil`)
+      // and the synthesised PCM is gibberish at ~5.8× expected
+      // length. CLI binaries built with `--no-gpu` work; the
+      // Metal-hang workaround path already pins the generator to
+      // CPU, but the predictor itself was still running on GPU
+      // unless we pass useGpu=false explicitly.
+      // Drop this branch once the upstream Metal regression is
+      // resolved.
+      crispasr.CrispasrSession s;
+      if (backend == null || backend.isEmpty) {
+        s = crispasr.CrispasrSession.open(modelPath);
+      } else if (backend == 'kokoro') {
+        try {
+          s = crispasr.CrispasrSession.openWithParams(
+            modelPath,
+            backend: backend,
+            nThreads: 4,
+            useGpu: false,
+          );
+        } on UnsupportedError {
+          // libcrispasr < 0.6.1 has no openWithParams; bare open
+          // is the only path. Audio may be wrong on this older ABI
+          // but we don't break the call.
+          s = crispasr.CrispasrSession.open(modelPath, backend: backend);
+        }
+      } else {
+        s = crispasr.CrispasrSession.open(modelPath, backend: backend);
+      }
       if (codecPath != null) s.setCodecPath(codecPath);
       // qwen3-tts VoiceDesign branch — takes priority because it
       // can't combine with setVoice / setSpeakerName.
