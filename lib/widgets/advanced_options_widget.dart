@@ -195,6 +195,20 @@ class AdvancedOptions {
   /// than a hard constraint; the recommended range is 50..200.
   final double grammarPenalty;
 
+  /// Whisper text-suppression + prompt-carry extras (whisper-only;
+  /// other backends ignore). Defaults match whisper_full_default_params.
+  ///
+  /// * [suppressNonSpeechTokens] (false) — drop `[LAUGHTER]` /
+  ///   `[MUSIC]` / `[NOISE]` markers from transcript output.
+  /// * [suppressTokensRegex] ('') — Posix regex; tokens whose
+  ///   text matches get dropped during decoding. Empty disables.
+  /// * [carryInitialPrompt] (false) — prepend initial_prompt to
+  ///   every decode window, not just the first. Strengthens
+  ///   vocabulary biasing across long audio.
+  final bool suppressNonSpeechTokens;
+  final String suppressTokensRegex;
+  final bool carryInitialPrompt;
+
   /// Whisper decoder-fallback thresholds. All four feed
   /// `whisper_full_params` on the whisper transcribe path
   /// (silently ignored by other backends — none have an analog).
@@ -289,6 +303,9 @@ class AdvancedOptions {
     this.logprobThold = -1.0,
     this.noSpeechThold = 0.6,
     this.temperatureInc = 0.2,
+    this.suppressNonSpeechTokens = false,
+    this.suppressTokensRegex = '',
+    this.carryInitialPrompt = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });
@@ -330,6 +347,9 @@ class AdvancedOptions {
     double? logprobThold,
     double? noSpeechThold,
     double? temperatureInc,
+    bool? suppressNonSpeechTokens,
+    String? suppressTokensRegex,
+    bool? carryInitialPrompt,
     double? transcribeWindowStartSec,
     double? transcribeWindowDurationSec,
   }) =>
@@ -370,6 +390,12 @@ class AdvancedOptions {
         logprobThold: logprobThold ?? this.logprobThold,
         noSpeechThold: noSpeechThold ?? this.noSpeechThold,
         temperatureInc: temperatureInc ?? this.temperatureInc,
+        suppressNonSpeechTokens:
+            suppressNonSpeechTokens ?? this.suppressNonSpeechTokens,
+        suppressTokensRegex:
+            suppressTokensRegex ?? this.suppressTokensRegex,
+        carryInitialPrompt:
+            carryInitialPrompt ?? this.carryInitialPrompt,
         transcribeWindowStartSec:
             transcribeWindowStartSec ?? this.transcribeWindowStartSec,
         transcribeWindowDurationSec:
@@ -721,6 +747,11 @@ class _AdvancedDecodingSectionState
         // slider alone matches stock whisper.cpp. Power-user
         // knob; collapses when defaults are in effect.
         _buildFallbackThresholdsRow(context, opts),
+        // Whisper text-suppression + prompt-carry extras
+        // (Whisper-only). 3 controls — 2 switches + 1 regex
+        // text field. Reproduces CLI's --suppress-nst /
+        // --suppress-regex / --carry-initial-prompt.
+        _buildWhisperDecodeExtrasRow(context, opts),
         // Punctuation family picker — only visible when "Restore
         // punctuation" is on AND the user has more than one family on
         // disk. Otherwise PuncService auto-picks whatever it finds.
@@ -1186,6 +1217,67 @@ class _AdvancedDecodingSectionState
         ),
         Text(l.advancedGrammarPenaltyHelper,
             style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+      ],
+    );
+  }
+
+  /// Whisper text-suppression + prompt-carry extras. Reproduces
+  /// the CLI's --suppress-nst / --suppress-regex /
+  /// --carry-initial-prompt flags. Whisper-only.
+  Widget _buildWhisperDecodeExtrasRow(
+      BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    final atDefaults = !opts.suppressNonSpeechTokens &&
+        opts.suppressTokensRegex.isEmpty &&
+        !opts.carryInitialPrompt;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      initiallyExpanded: !atDefaults,
+      title: Text(l.advancedWhisperDecodeExtrasTitle),
+      subtitle: Text(
+        atDefaults
+            ? l.advancedWhisperDecodeExtrasSubtitle
+            : l.advancedWhisperDecodeExtrasSubtitleActive,
+        style: const TextStyle(fontSize: 11),
+      ),
+      children: [
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedSuppressNonSpeechTokens),
+          subtitle: Text(l.advancedSuppressNonSpeechTokensHelper,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.suppressNonSpeechTokens,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(suppressNonSpeechTokens: v),
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: opts.suppressTokensRegex,
+          decoration: InputDecoration(
+            labelText: l.advancedSuppressTokensRegex,
+            helperText: l.advancedSuppressTokensRegexHelper,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(suppressTokensRegex: v),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.advancedCarryInitialPrompt),
+          subtitle: Text(l.advancedCarryInitialPromptHelper,
+              style: const TextStyle(fontSize: 11)),
+          value: opts.carryInitialPrompt,
+          onChanged: (v) =>
+              ref.read(advancedOptionsProvider.notifier).state =
+                  opts.copyWith(carryInitialPrompt: v),
+        ),
       ],
     );
   }

@@ -95,6 +95,12 @@ void main() {
         logprobThold: -2.0,
         noSpeechThold: 0.45,
         temperatureInc: 0.0, // = `--no-fallback`
+        // Whisper text-suppression + prompt-carry extras — same
+        // logic, every field non-default so the round-trip pins
+        // the JSON keys explicitly.
+        suppressNonSpeechTokens: true,
+        suppressTokensRegex: r'\[NOISE\]',
+        carryInitialPrompt: true,
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -123,6 +129,11 @@ void main() {
       expect(restored.logprobThold, -2.0);
       expect(restored.noSpeechThold, 0.45);
       expect(restored.temperatureInc, 0.0);
+      // Whisper text-suppression + prompt-carry. A "drop laughter
+      // markers + carry prompt" preset should survive restart.
+      expect(restored.suppressNonSpeechTokens, isTrue);
+      expect(restored.suppressTokensRegex, r'\[NOISE\]');
+      expect(restored.carryInitialPrompt, isTrue);
     });
 
     test('missing keys fall through to ctor defaults', () {

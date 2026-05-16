@@ -294,9 +294,15 @@ completeness — May 2026"](HISTORY.md). What's still pending:
   - ✅ Subtitle line formatting `--max-len` / `--split-on-word`
     (May 2026) — see HISTORY. `--split-on-punct` still pending;
     needs upstream Dart-binding work first.
-  - Token suppression (`--suppress-nst`, `--suppress-regex`),
-    `--carry-initial-prompt`, `--print-confidence` — niche edge
-    cases. ~1 hour each.
+  - ✅ Token suppression (`--suppress-nst`, `--suppress-regex`)
+    and `--carry-initial-prompt` — **shipped May 2026 (CrispASR
+    0.5.11 + CrisperWeaver)**. CrispASR's earlier claim that
+    these were already in the binding was wrong; both the C-ABI
+    setter + Dart wrapper had to be added. UI lives in the
+    Advanced Options Whisper-only section as a 3-control
+    ExpansionTile (2 switches + 1 regex field). `--print-
+    confidence` not surfaced — it's a CLI output-formatting
+    flag with no wparams analog.
 
 * **Auto-download default** — CrispASR's `-m auto` per backend.
   *Needs a design pass before becoming a dev task:* model catalog

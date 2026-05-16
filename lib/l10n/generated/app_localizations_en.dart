@@ -1908,6 +1908,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).';
 
   @override
+  String get advancedWhisperDecodeExtrasTitle => 'Whisper text suppression';
+
+  @override
+  String get advancedWhisperDecodeExtrasSubtitle =>
+      'Drop non-speech markers, suppress regex-matched tokens, or repeat the initial prompt on every decode window.';
+
+  @override
+  String get advancedWhisperDecodeExtrasSubtitleActive =>
+      'Custom suppression active — defaults are: keep all tokens / no regex / single-window prompt.';
+
+  @override
+  String get advancedSuppressNonSpeechTokens => 'Drop non-speech tokens';
+
+  @override
+  String get advancedSuppressNonSpeechTokensHelper =>
+      'Strip [LAUGHTER] / [MUSIC] / [NOISE] markers whisper emits on top of the spoken words. Off by default.';
+
+  @override
+  String get advancedSuppressTokensRegex => 'Suppress regex (Posix)';
+
+  @override
+  String get advancedSuppressTokensRegexHelper =>
+      'Tokens whose text matches this regex get dropped during decoding. Empty disables. Useful for purging hallucinated tokens or speaker-tag patterns.';
+
+  @override
+  String get advancedCarryInitialPrompt =>
+      'Carry initial prompt to every window';
+
+  @override
+  String get advancedCarryInitialPromptHelper =>
+      'Repeat the initial prompt at the start of every decode window (not just the first). Strengthens vocabulary biasing on long audio at the cost of weakening previous-context conditioning.';
+
+  @override
   String get settingsLocalLlmCatalogueTitle => 'Suggested chat models';
 
   @override

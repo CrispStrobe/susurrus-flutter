@@ -173,6 +173,15 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
         (raw['noSpeechThold'] as num?)?.toDouble() ?? 0.6;
     final temperatureInc =
         (raw['temperatureInc'] as num?)?.toDouble() ?? 0.2;
+    // Whisper text-suppression + prompt-carry extras (whisper-only;
+    // pre-0.5.11 dylibs lack the symbol and the worker silently
+    // falls through to stock whisper behaviour).
+    final suppressNonSpeechTokens =
+        (raw['suppressNonSpeechTokens'] as bool?) ?? false;
+    final suppressTokensRegex =
+        (raw['suppressTokensRegex'] as String?) ?? '';
+    final carryInitialPrompt =
+        (raw['carryInitialPrompt'] as bool?) ?? false;
 
     try {
       // Apply sticky session-state setters before dispatch. Empty
@@ -233,6 +242,15 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
           logprobThold: logprobThold,
           noSpeechThold: noSpeechThold,
           temperatureInc: temperatureInc,
+        );
+      } on Object catch (_) {/* old dylib or non-whisper backend */}
+      // Whisper text-suppression + prompt-carry extras. Pre-0.5.11
+      // dylibs lack the symbol.
+      try {
+        session.setWhisperDecodeExtras(
+          suppressNonSpeechTokens: suppressNonSpeechTokens,
+          suppressRegex: suppressTokensRegex,
+          carryInitialPrompt: carryInitialPrompt,
         );
       } on Object catch (_) {/* old dylib or non-whisper backend */}
       // GBNF grammar (whisper-only — the C side silently no-ops on

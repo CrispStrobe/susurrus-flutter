@@ -5,6 +5,42 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### Whisper text-suppression + prompt-carry extras (May 2026)
+
+Three more whisper-only `wparams` knobs the CLI exposes
+(`--suppress-nst`, `--suppress-regex`, `--carry-initial-prompt`)
+now have CrisperWeaver UI. Power-user controls; defaults
+reproduce stock whisper.cpp.
+
+Upstream (CrispASR 0.5.11):
+
+- New crispasr_session fields whisper_suppress_nst (false),
+  whisper_suppress_regex (""), whisper_carry_initial_prompt
+  (false). Whisper transcribe dispatch writes them into
+  wparams on every call; empty regex → nullptr to wparams
+  (whisper's "no suppression" sentinel).
+- New C-ABI crispasr_session_set_whisper_decode_extras(s,
+  nst, regex, carry).
+- Dart binding: CrispasrSession.setWhisperDecodeExtras({...})
+  with named params; pre-0.5.11 dylibs raise UnsupportedError.
+
+CrisperWeaver:
+
+- New AdvancedOptions fields (whisper-only):
+  suppressNonSpeechTokens, suppressTokensRegex,
+  carryInitialPrompt. Mirrored on AdvancedTranscribeOptions +
+  preset round-trip.
+- UI: ExpansionTile "Whisper text suppression" in the
+  Whisper-only section with 2 switches + 1 regex TextField.
+- Wired through both the pool dispatch path AND the
+  engine-direct path; pre-0.5.11 dylibs swallow
+  UnsupportedError and run with stock defaults.
+
+Tests: preset_service_test.dart round-trip extended to pin all
+three fields against non-default values. Upstream symbol-pin
+added to bindings_smoke_test.dart. Full suite: 372 pass / 14
+skip / 0 fail.
+
 ### §5.1.6 v3.1 — Curated chat-model catalogue (May 2026)
 
 The §5.1.6 v3 file-picker MVP shipped with no curation — users

@@ -553,6 +553,23 @@ class CrispASREngine implements TranscriptionEngine {
             'setBestOf rejected by ${_session?.backend}: $e');
       }
     }
+    // Whisper text-suppression + carry-initial-prompt extras
+    // (whisper-only). Pre-0.5.11 dylibs lack the symbol → swallow.
+    if (_session != null) {
+      try {
+        _session!.setWhisperDecodeExtras(
+          suppressNonSpeechTokens: advanced.suppressNonSpeechTokens,
+          suppressRegex: advanced.suppressTokensRegex,
+          carryInitialPrompt: advanced.carryInitialPrompt,
+        );
+      } on UnsupportedError catch (e) {
+        Log.instance.d('crispasr',
+            'setWhisperDecodeExtras unsupported on this dylib: $e');
+      } catch (e) {
+        Log.instance.d('crispasr',
+            'setWhisperDecodeExtras rejected by ${_session?.backend}: $e');
+      }
+    }
     // Whisper decoder-fallback thresholds (whisper-only — other
     // backends silently no-op). Always fire so a slider tweak
     // takes effect on the next transcribe and a previous job's

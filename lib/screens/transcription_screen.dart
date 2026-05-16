@@ -1292,6 +1292,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         logprobThold: adv.logprobThold,
         noSpeechThold: adv.noSpeechThold,
         temperatureInc: adv.temperatureInc,
+        suppressNonSpeechTokens: adv.suppressNonSpeechTokens,
+        suppressTokensRegex: adv.suppressTokensRegex,
+        carryInitialPrompt: adv.carryInitialPrompt,
         transcribeWindowStartSec: adv.transcribeWindowStartSec,
         transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
       );
@@ -1439,6 +1442,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       logprobThold: adv.logprobThold,
       noSpeechThold: adv.noSpeechThold,
       temperatureInc: adv.temperatureInc,
+      suppressNonSpeechTokens: adv.suppressNonSpeechTokens,
+      suppressTokensRegex: adv.suppressTokensRegex,
+      carryInitialPrompt: adv.carryInitialPrompt,
       transcribeWindowStartSec: adv.transcribeWindowStartSec,
       transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
     );
@@ -1928,6 +1934,9 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         logprobThold: adv.logprobThold,
         noSpeechThold: adv.noSpeechThold,
         temperatureInc: adv.temperatureInc,
+        suppressNonSpeechTokens: adv.suppressNonSpeechTokens,
+        suppressTokensRegex: adv.suppressTokensRegex,
+        carryInitialPrompt: adv.carryInitialPrompt,
         onSegment: (seg) {
           // Apply the window shift here too so the checkpoint /
           // streamed-into-UI timestamps match the post-loop shift

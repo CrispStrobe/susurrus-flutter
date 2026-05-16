@@ -164,6 +164,9 @@ Map<String, dynamic> _advancedOptionsToJson(AdvancedOptions o) =>
       'logprobThold': o.logprobThold,
       'noSpeechThold': o.noSpeechThold,
       'temperatureInc': o.temperatureInc,
+      'suppressNonSpeechTokens': o.suppressNonSpeechTokens,
+      'suppressTokensRegex': o.suppressTokensRegex,
+      'carryInitialPrompt': o.carryInitialPrompt,
       'transcribeWindowStartSec': o.transcribeWindowStartSec,
       'transcribeWindowDurationSec': o.transcribeWindowDurationSec,
     };
@@ -223,6 +226,12 @@ AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
     noSpeechThold: ((j['noSpeechThold'] as num?) ?? 0.6).toDouble(),
     temperatureInc:
         ((j['temperatureInc'] as num?) ?? 0.2).toDouble(),
+    suppressNonSpeechTokens:
+        (j['suppressNonSpeechTokens'] as bool?) ?? false,
+    suppressTokensRegex:
+        (j['suppressTokensRegex'] as String?) ?? '',
+    carryInitialPrompt:
+        (j['carryInitialPrompt'] as bool?) ?? false,
     transcribeWindowStartSec:
         ((j['transcribeWindowStartSec'] as num?) ?? 0.0).toDouble(),
     transcribeWindowDurationSec:

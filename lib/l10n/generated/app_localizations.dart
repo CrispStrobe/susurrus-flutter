@@ -3296,6 +3296,60 @@ abstract class AppLocalizations {
   /// **'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).'**
   String get advancedTemperatureIncHelper;
 
+  /// No description provided for @advancedWhisperDecodeExtrasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper text suppression'**
+  String get advancedWhisperDecodeExtrasTitle;
+
+  /// No description provided for @advancedWhisperDecodeExtrasSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop non-speech markers, suppress regex-matched tokens, or repeat the initial prompt on every decode window.'**
+  String get advancedWhisperDecodeExtrasSubtitle;
+
+  /// No description provided for @advancedWhisperDecodeExtrasSubtitleActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom suppression active — defaults are: keep all tokens / no regex / single-window prompt.'**
+  String get advancedWhisperDecodeExtrasSubtitleActive;
+
+  /// No description provided for @advancedSuppressNonSpeechTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop non-speech tokens'**
+  String get advancedSuppressNonSpeechTokens;
+
+  /// No description provided for @advancedSuppressNonSpeechTokensHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Strip [LAUGHTER] / [MUSIC] / [NOISE] markers whisper emits on top of the spoken words. Off by default.'**
+  String get advancedSuppressNonSpeechTokensHelper;
+
+  /// No description provided for @advancedSuppressTokensRegex.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppress regex (Posix)'**
+  String get advancedSuppressTokensRegex;
+
+  /// No description provided for @advancedSuppressTokensRegexHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens whose text matches this regex get dropped during decoding. Empty disables. Useful for purging hallucinated tokens or speaker-tag patterns.'**
+  String get advancedSuppressTokensRegexHelper;
+
+  /// No description provided for @advancedCarryInitialPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Carry initial prompt to every window'**
+  String get advancedCarryInitialPrompt;
+
+  /// No description provided for @advancedCarryInitialPromptHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat the initial prompt at the start of every decode window (not just the first). Strengthens vocabulary biasing on long audio at the cost of weakening previous-context conditioning.'**
+  String get advancedCarryInitialPromptHelper;
+
   /// No description provided for @settingsLocalLlmCatalogueTitle.
   ///
   /// In en, this message translates to:

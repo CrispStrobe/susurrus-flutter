@@ -1917,6 +1917,38 @@ class AppLocalizationsDe extends AppLocalizations {
       'Temperaturschritt pro Fallback-Durchlauf. Standard 0.2. Auf 0 setzen, um die Fallback-Schleife komplett zu deaktivieren (entspricht --no-fallback).';
 
   @override
+  String get advancedWhisperDecodeExtrasTitle => 'Whisper-Text-Filter';
+
+  @override
+  String get advancedWhisperDecodeExtrasSubtitle =>
+      'Nicht-Sprach-Marker verwerfen, per Regex passende Tokens unterdrücken oder das Initial-Prompt in jedem Decode-Fenster wiederholen.';
+
+  @override
+  String get advancedWhisperDecodeExtrasSubtitleActive =>
+      'Eigene Filter aktiv — Standardwerte: alle Tokens behalten / kein Regex / Prompt nur einmal.';
+
+  @override
+  String get advancedSuppressNonSpeechTokens => 'Nicht-Sprach-Tokens verwerfen';
+
+  @override
+  String get advancedSuppressNonSpeechTokensHelper =>
+      'Entfernt [LAUGHTER] / [MUSIC] / [NOISE] aus dem Transkript. Standardmäßig deaktiviert.';
+
+  @override
+  String get advancedSuppressTokensRegex => 'Unterdrückungs-Regex (Posix)';
+
+  @override
+  String get advancedSuppressTokensRegexHelper =>
+      'Tokens, deren Text dem Regex entspricht, werden bei der Decodierung verworfen. Leer deaktiviert. Praktisch gegen halluzinierte Tokens oder Sprecher-Tags.';
+
+  @override
+  String get advancedCarryInitialPrompt => 'Initial-Prompt in jedes Fenster';
+
+  @override
+  String get advancedCarryInitialPromptHelper =>
+      'Wiederholt das Initial-Prompt am Anfang jedes Decode-Fensters (nicht nur am Anfang). Stärkt Vokabular-Bias bei langen Audio-Dateien, schwächt Kontext-Conditioning aus vorherigen Fenstern.';
+
+  @override
   String get settingsLocalLlmCatalogueTitle => 'Empfohlene Chat-Modelle';
 
   @override

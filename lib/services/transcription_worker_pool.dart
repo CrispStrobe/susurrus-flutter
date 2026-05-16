@@ -288,6 +288,9 @@ class TranscriptionWorkerPool {
     double logprobThold = -1.0,
     double noSpeechThold = 0.6,
     double temperatureInc = 0.2,
+    bool suppressNonSpeechTokens = false,
+    String suppressTokensRegex = '',
+    bool carryInitialPrompt = false,
     void Function(TranscriptionSegment seg)? onSegment,
   }) async {
     final worker = await _acquire();
@@ -357,6 +360,12 @@ class TranscriptionWorkerPool {
         'logprobThold': logprobThold,
         'noSpeechThold': noSpeechThold,
         'temperatureInc': temperatureInc,
+        // Whisper text-suppression + prompt-carry extras (0.5.11+).
+        // Pre-0.5.11 dylibs lack the symbol and the worker
+        // swallows UnsupportedError.
+        'suppressNonSpeechTokens': suppressNonSpeechTokens,
+        'suppressTokensRegex': suppressTokensRegex,
+        'carryInitialPrompt': carryInitialPrompt,
         'replyPort': replyReceive.sendPort,
       });
       return await completer.future;

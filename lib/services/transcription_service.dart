@@ -125,6 +125,12 @@ class AdvancedTranscribeOptions {
   final double noSpeechThold;
   final double temperatureInc;
 
+  /// Whisper text-suppression + prompt-carry extras. See
+  /// AdvancedOptions for per-field semantics.
+  final bool suppressNonSpeechTokens;
+  final String suppressTokensRegex;
+  final bool carryInitialPrompt;
+
   /// §5.8 — `--offset-t` equivalent. Transcribe-window start
   /// (seconds). 0 = start of file. Backend-agnostic: the service
   /// slices the PCM before dispatch and shifts returned segment
@@ -162,6 +168,9 @@ class AdvancedTranscribeOptions {
     this.logprobThold = -1.0,
     this.noSpeechThold = 0.6,
     this.temperatureInc = 0.2,
+    this.suppressNonSpeechTokens = false,
+    this.suppressTokensRegex = '',
+    this.carryInitialPrompt = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });
