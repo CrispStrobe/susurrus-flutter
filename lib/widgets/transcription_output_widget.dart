@@ -1908,7 +1908,13 @@ class _AltSuggestionChip extends StatelessWidget {
                     style: const TextStyle(fontFamily: 'monospace'),
                   ),
                   const SizedBox(width: 8),
-                  Text('${(a.p * 100).toStringAsFixed(0)}%',
+                  // 1-decimal precision: whisper alt probabilities are
+                  // often sub-1% and toStringAsFixed(0) would render
+                  // every entry as "0%", which is misleading. The full
+                  // 1 dp gives enough discrimination to spot the rare
+                  // "actually 3.4% vs 0.2%" gap without filling the
+                  // popup with noise.
+                  Text('${(a.p * 100).toStringAsFixed(1)}%',
                       style: const TextStyle(
                           fontSize: 11, color: Colors.black54)),
                 ],
