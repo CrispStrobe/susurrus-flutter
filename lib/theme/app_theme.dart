@@ -262,6 +262,13 @@ class AppTheme {
           color: Colors.black54,
         ),
       ),
+
+      // SnackBar — surface a close (X) on every snackbar so info /
+      // warning toasts on small screens don't sit blocking content
+      // until they time out.
+      snackBarTheme: const SnackBarThemeData(
+        showCloseIcon: true,
+      ),
     );
   }
 
@@ -531,6 +538,13 @@ class AppTheme {
           fontWeight: FontWeight.w500,
           color: Colors.white70,
         ),
+      ),
+
+      // SnackBar — surface a close (X) on every snackbar so info /
+      // warning toasts on small screens don't sit blocking content
+      // until they time out.
+      snackBarTheme: const SnackBarThemeData(
+        showCloseIcon: true,
       ),
     );
   }

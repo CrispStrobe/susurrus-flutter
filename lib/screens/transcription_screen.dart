@@ -129,13 +129,41 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final service = ref.read(transcriptionServiceProvider);
     final settings = ref.read(settingsServiceProvider);
 
-    // Load models list
-    _loadModels();
+    // Load models list — await so the auto-switch logic below knows
+    // which models are actually downloaded.
+    await _loadModels();
 
     final ok = await service.initialize(
       preferredEngine: settings.preferredEngine,
     );
-    if (ok && _modelName.isNotEmpty) {
+    if (!ok) return ok;
+
+    // Auto-switch to a downloaded model if the persisted default isn't
+    // downloaded yet. Covers the common first-launch flow: user gets
+    // the "not downloaded" snackbar → taps "Open Models" → downloads
+    // a different model than the persisted default (e.g. has "base"
+    // as default but only downloaded "tiny"). Without this, the next
+    // launch / transcribe still tries the persisted default and
+    // surfaces the same "not downloaded" error.
+    final downloaded =
+        _availableModels.where((m) => m.isDownloaded).toList(growable: false);
+    if (_modelName.isEmpty ||
+        !downloaded.any((m) => m.name == _modelName)) {
+      if (downloaded.isNotEmpty) {
+        // Prefer a whisper one if available (most common pick), else
+        // first downloaded.
+        final whisperFirst = downloaded.firstWhere(
+            (m) => m.backend == 'whisper',
+            orElse: () => downloaded.first);
+        final switched = whisperFirst.name;
+        Log.instance.i('ui',
+            'Auto-switching default model: was=$_modelName now=$switched');
+        if (mounted) setState(() => _modelName = switched);
+        settings.defaultModel = switched;
+      }
+    }
+
+    if (_modelName.isNotEmpty) {
       try {
         await service.loadModel(_modelName);
       } catch (e, st) {
@@ -157,6 +185,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               SnackBar(
                 content: Text(l.defaultModelNotDownloaded(_modelName)),
                 duration: const Duration(seconds: 8),
+                showCloseIcon: true,
                 action: SnackBarAction(
                   label: l.openModels,
                   onPressed: () {
@@ -170,6 +199,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
               SnackBar(
                 content: Text(l.transcriptionLoadFailed(e.toString())),
                 duration: const Duration(seconds: 6),
+                showCloseIcon: true,
               ),
             );
           }
