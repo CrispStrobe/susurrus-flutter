@@ -1328,13 +1328,56 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       await _ensureEngineReady();
     }
 
+    // Refresh the model list so we pick up anything the user downloaded
+    // from Model Management since this screen first opened. Without this
+    // the selected model can stay "base" even after they download "tiny".
+    await _loadModels();
+    final downloaded = _availableModels
+        .where((m) => m.isDownloaded)
+        .toList(growable: false);
+    if (_modelName.isNotEmpty &&
+        !downloaded.any((m) => m.name == _modelName) &&
+        downloaded.isNotEmpty) {
+      final whisperFirst = downloaded.firstWhere(
+          (m) => m.backend == 'whisper',
+          orElse: () => downloaded.first);
+      final switched = whisperFirst.name;
+      Log.instance.i('ui',
+          'Auto-switching selected model: was=$_modelName now=$switched');
+      if (mounted) {
+        setState(() => _modelName = switched);
+        ref.read(settingsServiceProvider).defaultModel = switched;
+        final l = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l.transcribeLoadedFile(whisperFirst.displayName)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+
     // Ensure model is loaded (if not already)
     final currentStatus = transcriptionService.getEngineStatus();
     if (currentStatus.currentModelId != _modelName) {
       try {
         await transcriptionService.loadModel(_modelName);
       } catch (e) {
-        _showErrorDialog('Failed to load model $_modelName: $e');
+        if (mounted) {
+          final l = AppLocalizations.of(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l.defaultModelNotDownloaded(_modelName)),
+              action: SnackBarAction(
+                label: l.openModels,
+                onPressed: () {
+                  if (mounted) context.push('/models');
+                },
+              ),
+              duration: const Duration(seconds: 8),
+            ),
+          );
+        }
         return;
       }
     }

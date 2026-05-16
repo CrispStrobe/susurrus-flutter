@@ -21,6 +21,11 @@ class ModelManagementScreen extends ConsumerStatefulWidget {
 
 class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   List<ModelInfo> _whisperModels = [];
+  // Free-text name search (matches displayName / name / backend / quant).
+  String _nameFilter = '';
+  final TextEditingController _nameFilterController = TextEditingController();
+  // Backend dropdown filter; '' means any.
+  String _backendFilter = '';
   bool _isLoading = true;
   String? _downloadingModel;
   double _downloadProgress = 0.0;
@@ -50,6 +55,12 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
         _probeHf();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _nameFilterController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadModels() async {
@@ -145,6 +156,22 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           .where((m) => m.description.contains('[lang=$_voiceLangFilter]'))
           .toList();
     }
+    // Backend filter (parakeet, whisper, voxtral, ...). Empty = any.
+    if (_backendFilter.isNotEmpty) {
+      filtered = filtered.where((m) => m.backend == _backendFilter).toList();
+    }
+    // Free-text name search — matches displayName / name / backend /
+    // quantization so users can type "q5" or "tiny" or "voxtral" and
+    // narrow the list to anything relevant. Same shape as the
+    // transcribe screen's model-picker filter.
+    if (_nameFilter.isNotEmpty) {
+      filtered = filtered.where((m) {
+        final hay = ('${m.displayName} ${m.name} ${m.backend} '
+                '${m.quantization}')
+            .toLowerCase();
+        return hay.contains(_nameFilter);
+      }).toList();
+    }
 
     return Column(
       children: [
@@ -152,6 +179,7 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
         _buildKindFilterRow(models),
         if (_kindFilter == ModelKind.voice)
           _buildVoiceLangFilterRow(models),
+        _buildSearchRow(models),
         Expanded(
           child: filtered.isEmpty
               ? Center(
@@ -212,6 +240,62 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           // tag-along easily.
           chip(AppLocalizations.of(context).modelsKindFilterChatLlm,
               ModelKind.chatLlm),
+        ],
+      ),
+    );
+  }
+
+  /// Free-text name search + backend dropdown — mirrors the same
+  /// filter row on the main transcribe screen. Lets the user type
+  /// "q5" / "tiny" / "voxtral" or restrict by backend without
+  /// scrolling through the full list.
+  Widget _buildSearchRow(List<ModelInfo> models) {
+    final backends = <String>{
+      for (final m in models)
+        if (m.backend.isNotEmpty) m.backend
+    }.toList()
+      ..sort();
+
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _nameFilterController,
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 18),
+                hintText: l.modelFilterHint,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                suffixIcon: _nameFilter.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _nameFilterController.clear();
+                          setState(() => _nameFilter = '');
+                        },
+                      ),
+              ),
+              onChanged: (v) =>
+                  setState(() => _nameFilter = v.toLowerCase()),
+            ),
+          ),
+          const SizedBox(width: 8),
+          DropdownButton<String>(
+            value: _backendFilter,
+            items: [
+              DropdownMenuItem(
+                  value: '', child: Text(l.modelAnyBackend)),
+              for (final b in backends)
+                DropdownMenuItem(value: b, child: Text(b)),
+            ],
+            onChanged: (v) => setState(() => _backendFilter = v ?? ''),
+          ),
         ],
       ),
     );
