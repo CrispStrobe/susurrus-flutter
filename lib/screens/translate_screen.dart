@@ -149,7 +149,12 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
-                                onPressed: () => context.push('/models'),
+                                // Pre-select the Translate kind filter
+                                // so the user lands directly on
+                                // M2M-100 / WMT21 / MADLAD-400 entries
+                                // instead of the full catalog.
+                                onPressed: () =>
+                                    context.push('/models?kind=translate'),
                                 icon: const Icon(Icons.cloud_download_outlined,
                                     size: 18),
                                 label: Text(l.synthOpenModelManagement),

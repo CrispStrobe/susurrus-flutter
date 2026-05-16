@@ -372,7 +372,10 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
-                                onPressed: () => context.push('/models'),
+                                // Drop the user straight into the TTS
+                                // filter so they don't have to hunt for
+                                // it in the kind chips.
+                                onPressed: () => context.push('/models?kind=tts'),
                                 icon: const Icon(Icons.cloud_download_outlined,
                                     size: 18),
                                 label: Text(l.synthOpenModelManagement),

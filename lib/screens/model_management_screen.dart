@@ -235,6 +235,10 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           chip('Voices', ModelKind.voice),
           chip('Codecs', ModelKind.codec),
           chip('Post-processors', ModelKind.punc),
+          // Translate filter — surfaces M2M-100 / WMT21 / MADLAD-400
+          // text-to-text models. Also reachable by deep-link from the
+          // Translate screen's "Open Model Management" button.
+          chip('Translate', ModelKind.translate),
           // §5.1.6 v3.1 — chat-LLM catalogue. Localised string so
           // future families (additional non-ASR/TTS kinds) can
           // tag-along easily.
