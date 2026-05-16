@@ -131,6 +131,66 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   /// Pick the first downloaded voicepack / codec whose backend matches
   /// the selected TTS model. Cheap heuristic — keeps the UX one click
   /// when the user has only one of each.
+  /// Voice / codec dropdown change handler. If the user picks an entry
+  /// that isn't on disk yet, kick off a download right from here — they
+  /// don't need to round-trip through Model Management. Same one-tap
+  /// behaviour the Model Management screen has for the "Download" button
+  /// row, but inline in the synthesize flow.
+  Future<void> _onVoicePicked(String? name, List<ModelInfo> voices) async {
+    if (name == null) return;
+    final picked = voices.firstWhere(
+      (m) => m.name == name,
+      orElse: () => voices.first,
+    );
+    setState(() => _selectedVoice = name);
+    if (picked.isDownloaded) return;
+    await _downloadCompanion(picked);
+  }
+
+  Future<void> _onCodecPicked(String? name, List<ModelInfo> codecs) async {
+    if (name == null) return;
+    final picked = codecs.firstWhere(
+      (m) => m.name == name,
+      orElse: () => codecs.first,
+    );
+    setState(() => _selectedCodec = name);
+    if (picked.isDownloaded) return;
+    await _downloadCompanion(picked);
+  }
+
+  /// Shared download path for voice / codec companions picked from the
+  /// inline dropdowns. Surfaces a snackbar with a progress percentage so
+  /// the user knows the work is happening; refreshes the model list when
+  /// done so the "(not downloaded)" suffix clears.
+  Future<void> _downloadCompanion(ModelInfo info) async {
+    final svc = ref.read(modelServiceProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text('Downloading ${info.displayName}…'),
+      duration: const Duration(seconds: 30),
+    ));
+    try {
+      final ok = await svc.downloadWhisperCppModel(info.name);
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(SnackBar(
+        content: Text(ok
+            ? '${info.displayName} downloaded'
+            : 'Download of ${info.displayName} failed'),
+      ));
+      if (ok) await _refresh();
+    } catch (e, st) {
+      Log.instance.w('synth', 'companion download failed',
+          error: e, stack: st, fields: {'name': info.name});
+      if (mounted) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(
+          content: Text('Download of ${info.displayName} failed: $e'),
+        ));
+      }
+    }
+  }
+
   void _autoSelectCompanions() {
     final modelDef =
         ref.read(modelServiceProvider).lookupDefinition(_selectedModel ?? '');
@@ -424,7 +484,7 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                                   ),
                                 ))
                             .toList(),
-                        onChanged: (v) => setState(() => _selectedVoice = v),
+                        onChanged: (v) => _onVoicePicked(v, voices),
                       ),
                     ],
                     if (codecs.isNotEmpty) ...[
@@ -443,7 +503,7 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                                   ),
                                 ))
                             .toList(),
-                        onChanged: (v) => setState(() => _selectedCodec = v),
+                        onChanged: (v) => _onCodecPicked(v, codecs),
                       ),
                     ],
                   ],

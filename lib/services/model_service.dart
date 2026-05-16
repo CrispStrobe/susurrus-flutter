@@ -2348,11 +2348,24 @@ class ModelService {
 
     final size = await file.length();
 
-    // Check size matches (within 1% tolerance)
-    final sizeDiff = (size - modelDef.sizeBytes).abs();
-    final tolerance = modelDef.sizeBytes * 0.01;
-
-    if (sizeDiff > tolerance) return false;
+    // Reject only truly suspicious files (empty / near-empty). The
+    // hardcoded `sizeBytes` are estimates — frequently off by 30+
+    // percent (kokoro listed as 100 MB, real ~135 MB; kokoro voices
+    // listed as 1 MB, real ~0.5 MB). The HF probe corrects sizes
+    // lazily, so any size-tolerance check that fired BEFORE the
+    // probe made downloaded models look "not downloaded yet" on
+    // cold launch.
+    //
+    // We rely on:
+    //   * The download path's own 5% / 2 MB integrity check at
+    //     download time + atomic rename of the .tmp file. A file
+    //     surviving that flow is complete.
+    //   * The checksum verification below for models that ship one.
+    //
+    // So here: just guard against zero-length file (a corrupt
+    // rename or interrupted download where the .tmp got promoted
+    // anyway).
+    if (size < 256) return false;
 
     // For critical models, verify checksum — unless the user has explicitly
     // opted into skipping verification.
