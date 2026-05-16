@@ -2162,4 +2162,41 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get synthTopPHelper =>
       'Top-p-Nucleus-Sampling-Schwelle (Chatterbox). 1,0 deaktiviert Top-p; kleinere Werte schneiden den unwahrscheinlichen Schwanz ab.';
+
+  @override
+  String synthMinP(String value) {
+    return 'Min-p: $value';
+  }
+
+  @override
+  String get synthMinPHelper =>
+      'Min-p-Schwelle (Chatterbox). 0 deaktiviert; positive Werte verwerfen Tokens, deren Wahrscheinlichkeit unter diesem Anteil des wahrscheinlichsten Tokens liegt.';
+
+  @override
+  String synthRepetitionPenalty(String value) {
+    return 'Wiederholungs-Penalty: $value';
+  }
+
+  @override
+  String get synthRepetitionPenaltyHelper =>
+      'Wiederholungs-Penalty-Skalar (Chatterbox). 1,0 deaktiviert; höher entmutigt Schleifenwiederholungen einzelner Tokens.';
+
+  @override
+  String synthMaxSpeechTokens(int n) {
+    return 'Max. Sprach-Tokens: $n';
+  }
+
+  @override
+  String get synthMaxSpeechTokensHelper =>
+      'Obergrenze für AR-Sprach-Tokens pro Aufruf (Chatterbox). 1000 ≈ 20 s; bei langen Eingaben erhöhen, bei Ausreißern senken.';
+
+  @override
+  String get synthClearPhonemeCache => 'Phonem-Cache leeren';
+
+  @override
+  String get synthClearPhonemeCacheDone => 'Phonem-Cache geleert.';
+
+  @override
+  String get synthClearPhonemeCacheUnsupported =>
+      'Dieses Backend verwendet keinen Phonem-Cache (oder die aktive Session ist zu alt).';
 }

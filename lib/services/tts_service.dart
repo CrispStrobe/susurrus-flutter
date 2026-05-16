@@ -340,6 +340,32 @@ class TtsService {
     _backend = null;
   }
 
+  /// Drop the open session's per-phoneme cache. Useful for long-
+  /// running TTS daemons (and the synthesize screen's "Clear
+  /// phoneme cache" button) cycling through many speakers on
+  /// kokoro — without periodic clearing, the cache grows
+  /// unboundedly.
+  ///
+  /// Returns false when no session is open OR the loaded dylib
+  /// predates `crispasr_session_clear_phoneme_cache` (pre-0.6.x).
+  /// Callers should surface that as a "feature unavailable on
+  /// this build" hint rather than an error.
+  Future<bool> clearPhonemeCache() async {
+    final session = _session;
+    if (session == null) return false;
+    try {
+      session.clearPhonemeCache();
+      return true;
+    } on UnsupportedError {
+      return false;
+    } catch (e, st) {
+      Log.instance.w('tts',
+          'clearPhonemeCache failed (treating as unavailable)',
+          error: e, stack: st);
+      return false;
+    }
+  }
+
   // 16-bit PCM WAV header + body. Mono. Float input is clamped to
   // [-1, 1] then scaled to int16. Cheap enough that we don't need a
   // dedicated audio-encoding dep.

@@ -908,5 +908,17 @@
   "synthExaggerationHelper": "Emotionswert (Chatterbox). 0,5 ist die Standardvorgabe; höher für dramatischere Ausführung, niedriger für monoton.",
   "synthTopP": "Top-p: {value}",
   "@synthTopP": {"placeholders": {"value": {"type": "String"}}},
-  "synthTopPHelper": "Top-p-Nucleus-Sampling-Schwelle (Chatterbox). 1,0 deaktiviert Top-p; kleinere Werte schneiden den unwahrscheinlichen Schwanz ab."
+  "synthTopPHelper": "Top-p-Nucleus-Sampling-Schwelle (Chatterbox). 1,0 deaktiviert Top-p; kleinere Werte schneiden den unwahrscheinlichen Schwanz ab.",
+  "synthMinP": "Min-p: {value}",
+  "@synthMinP": {"placeholders": {"value": {"type": "String"}}},
+  "synthMinPHelper": "Min-p-Schwelle (Chatterbox). 0 deaktiviert; positive Werte verwerfen Tokens, deren Wahrscheinlichkeit unter diesem Anteil des wahrscheinlichsten Tokens liegt.",
+  "synthRepetitionPenalty": "Wiederholungs-Penalty: {value}",
+  "@synthRepetitionPenalty": {"placeholders": {"value": {"type": "String"}}},
+  "synthRepetitionPenaltyHelper": "Wiederholungs-Penalty-Skalar (Chatterbox). 1,0 deaktiviert; höher entmutigt Schleifenwiederholungen einzelner Tokens.",
+  "synthMaxSpeechTokens": "Max. Sprach-Tokens: {n}",
+  "@synthMaxSpeechTokens": {"placeholders": {"n": {"type": "int"}}},
+  "synthMaxSpeechTokensHelper": "Obergrenze für AR-Sprach-Tokens pro Aufruf (Chatterbox). 1000 ≈ 20 s; bei langen Eingaben erhöhen, bei Ausreißern senken.",
+  "synthClearPhonemeCache": "Phonem-Cache leeren",
+  "synthClearPhonemeCacheDone": "Phonem-Cache geleert.",
+  "synthClearPhonemeCacheUnsupported": "Dieses Backend verwendet keinen Phonem-Cache (oder die aktive Session ist zu alt)."
 }

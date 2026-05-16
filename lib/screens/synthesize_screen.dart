@@ -71,6 +71,13 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
   double _cfgWeight = 0.5;
   double _exaggeration = 0.5;
   int _ttsSteps = 10;
+  // CrispASR 0.6 chatterbox extras — wired from tts_service.dart's
+  // `synthesize()` parameters but not previously surfaced. Each is
+  // null-on-default so the service forwards the C-side defaults
+  // when the user hasn't touched the slider.
+  double _minP = 0.0;
+  double _repetitionPenalty = 1.0;
+  int _maxSpeechTokens = 1000;
 
   @override
   void initState() {
@@ -140,6 +147,18 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
     _selectedCodec = codecs.isEmpty ? null : codecs.first.name;
   }
 
+  Future<void> _clearPhonemeCache() async {
+    final l = AppLocalizations.of(context);
+    final tts = ref.read(ttsServiceProvider);
+    final ok = await tts.clearPhonemeCache();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          ok ? l.synthClearPhonemeCacheDone : l.synthClearPhonemeCacheUnsupported),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
   Future<void> _synthesize() async {
     final text = _textController.text.trim();
     if (text.isEmpty || _selectedModel == null) return;
@@ -183,8 +202,16 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
         ttsSteps: _ttsSteps,
         temperature: _temperature,
         topP: _topP,
+        // Skip default-valued knobs so the C-side picks its own
+        // backend-default — keeps untouched sliders identical to
+        // pre-0.5.1 behaviour. Chatterbox is the only TTS backend
+        // that honours these today; others silently ignore.
+        minP: _minP > 0 ? _minP : null,
         cfgWeight: _cfgWeight,
         exaggeration: _exaggeration,
+        repetitionPenalty:
+            (_repetitionPenalty - 1.0).abs() < 1e-3 ? null : _repetitionPenalty,
+        maxSpeechTokens: _maxSpeechTokens != 1000 ? _maxSpeechTokens : null,
       );
       if (audio == null) return;
       final wav = await tts.writeWav(audio);
@@ -582,6 +609,51 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                         max: 1.0,
                         divisions: 19,
                         onChanged: (v) => setState(() => _topP = v),
+                      ),
+                      _buildSampleSlider(
+                        label: l.synthMinP(_minP.toStringAsFixed(2)),
+                        helper: l.synthMinPHelper,
+                        value: _minP,
+                        min: 0.0,
+                        max: 0.5,
+                        divisions: 50,
+                        onChanged: (v) => setState(() => _minP = v),
+                      ),
+                      _buildSampleSlider(
+                        label: l.synthRepetitionPenalty(
+                            _repetitionPenalty.toStringAsFixed(2)),
+                        helper: l.synthRepetitionPenaltyHelper,
+                        value: _repetitionPenalty,
+                        min: 1.0,
+                        max: 2.0,
+                        divisions: 20,
+                        onChanged: (v) =>
+                            setState(() => _repetitionPenalty = v),
+                      ),
+                      _buildSampleSlider(
+                        label:
+                            l.synthMaxSpeechTokens(_maxSpeechTokens),
+                        helper: l.synthMaxSpeechTokensHelper,
+                        // Slider is double-only; we round for state +
+                        // label.
+                        value: _maxSpeechTokens.toDouble(),
+                        min: 100,
+                        max: 4000,
+                        divisions: 39,
+                        onChanged: (v) =>
+                            setState(() => _maxSpeechTokens = v.round()),
+                      ),
+                      const SizedBox(height: 8),
+                      // Kokoro phoneme cache — purely a runtime
+                      // memory knob. Always-visible because the user
+                      // doesn't know which backend they're on from
+                      // here; calling it on a non-kokoro session is
+                      // a no-op upstream.
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.cleaning_services_outlined,
+                            size: 18),
+                        label: Text(l.synthClearPhonemeCache),
+                        onPressed: _clearPhonemeCache,
                       ),
                     ],
                   ),

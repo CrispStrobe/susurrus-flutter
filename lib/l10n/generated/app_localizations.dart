@@ -3709,6 +3709,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens.'**
   String get synthTopPHelper;
+
+  /// No description provided for @synthMinP.
+  ///
+  /// In en, this message translates to:
+  /// **'Min-p: {value}'**
+  String synthMinP(String value);
+
+  /// No description provided for @synthMinPHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Min-p threshold (chatterbox). 0 disables; positive values drop tokens whose probability falls below this fraction of the most-likely token.'**
+  String get synthMinPHelper;
+
+  /// No description provided for @synthRepetitionPenalty.
+  ///
+  /// In en, this message translates to:
+  /// **'Repetition penalty: {value}'**
+  String synthRepetitionPenalty(String value);
+
+  /// No description provided for @synthRepetitionPenaltyHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat-penalty scalar (chatterbox). 1.0 disables; raise to discourage the model from loop-stuttering on repeated tokens.'**
+  String get synthRepetitionPenaltyHelper;
+
+  /// No description provided for @synthMaxSpeechTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Max speech tokens: {n}'**
+  String synthMaxSpeechTokens(int n);
+
+  /// No description provided for @synthMaxSpeechTokensHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard cap on AR speech tokens per call (chatterbox). 1000 ≈ 20 s; raise for long inputs, lower to bound runaway generation.'**
+  String get synthMaxSpeechTokensHelper;
+
+  /// No description provided for @synthClearPhonemeCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear phoneme cache'**
+  String get synthClearPhonemeCache;
+
+  /// No description provided for @synthClearPhonemeCacheDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phoneme cache cleared.'**
+  String get synthClearPhonemeCacheDone;
+
+  /// No description provided for @synthClearPhonemeCacheUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This backend doesn\'t use a phoneme cache (or the open session is too old).'**
+  String get synthClearPhonemeCacheUnsupported;
 }
 
 class _AppLocalizationsDelegate

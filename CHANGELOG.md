@@ -5,6 +5,45 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### Match CrispASR upstream — TTS sampling + phoneme cache (May 2026)
+
+Audited the 85-surface CrispASR Dart binding against
+CrisperWeaver's actual call sites and closed the remaining
+user-impacting gaps:
+
+- **Three chatterbox sampling controls** added to the Synthesize
+  screen's Advanced section — `min-p`, `repetition penalty`,
+  `max speech tokens`. Previously the service accepted these
+  via `TtsService.synthesize(...)` but the UI never sourced
+  them, so users couldn't tune chatterbox beyond the four
+  knobs already on screen (temperature / top-p / CFG /
+  exaggeration).
+- **`Clear phoneme cache` button** in the same Advanced section
+  routes to a new `TtsService.clearPhonemeCache()` →
+  `CrispasrSession.clearPhonemeCache()`. Kokoro builds an
+  unbounded per-speaker phoneme cache over a long session;
+  this gives long-running daemon use-cases an explicit memory
+  knob. No-op on non-kokoro backends (the upstream session
+  setter silently drops).
+
+Wired-but-already-shipping surfaces: 60 of 85 upstream calls.
+Genuinely upstream-pending: GBNF grammar-constrained sampling
+(§5.8), audio enhancement (§5.1.10), TitaNet / SpeakerDB —
+none of these are exposed by the upstream Dart binding yet.
+`LidMethod.firered` / `.ecapa` are reachable through the
+integer-typed `CrispasrSession.detectLanguage`, but the
+enum-typed top-level `detectLanguagePcm` still only covers
+`whisper` + `silero` — extending CrisperWeaver's picker waits
+on an upstream enum bump.
+
+Tests: new `test/crispasr_live_test.dart` — tag-gated under
+`slow`, runs an end-to-end decode + Whisper-tiny.en transcribe
+of `test/jfk-2s.wav` against the real libcrispasr dylib. Skips
+silently when the model file isn't on disk so CI stays green.
+Full suite: 351 pass / 14 skip / 0 fail.
+
+
+
 ## v0.5.0 — 2026-05-12
 
 Post-v0.4.1 sweep — closes Tier A + B + most of Tier C of the

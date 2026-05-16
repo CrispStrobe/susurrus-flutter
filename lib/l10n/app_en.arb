@@ -908,5 +908,17 @@
   "synthExaggerationHelper": "Emotion-exaggeration scalar (chatterbox). 0.5 is the upstream default; raise for dramatic delivery, lower for monotone.",
   "synthTopP": "Top-p: {value}",
   "@synthTopP": {"placeholders": {"value": {"type": "String"}}},
-  "synthTopPHelper": "Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens."
+  "synthTopPHelper": "Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens.",
+  "synthMinP": "Min-p: {value}",
+  "@synthMinP": {"placeholders": {"value": {"type": "String"}}},
+  "synthMinPHelper": "Min-p threshold (chatterbox). 0 disables; positive values drop tokens whose probability falls below this fraction of the most-likely token.",
+  "synthRepetitionPenalty": "Repetition penalty: {value}",
+  "@synthRepetitionPenalty": {"placeholders": {"value": {"type": "String"}}},
+  "synthRepetitionPenaltyHelper": "Repeat-penalty scalar (chatterbox). 1.0 disables; raise to discourage the model from loop-stuttering on repeated tokens.",
+  "synthMaxSpeechTokens": "Max speech tokens: {n}",
+  "@synthMaxSpeechTokens": {"placeholders": {"n": {"type": "int"}}},
+  "synthMaxSpeechTokensHelper": "Hard cap on AR speech tokens per call (chatterbox). 1000 ≈ 20 s; raise for long inputs, lower to bound runaway generation.",
+  "synthClearPhonemeCache": "Clear phoneme cache",
+  "synthClearPhonemeCacheDone": "Phoneme cache cleared.",
+  "synthClearPhonemeCacheUnsupported": "This backend doesn't use a phoneme cache (or the open session is too old)."
 }

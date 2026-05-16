@@ -2149,4 +2149,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get synthTopPHelper =>
       'Top-p nucleus sampling threshold (chatterbox). 1.0 disables top-p; lower values cut the long tail of unlikely tokens.';
+
+  @override
+  String synthMinP(String value) {
+    return 'Min-p: $value';
+  }
+
+  @override
+  String get synthMinPHelper =>
+      'Min-p threshold (chatterbox). 0 disables; positive values drop tokens whose probability falls below this fraction of the most-likely token.';
+
+  @override
+  String synthRepetitionPenalty(String value) {
+    return 'Repetition penalty: $value';
+  }
+
+  @override
+  String get synthRepetitionPenaltyHelper =>
+      'Repeat-penalty scalar (chatterbox). 1.0 disables; raise to discourage the model from loop-stuttering on repeated tokens.';
+
+  @override
+  String synthMaxSpeechTokens(int n) {
+    return 'Max speech tokens: $n';
+  }
+
+  @override
+  String get synthMaxSpeechTokensHelper =>
+      'Hard cap on AR speech tokens per call (chatterbox). 1000 ≈ 20 s; raise for long inputs, lower to bound runaway generation.';
+
+  @override
+  String get synthClearPhonemeCache => 'Clear phoneme cache';
+
+  @override
+  String get synthClearPhonemeCacheDone => 'Phoneme cache cleared.';
+
+  @override
+  String get synthClearPhonemeCacheUnsupported =>
+      'This backend doesn\'t use a phoneme cache (or the open session is too old).';
 }
