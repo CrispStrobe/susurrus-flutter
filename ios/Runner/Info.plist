@@ -78,6 +78,21 @@
 	<key>NSContactsUsageDescription</key>
 	<string>This app may access contacts for sharing transcriptions.</string>
 
+	<!-- Required by Flutter for wireless debugging on iOS 14+. The
+	     Dart VM service binds to a local port and is discovered by
+	     `flutter run` over Bonjour. Without these two keys iOS
+	     silently blocks the VM service handshake, the debug build
+	     never finishes initialising, and the app stays on the
+	     white LaunchScreen forever. Release / AOT builds don't
+	     need this (no VM service), but it's harmless to ship in
+	     all configs. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow CrisperWeaver to connect to its development host on the same Wi-Fi for hot-reload and debugging.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartVmService._tcp</string>
+	</array>
+
 	<!-- Background Modes -->
 	<key>UIBackgroundModes</key>
 	<array>
