@@ -1306,6 +1306,7 @@ class ModelService {
       baseName: 'kokoro-82m',
       displayPrefix: 'Kokoro 82M TTS',
       description: 'Kokoro multilingual TTS (~100 MB)',
+      kind: ModelKind.tts,
     ),
     // Orpheus — Llama-3.2-3B + SNAC codec TTS (needs codec via setCodecPath).
     'orpheus': BackendRepo(
@@ -1314,6 +1315,7 @@ class ModelService {
       baseName: 'orpheus-3b-base',
       displayPrefix: 'Orpheus 3B TTS',
       description: 'Orpheus Llama-3.2-3B TTS (~3.5 GB)',
+      kind: ModelKind.tts,
     ),
     // FireRedPunc — POST-PROCESSOR (not an ASR backend). Catalogued so
     // users can fetch it via Model Management; consumed by `PuncService`.
@@ -1323,6 +1325,7 @@ class ModelService {
       baseName: 'fireredpunc',
       displayPrefix: 'FireRedPunc (post-processor)',
       description: 'Punctuation restoration for CTC ASR output',
+      kind: ModelKind.punc,
     ),
     // ----------------- CrispASR 0.6.x parity additions -----------------
     // Gemma4-E2B — Conformer + Gemma-4 LLM, 140+ languages.
@@ -1370,6 +1373,7 @@ class ModelService {
       baseName: 'chatterbox-en',
       displayPrefix: 'Chatterbox EN',
       description: 'Chatterbox TTS (T3 + S3Gen flow-matching)',
+      kind: ModelKind.tts,
     ),
     // IndexTTS — TTS GPT-2 AR + BigVGAN.
     'indextts': BackendRepo(
@@ -1378,6 +1382,7 @@ class ModelService {
       baseName: 'indextts',
       displayPrefix: 'IndexTTS',
       description: 'IndexTTS (GPT-2 AR + BigVGAN, ZH+EN)',
+      kind: ModelKind.tts,
     ),
     // Fullstop-punc — multilingual punctuation post-processor.
     'fullstop-punc': BackendRepo(
@@ -1386,6 +1391,7 @@ class ModelService {
       baseName: 'fullstop-punc-multilang',
       displayPrefix: 'Fullstop-punc multilang',
       description: 'Punctuation restoration (EN/DE/FR/IT)',
+      kind: ModelKind.punc,
     ),
     // Pyannote v3 segmentation — ML diarisation.
     'pyannote': BackendRepo(
@@ -1394,6 +1400,7 @@ class ModelService {
       baseName: 'pyannote-v3-seg',
       displayPrefix: 'Pyannote v3 segmentation',
       description: 'Pyannote ML diarisation model',
+      kind: ModelKind.diarize,
     ),
     // M2M-100 — text-to-text translation, 100 languages, any-to-any.
     'm2m100': BackendRepo(
@@ -1402,6 +1409,7 @@ class ModelService {
       baseName: 'm2m100-418m',
       displayPrefix: 'M2M-100 418M',
       description: 'Text-to-text translation (100 languages, any-to-any)',
+      kind: ModelKind.translate,
     ),
     // WMT21 Dense — Facebook's News-competition winner. Two
     // directional checkpoints, each in its own HF repo. Both ship
@@ -1421,6 +1429,7 @@ class ModelService {
       baseName: 'wmt21-dense-24-wide-en-x',
       displayPrefix: 'WMT21 Dense 24-wide en→X',
       description: 'WMT21 News winner — English to 7 target languages',
+      kind: ModelKind.translate,
     ),
     'm2m100-wmt21-x-en': BackendRepo(
       backend: 'm2m100-wmt21',
@@ -1428,6 +1437,7 @@ class ModelService {
       baseName: 'wmt21-dense-24-wide-x-en',
       displayPrefix: 'WMT21 Dense 24-wide X→en',
       description: 'WMT21 News winner — 7 source languages to English',
+      kind: ModelKind.translate,
     ),
     // MADLAD-400 — Google's 419-language T5 translator.
     'madlad': BackendRepo(
@@ -1436,6 +1446,7 @@ class ModelService {
       baseName: 'madlad400-3b-mt',
       displayPrefix: 'MADLAD-400 3B-MT',
       description: 'T5 translator, 419 languages',
+      kind: ModelKind.translate,
     ),
   };
 
@@ -1834,6 +1845,7 @@ class ModelService {
         description: '${repo.description} — ${_formatSize(sizeBytes)}',
         quantization: quant,
         backend: repo.backend,
+        kind: repo.kind,
       ));
     }
     return out;
@@ -2560,6 +2572,13 @@ class BackendRepo {
   final String displayPrefix; // UI-friendly name; e.g. "Parakeet TDT 0.6B v3"
   final String description;
   final String extension; // typically ".gguf", Whisper uses ".bin"
+  // What ModelKind newly-discovered variants belong to. Without this the
+  // probe stamped every quant as ModelKind.asr (the ModelDefinition
+  // default), and merging _discoveredModels last overwrote the hardcoded
+  // catalogue's correct kind — TTS / translate / voice entries
+  // disappeared from their filter chips. ASR is still the default since
+  // most backends are speech recognition.
+  final ModelKind kind;
 
   const BackendRepo({
     required this.backend,
@@ -2568,6 +2587,7 @@ class BackendRepo {
     required this.displayPrefix,
     required this.description,
     this.extension = '.gguf',
+    this.kind = ModelKind.asr,
   });
 }
 

@@ -374,8 +374,15 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                               child: TextButton.icon(
                                 // Drop the user straight into the TTS
                                 // filter so they don't have to hunt for
-                                // it in the kind chips.
-                                onPressed: () => context.push('/models?kind=tts'),
+                                // it in the kind chips. Await the push
+                                // so we can refresh the model list when
+                                // the user comes back — without this
+                                // the empty-state card stays visible
+                                // even after they download a TTS model.
+                                onPressed: () async {
+                                  await context.push('/models?kind=tts');
+                                  if (mounted) await _refresh();
+                                },
                                 icon: const Icon(Icons.cloud_download_outlined,
                                     size: 18),
                                 label: Text(l.synthOpenModelManagement),
