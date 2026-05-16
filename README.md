@@ -127,7 +127,7 @@ Downloads pull f16 from `ggerganov/whisper.cpp` and quantised variants from [`cs
 | -------- | --------------------------------------------------------------------- |
 | macOS    | ✅ Released — `.app.zip`, Metal-enabled, all 24+ backend dylibs (incl. kokoro / orpheus / mimo-asr) bundled, espeak-ng auto-bundled for kokoro phonemisation |
 | Linux    | ✅ Released — `.tar.gz` bundle                                         |
-| Windows  | ✅ Released — `.zip` with `whisper.dll` + sibling backend DLLs         |
+| Windows  | ✅ Released — portable `.zip` + installable `.msix` with Explorer "Open With" registration for audio + subtitle types |
 | Android  | ✅ Released — real-ASR APK (`arm64-v8a`) with `libwhisper.so` cross-built in CI |
 | iOS      | ⚠️ Unsigned IPA — sideload via [SideStore](https://sidestore.io/) / AltStore / Feather |
 
@@ -268,6 +268,8 @@ the cold-start kernel-JIT cost from minutes to seconds).
 - **`release.yml`** — on a `vX.Y.Z` tag (or manual dispatch): builds and uploads
     - `crisper_weaver-macos.zip` — Metal-enabled `.app`, ad-hoc signed, all 24+ backend dylibs (kokoro / orpheus / mimo-asr included as of CrispASR `ba7d6ed`) bundled.
     - `crisper_weaver-linux-x64.tar.gz` — GTK-3 desktop bundle with all backend `.so`'s.
+    - `crisper_weaver-windows-x64.zip` — portable zip with `runner.exe` + `whisper.dll` + sibling backend DLLs.
+    - `crisper_weaver-windows-x64.msix` — installable MSIX that registers "Open With → CrisperWeaver" for audio + subtitle types in Explorer. Unsigned for now (see Windows install below).
     - `crisper_weaver-android-arm64.apk` — real ASR. CrispASR cross-built via `build-android.sh --abi arm64-v8a`; `libwhisper.so` and sibling backend `.so`'s dropped into `jniLibs/arm64-v8a/`.
     - `crisper_weaver-ios-unsigned.ipa` — sideload-compatible (see below).
 
@@ -282,6 +284,22 @@ We don't pay for the Apple Developer Program yet, so the iOS IPA in releases is 
 - **[Feather](https://github.com/khcrysalis/Feather)** — open-source alternative.
 
 All three accept the `.ipa` directly: download `crisper_weaver-ios-unsigned.ipa` from the release page, open in SideStore (Files → share to SideStore), tap Install. The free-tier 7-day limit means you'll need to re-sign weekly unless you also have a paid Apple Developer account.
+
+### Installing on Windows
+
+Two artefacts ship per release; pick one:
+
+- **`crisper_weaver-windows-x64.zip`** — portable. Unzip anywhere, run `crisper_weaver.exe`. No installer, no file associations, doesn't survive across machines cleanly. Good for quick trials and tech users.
+- **`crisper_weaver-windows-x64.msix`** — installable. Lands in `Apps & features`, uninstalls cleanly, and **registers "Open With → CrisperWeaver" in Explorer** for `.wav` / `.mp3` / `.m4a` / `.flac` / `.ogg` / `.aac` / `.opus` / `.wma` / `.srt` / `.vtt`. Recommended for everyday use.
+
+The MSIX is **not signed by a Microsoft Store-trusted CA yet** (Microsoft Store registration is on the roadmap), so the first install needs a one-time trust step:
+
+1. Download `crisper_weaver-windows-x64.msix` from the release page.
+2. Right-click → Properties → tick **Unblock** (under the General tab, bottom right).
+3. Double-click the `.msix` → **Install**. Windows Security may warn ("Untrusted publisher") — accept once.
+4. After install, right-click any audio file in Explorer → **Open With → CrisperWeaver**.
+
+Once we publish to Microsoft Store, that warning goes away — `winget install CrisperWeaver` and the Store listing will both ship the same MSIX, signed.
 
 ---
 

@@ -115,6 +115,13 @@ dev_dependencies:
   # For FFI bindings (if needed for desktop)
   ffigen: ^20.1.1
 
+  # Windows MSIX packaging. `flutter pub run msix:create` after a
+  # release build wraps build/windows/x64/runner/Release/ in an
+  # MSIX, declaring file-type associations from msix_config below
+  # so Explorer learns "Open With → CrisperWeaver" for audio +
+  # subtitle files.
+  msix: ^3.16.7
+
 flutter_launcher_icons:
   android: true
   ios: true
@@ -140,3 +147,43 @@ flutter:
     - assets/licenses/
     - assets/vad/
   # No custom fonts shipped yet — relying on the platform system font.
+
+# Windows MSIX packaging. Consumed by `flutter pub run msix:create`
+# after `flutter build windows --release`. The `file_extension` list
+# is what makes Windows offer "Open With → CrisperWeaver" for these
+# types — the argv intake in main.dart already handles the receive
+# side, so registration is the only missing piece.
+#
+# Sideload vs Microsoft Store:
+#   * Today: `store: false`, unsigned. Users sideload, trust the
+#     bundled .cer once, install. SmartScreen complains on first
+#     install — README documents the trust-once flow.
+#   * Store submission later: flip `store: true`, replace identity
+#     + publisher with the Partner Center-issued ones, sign with the
+#     account-bound cert. The Store rewrites `identity_name` /
+#     `publisher` at upload time anyway, so the values below only
+#     matter for sideload.
+#
+# `msix_version` is four-part (Windows requirement). Keep the first
+# three segments in sync with `version:` above. The fourth segment
+# MUST be `0` for Store submissions; for sideload it can be a
+# per-rebuild bump. Identity matches the macOS bundle id so the app
+# has one identity across platforms.
+#
+# Capabilities: `internetClient` (model downloads) is a general
+# capability — no manual approval needed. `runFullTrust` is added
+# automatically by the msix tool for non-UWP Flutter apps, which
+# gives normal Win32 file system access — no need to declare
+# `removableStorage` or `broadFileSystemAccess` separately.
+msix_config:
+  display_name: CrisperWeaver
+  publisher_display_name: CrispStrobe
+  identity_name: com.crispstrobe.crisperweaver
+  publisher: CN=CrispStrobe
+  msix_version: 0.5.0.0
+  logo_path: assets/images/app_logo.png
+  capabilities: internetClient
+  architecture: x64
+  file_extension: .wav, .mp3, .m4a, .flac, .ogg, .aac, .opus, .wma, .srt, .vtt
+  store: false
+  install_certificate: false
