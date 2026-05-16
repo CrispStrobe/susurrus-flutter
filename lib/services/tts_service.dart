@@ -281,6 +281,33 @@ class TtsService {
       Float32List pcm = session.synthesize(text);
       // CrispASR's TTS backends all output 24 kHz mono float32.
       final int beforeSamples = pcm.length;
+      // Diagnostic: capture min/max/mean + finite-count so a silent
+      // WAV with non-zero `samples_out` is debuggable from logs
+      // alone. Cheap (one pass over the buffer); only enabled in
+      // debug builds via Log.d.
+      if (pcm.isNotEmpty) {
+        double mn = pcm[0];
+        double mx = pcm[0];
+        double sum = 0;
+        int finite = 0;
+        for (final s in pcm) {
+          if (s.isFinite) {
+            finite++;
+            sum += s;
+            if (s < mn) mn = s;
+            if (s > mx) mx = s;
+          }
+        }
+        Log.instance.d('tts', 'pcm stats', fields: {
+          'n': pcm.length,
+          'finite': finite,
+          'min': mn.toStringAsFixed(4),
+          'max': mx.toStringAsFixed(4),
+          'mean': finite > 0
+              ? (sum / finite).toStringAsFixed(4)
+              : '—',
+        });
+      }
       if (trimSilence) pcm = _trimSilence(pcm);
       final clampedSpeed = speed.clamp(0.25, 4.0).toDouble();
       if ((clampedSpeed - 1.0).abs() > 1e-3) {

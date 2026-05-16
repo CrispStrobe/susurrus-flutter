@@ -57,12 +57,16 @@ mkdir -p "$FRAMEWORKS"
 rm -f "$FRAMEWORKS"/lib*.dylib
 
 # Core library. CrispASR produces libcrispasr.{version}.dylib plus
-# symlinks libcrispasr.dylib and libwhisper.dylib; pick whichever
-# concrete versioned file exists, falling back to the unversioned
-# symlink. Use find so an unmatched glob doesn't break under `set -u`.
+# symlinks libcrispasr.dylib and libwhisper.dylib; pick the highest-
+# version concrete file (`sort -V | tail -1`), not the first alphabetic
+# match — without that, when 0.5.4 + 0.6.6 coexist in the build dir
+# we'd pick 0.5.4 because "0.5" sorts before "0.6", shipping the app
+# with a stale ABI that's missing kokoro/TTS backends and produces
+# NaN PCM at synth time. Use find so an unmatched glob doesn't break
+# under `set -u`.
 VERSIONED=""
 for pattern in 'libcrispasr.[0-9]*.dylib' 'libwhisper.[0-9]*.dylib'; do
-  found="$(find "$SRCDIR" -maxdepth 1 -type f -name "$pattern" 2>/dev/null | sort | head -1)"
+  found="$(find "$SRCDIR" -maxdepth 1 -type f -name "$pattern" 2>/dev/null | sort -V | tail -1)"
   if [[ -n "$found" ]]; then VERSIONED="$found"; break; fi
 done
 if [[ -z "$VERSIONED" ]]; then
