@@ -291,6 +291,7 @@ class TranscriptionWorkerPool {
     bool suppressNonSpeechTokens = false,
     String suppressTokensRegex = '',
     bool carryInitialPrompt = false,
+    int altN = 0,
     void Function(TranscriptionSegment seg)? onSegment,
   }) async {
     final worker = await _acquire();
@@ -366,6 +367,10 @@ class TranscriptionWorkerPool {
         'suppressNonSpeechTokens': suppressNonSpeechTokens,
         'suppressTokensRegex': suppressTokensRegex,
         'carryInitialPrompt': carryInitialPrompt,
+        // §5.1.11 alt-token capture (whisper greedy decode only,
+        // 0.5.13+). Always sent so a slider drag back to 0 actually
+        // disables capture on the next dispatch.
+        'altN': altN,
         'replyPort': replyReceive.sendPort,
       });
       return await completer.future;

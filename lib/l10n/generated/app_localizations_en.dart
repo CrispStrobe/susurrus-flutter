@@ -396,6 +396,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputEditNotImplemented => 'Segment editing not yet implemented';
 
   @override
+  String get outputEditAltSuggestions => 'Alternative candidates';
+
+  @override
+  String get outputEditAltSuggestionsHint =>
+      'Tap a word to swap it for a runner-up Whisper picked at that step. Uses the alternative-candidate slider in Advanced Options.';
+
+  @override
+  String get outputEditAltPickTooltip =>
+      'Pick an alternative candidate for this word';
+
+  @override
   String get outputRenameSpeakerTitle => 'Rename speaker';
 
   @override
@@ -2005,6 +2016,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get advancedTokenTimestampsSubtitle =>
       'DTW-aligned per-token timing. Slower than word timestamps; useful for fine-grained subtitle tooling.';
+
+  @override
+  String get advancedAltN => 'Alternative candidates per word (Whisper only)';
+
+  @override
+  String advancedAltNLabel(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Top $n',
+      zero: 'Off',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get advancedAltNSubtitle =>
+      'Capture the top-N runner-up tokens at each Whisper greedy step. Lets you tap an ambiguous word in the transcript editor and pick a competing candidate (kubectl / cubicle / …). 0 = off (default). Best with greedy decoding — beam search not supported. Pre-0.5.13 dylibs silently ignore.';
 
   @override
   String get advancedPuncFamily => 'Punctuation model';

@@ -396,5 +396,35 @@ void main() {
         );
       });
     });
+
+    group('§5.1.11 alt-token capture (altN)', () {
+      test('default is 0 (off)', () {
+        const o = AdvancedOptions();
+        expect(o.altN, 0);
+      });
+
+      test('copyWith preserves altN', () {
+        const original = AdvancedOptions(altN: 3);
+        final copy = original.copyWith();
+        expect(copy.altN, 3);
+      });
+
+      test('copyWith mutates only altN, neighbours intact', () {
+        const original =
+            AdvancedOptions(altN: 2, beamSearch: true, bestOf: 4);
+        final updated = original.copyWith(altN: 5);
+        expect(updated.altN, 5);
+        // Neighbouring sliders mustn't reset — that's the bug
+        // class this whole copyWith test file exists to catch.
+        expect(updated.beamSearch, true);
+        expect(updated.bestOf, 4);
+      });
+
+      test('copyWith can dial altN back to 0', () {
+        const original = AdvancedOptions(altN: 5);
+        final cleared = original.copyWith(altN: 0);
+        expect(cleared.altN, 0);
+      });
+    });
   });
 }

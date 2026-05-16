@@ -149,6 +149,11 @@ class AdvancedTranscribeOptions {
   /// [transcribeWindowStartSec].
   final double transcribeWindowDurationSec;
 
+  /// §5.1.11 — Per-token top-N alternative-candidate capture
+  /// (Whisper greedy decode only). 0 = off. See [AdvancedOptions.altN]
+  /// for full semantics.
+  final int altN;
+
   const AdvancedTranscribeOptions({
     this.vadBackend = VadBackend.silero,
     this.vadThreshold = 0.5,
@@ -181,6 +186,7 @@ class AdvancedTranscribeOptions {
     this.enhanceAudio = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
+    this.altN = 0,
   });
 }
 

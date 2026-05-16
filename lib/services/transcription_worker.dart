@@ -182,6 +182,10 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
         (raw['suppressTokensRegex'] as String?) ?? '';
     final carryInitialPrompt =
         (raw['carryInitialPrompt'] as bool?) ?? false;
+    // §5.1.11 — Per-token alt-candidate capture (whisper greedy
+    // decode only). 0 = off; pre-0.5.13 dylibs lack the setter and
+    // the worker silently no-ops.
+    final altN = (raw['altN'] as num?)?.toInt() ?? 0;
 
     try {
       // Apply sticky session-state setters before dispatch. Empty
@@ -252,6 +256,11 @@ Future<void> transcriptionWorkerEntry(TranscriptionWorkerArgs args) async {
           suppressRegex: suppressTokensRegex,
           carryInitialPrompt: carryInitialPrompt,
         );
+      } on Object catch (_) {/* old dylib or non-whisper backend */}
+      // §5.1.11 — alt-token capture (whisper-only). Pre-0.5.13
+      // dylibs lack the symbol.
+      try {
+        session.setAltN(altN);
       } on Object catch (_) {/* old dylib or non-whisper backend */}
       // GBNF grammar (whisper-only — the C side silently no-ops on
       // other backends because grammar_active never flips true for

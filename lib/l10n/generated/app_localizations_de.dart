@@ -398,6 +398,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Segment-Bearbeitung noch nicht implementiert';
 
   @override
+  String get outputEditAltSuggestions => 'Alternative Kandidaten';
+
+  @override
+  String get outputEditAltSuggestionsHint =>
+      'Tippe auf ein Wort, um es durch einen alternativen Whisper-Kandidaten an derselben Stelle zu ersetzen. Nutzt den Schieberegler in den erweiterten Optionen.';
+
+  @override
+  String get outputEditAltPickTooltip =>
+      'Alternativen Kandidaten für dieses Wort wählen';
+
+  @override
   String get outputRenameSpeakerTitle => 'Sprecher umbenennen';
 
   @override
@@ -2013,6 +2024,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get advancedTokenTimestampsSubtitle =>
       'DTW-ausgerichtete Pro-Token-Zeiten. Langsamer als Wortzeitstempel; nützlich für feinkörnige Untertitel-Tools.';
+
+  @override
+  String get advancedAltN => 'Alternative Kandidaten pro Wort (nur Whisper)';
+
+  @override
+  String advancedAltNLabel(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Top $n',
+      zero: 'Aus',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get advancedAltNSubtitle =>
+      'Erfasst bei jedem Whisper-Greedy-Schritt die Top-N-Alternativtoken. Im Transkript-Editor lässt sich dann auf ein mehrdeutiges Wort tippen, um ein konkurrierendes Kandidat-Token zu wählen (kubectl / Quark / …). 0 = aus (Standard). Funktioniert am besten mit Greedy-Decoding — Beam Search wird nicht unterstützt. Vor Version 0.5.13 wird der Wert ignoriert.';
 
   @override
   String get advancedPuncFamily => 'Interpunktionsmodell';

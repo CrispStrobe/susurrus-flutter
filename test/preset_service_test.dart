@@ -104,6 +104,10 @@ void main() {
         // §5.1.10 — audio enhancement pre-step. Non-default value
         // so the round-trip pins the JSON key explicitly.
         enhanceAudio: true,
+        // §5.1.11 — alt-token capture. A preset that turns it on
+        // should restore with the same N; defaults silently
+        // reverting to 0 would hide the tap-to-pick UI on reload.
+        altN: 3,
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -139,6 +143,8 @@ void main() {
       expect(restored.carryInitialPrompt, isTrue);
       // §5.1.10 — audio-enhancement toggle survives the round trip.
       expect(restored.enhanceAudio, isTrue);
+      // §5.1.11 — alt-token capture round-trips with the rest.
+      expect(restored.altN, 3);
     });
 
     test('missing keys fall through to ctor defaults', () {

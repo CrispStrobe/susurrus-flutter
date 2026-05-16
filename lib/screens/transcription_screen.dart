@@ -1300,6 +1300,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         enhanceAudio: adv.enhanceAudio,
         transcribeWindowStartSec: adv.transcribeWindowStartSec,
         transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
+        altN: adv.altN,
       );
 
       // §5.1.2 vocabulary merge — resolve the active backend
@@ -1450,6 +1451,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       carryInitialPrompt: adv.carryInitialPrompt,
       transcribeWindowStartSec: adv.transcribeWindowStartSec,
       transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
+      altN: adv.altN,
     );
 
     // Load the model once for the whole batch.
@@ -1958,6 +1960,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         suppressNonSpeechTokens: adv.suppressNonSpeechTokens,
         suppressTokensRegex: adv.suppressTokensRegex,
         carryInitialPrompt: adv.carryInitialPrompt,
+        altN: adv.altN,
         onSegment: (seg) {
           // Apply the window shift here too so the checkpoint /
           // streamed-into-UI timestamps match the post-loop shift

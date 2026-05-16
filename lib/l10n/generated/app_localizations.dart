@@ -818,6 +818,24 @@ abstract class AppLocalizations {
   /// **'Segment editing not yet implemented'**
   String get outputEditNotImplemented;
 
+  /// No description provided for @outputEditAltSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative candidates'**
+  String get outputEditAltSuggestions;
+
+  /// No description provided for @outputEditAltSuggestionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a word to swap it for a runner-up Whisper picked at that step. Uses the alternative-candidate slider in Advanced Options.'**
+  String get outputEditAltSuggestionsHint;
+
+  /// No description provided for @outputEditAltPickTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick an alternative candidate for this word'**
+  String get outputEditAltPickTooltip;
+
   /// No description provided for @outputRenameSpeakerTitle.
   ///
   /// In en, this message translates to:
@@ -3463,6 +3481,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'DTW-aligned per-token timing. Slower than word timestamps; useful for fine-grained subtitle tooling.'**
   String get advancedTokenTimestampsSubtitle;
+
+  /// No description provided for @advancedAltN.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative candidates per word (Whisper only)'**
+  String get advancedAltN;
+
+  /// No description provided for @advancedAltNLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{Off} other{Top {n}}}'**
+  String advancedAltNLabel(int n);
+
+  /// No description provided for @advancedAltNSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture the top-N runner-up tokens at each Whisper greedy step. Lets you tap an ambiguous word in the transcript editor and pick a competing candidate (kubectl / cubicle / …). 0 = off (default). Best with greedy decoding — beam search not supported. Pre-0.5.13 dylibs silently ignore.'**
+  String get advancedAltNSubtitle;
 
   /// No description provided for @advancedPuncFamily.
   ///

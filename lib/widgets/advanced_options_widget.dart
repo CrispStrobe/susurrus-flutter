@@ -257,6 +257,24 @@ class AdvancedOptions {
   /// without round-tripping through the audio editor's trim flow.
   final double transcribeWindowDurationSec;
 
+  /// §5.1.11 — Per-token top-N alternative-candidate capture
+  /// (Whisper greedy decode only). 0 (default) = off. When > 0,
+  /// every greedy-sampled token retains its top-N runner-up
+  /// candidates, which the transcript editor surfaces as a
+  /// tap-to-pick popover on ambiguous words.
+  ///
+  /// Useful for technical / proper-noun-heavy audio where the
+  /// chosen token is plausible but wrong ("kubectl" → "cubicle")
+  /// — pick the right candidate without retyping. UI caps at 5
+  /// to keep memory tame at ~50 KB/min of audio; alts are most
+  /// informative at 3.
+  ///
+  /// Beam search is excluded: its siblings are beam-conditional
+  /// rather than greedy alternatives so showing them would
+  /// mislead. Non-whisper backends ignore the field — none have
+  /// an analog today.
+  final int altN;
+
   /// §5.1.2 — Custom-vocabulary boost list. Persistent across runs;
   /// the user manages it in Advanced Options as removable chips
   /// (brand names, acronyms, technical jargon, people's names).
@@ -322,6 +340,7 @@ class AdvancedOptions {
     this.enhanceAudio = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
+    this.altN = 0,
   });
 
   AdvancedOptions copyWith({
@@ -367,6 +386,7 @@ class AdvancedOptions {
     bool? enhanceAudio,
     double? transcribeWindowStartSec,
     double? transcribeWindowDurationSec,
+    int? altN,
   }) =>
       AdvancedOptions(
         translate: translate ?? this.translate,
@@ -416,6 +436,7 @@ class AdvancedOptions {
             transcribeWindowStartSec ?? this.transcribeWindowStartSec,
         transcribeWindowDurationSec:
             transcribeWindowDurationSec ?? this.transcribeWindowDurationSec,
+        altN: altN ?? this.altN,
       );
 
   /// Backends that accept a target-language hint different from the
@@ -745,6 +766,10 @@ class _AdvancedDecodingSectionState
         // Token-level timestamps (whisper DTW). Useful when subtitle
         // tooling consumes per-token timing instead of segments.
         _buildTokenTimestampsRow(context, opts),
+        // §5.1.11 — Top-N alternative-candidate capture (Whisper only).
+        // Powers the transcript editor's tap-to-pick popover on
+        // ambiguous words. Hidden on non-whisper backends.
+        _buildAltNRow(context, opts),
         // §5.8 — whisper subtitle formatting (tokens-per-segment
         // cap + split-on-word). Pair is whisper-only; collapses
         // on session-style backends. SplitOnWord additionally
@@ -1549,6 +1574,46 @@ class _AdvancedDecodingSectionState
       value: opts.tokenTimestamps,
       onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
           opts.copyWith(tokenTimestamps: v),
+    );
+  }
+
+  /// §5.1.11 — top-N alternative-candidate capture slider (Whisper
+  /// only). 0 = off, 5 max — capped low because Whisper produces
+  /// vanishingly-small probabilities past the top few candidates and
+  /// memory grows linearly with N.
+  Widget _buildAltNRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    if (_activeBackend() != 'whisper') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${l.advancedAltN}: ${l.advancedAltNLabel(opts.altN)}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            min: 0,
+            max: 5,
+            divisions: 5,
+            value: opts.altN.clamp(0, 5).toDouble(),
+            label: l.advancedAltNLabel(opts.altN),
+            onChanged: (v) => ref
+                .read(advancedOptionsProvider.notifier)
+                .state = opts.copyWith(altN: v.round()),
+          ),
+          Text(l.advancedAltNSubtitle,
+              style:
+                  const TextStyle(fontSize: 11, color: Colors.black54)),
+        ],
+      ),
     );
   }
 

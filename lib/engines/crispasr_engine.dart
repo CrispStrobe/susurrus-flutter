@@ -591,6 +591,23 @@ class CrispASREngine implements TranscriptionEngine {
             'setFallbackThresholds rejected by ${_session?.backend}: $e');
       }
     }
+    // §5.1.11 — Whisper alt-token capture (whisper-only — other
+    // backends silently no-op since none have an analog). Always
+    // fire so a slider drag back to 0 actually disables capture
+    // on the next dispatch. Pre-0.5.13 dylibs lack the symbol;
+    // we swallow UnsupportedError so the rest of the run still
+    // works (alts UI just stays hidden).
+    if (_session != null) {
+      try {
+        _session!.setAltN(advanced.altN);
+      } on UnsupportedError catch (e) {
+        Log.instance.d('crispasr',
+            'setAltN unsupported on this dylib: $e');
+      } catch (e) {
+        Log.instance.d('crispasr',
+            'setAltN rejected by ${_session?.backend}: $e');
+      }
+    }
     // §5.8 — GBNF grammar (whisper-only). Always fire on every
     // dispatch (including empty text) so a previous job's grammar
     // doesn't carry over. Invalid GBNF surfaces as ArgumentError
@@ -1202,6 +1219,16 @@ class CrispASREngine implements TranscriptionEngine {
                   startTime: w.start,
                   endTime: w.end,
                   confidence: w.p.clamp(0.0, 1.0).toDouble(),
+                  // §5.1.11 — alt-token candidates (Whisper greedy
+                  // decode only, 0.5.13+). Empty in the common
+                  // off-by-default case so the editor renders the
+                  // word as plain text without the tap affordance.
+                  alts: w.alts
+                      .map((a) => TranscriptionWordAlt(
+                            text: a.text,
+                            p: a.p.clamp(0.0, 1.0).toDouble(),
+                          ))
+                      .toList(growable: false),
                 ))
             .toList();
       }
@@ -1246,6 +1273,16 @@ class CrispASREngine implements TranscriptionEngine {
                   // backends that don't compute one) report -1, which
                   // the binding clamps to 1.0 so we render neutrally.
                   confidence: w.p.clamp(0.0, 1.0),
+                  // §5.1.11 — alt-token candidates (Whisper greedy
+                  // decode only, 0.5.13+). Carried through from the
+                  // session-result word.alts list. Empty for other
+                  // backends and old dylibs.
+                  alts: w.alts
+                      .map((a) => TranscriptionWordAlt(
+                            text: a.text,
+                            p: a.p.clamp(0.0, 1.0).toDouble(),
+                          ))
+                      .toList(growable: false),
                 ))
             .toList();
       }

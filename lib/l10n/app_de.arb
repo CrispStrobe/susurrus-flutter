@@ -157,6 +157,9 @@
   "outputCopyText": "Text kopieren",
   "outputEditSegment": "Segment bearbeiten",
   "outputEditNotImplemented": "Segment-Bearbeitung noch nicht implementiert",
+  "outputEditAltSuggestions": "Alternative Kandidaten",
+  "outputEditAltSuggestionsHint": "Tippe auf ein Wort, um es durch einen alternativen Whisper-Kandidaten an derselben Stelle zu ersetzen. Nutzt den Schieberegler in den erweiterten Optionen.",
+  "outputEditAltPickTooltip": "Alternativen Kandidaten für dieses Wort wählen",
   "outputRenameSpeakerTitle": "Sprecher umbenennen",
   "outputRenameSpeakerOriginal": "Originale Bezeichnung: {original}",
   "@outputRenameSpeakerOriginal": {"placeholders": {"original": {"type": "String"}}},
@@ -850,6 +853,16 @@
 
   "advancedTokenTimestamps": "Token-genaue Zeitstempel",
   "advancedTokenTimestampsSubtitle": "DTW-ausgerichtete Pro-Token-Zeiten. Langsamer als Wortzeitstempel; nützlich für feinkörnige Untertitel-Tools.",
+
+  "advancedAltN": "Alternative Kandidaten pro Wort (nur Whisper)",
+  "@advancedAltN": {},
+  "advancedAltNLabel": "{n, plural, =0{Aus} other{Top {n}}}",
+  "@advancedAltNLabel": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "advancedAltNSubtitle": "Erfasst bei jedem Whisper-Greedy-Schritt die Top-N-Alternativtoken. Im Transkript-Editor lässt sich dann auf ein mehrdeutiges Wort tippen, um ein konkurrierendes Kandidat-Token zu wählen (kubectl / Quark / …). 0 = aus (Standard). Funktioniert am besten mit Greedy-Decoding — Beam Search wird nicht unterstützt. Vor Version 0.5.13 wird der Wert ignoriert.",
 
   "advancedPuncFamily": "Interpunktionsmodell",
   "advancedPuncFamilyHelper": "Nur sichtbar, wenn Interpunktion wiederherstellen aktiviert ist. Wahl zwischen FireRedPunc (ZH+EN) und fullstop-punc (EN/DE/FR/IT). Fällt automatisch auf das vorhandene Modell zurück.",

@@ -157,6 +157,9 @@
   "outputCopyText": "Copy text",
   "outputEditSegment": "Edit segment",
   "outputEditNotImplemented": "Segment editing not yet implemented",
+  "outputEditAltSuggestions": "Alternative candidates",
+  "outputEditAltSuggestionsHint": "Tap a word to swap it for a runner-up Whisper picked at that step. Uses the alternative-candidate slider in Advanced Options.",
+  "outputEditAltPickTooltip": "Pick an alternative candidate for this word",
   "outputRenameSpeakerTitle": "Rename speaker",
   "outputRenameSpeakerOriginal": "Original label: {original}",
   "@outputRenameSpeakerOriginal": {"placeholders": {"original": {"type": "String"}}},
@@ -850,6 +853,16 @@
 
   "advancedTokenTimestamps": "Token-level timestamps",
   "advancedTokenTimestampsSubtitle": "DTW-aligned per-token timing. Slower than word timestamps; useful for fine-grained subtitle tooling.",
+
+  "advancedAltN": "Alternative candidates per word (Whisper only)",
+  "@advancedAltN": {},
+  "advancedAltNLabel": "{n, plural, =0{Off} other{Top {n}}}",
+  "@advancedAltNLabel": {
+    "placeholders": {
+      "n": {"type": "int"}
+    }
+  },
+  "advancedAltNSubtitle": "Capture the top-N runner-up tokens at each Whisper greedy step. Lets you tap an ambiguous word in the transcript editor and pick a competing candidate (kubectl / cubicle / …). 0 = off (default). Best with greedy decoding — beam search not supported. Pre-0.5.13 dylibs silently ignore.",
 
   "advancedPuncFamily": "Punctuation model",
   "advancedPuncFamilyHelper": "Visible only when Restore punctuation is on. Switch between FireRedPunc (ZH+EN) and fullstop-punc (EN/DE/FR/IT). Auto-fallback to whichever is downloaded.",

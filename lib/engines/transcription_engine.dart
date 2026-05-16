@@ -176,6 +176,22 @@ class TranscriptionSegment {
   }
 }
 
+/// One alternative-candidate suggestion for an ambiguous word. Surfaced
+/// for Whisper greedy decode when the user enabled `altN` > 0 in
+/// AdvancedOptions; the transcript editor reads this list to populate
+/// a tap-to-pick popover so users can override an obvious mishear
+/// (kubectl → cubicle) without retyping.
+class TranscriptionWordAlt {
+  /// Display text of the candidate. For Whisper sub-word BPE this may
+  /// include a leading-space marker that the UI strips on render.
+  final String text;
+
+  /// Softmax probability at the same decode step in `[0, 1]`.
+  final double p;
+
+  const TranscriptionWordAlt({required this.text, required this.p});
+}
+
 /// Word-level transcription information
 class TranscriptionWord {
   final String word;
@@ -183,11 +199,18 @@ class TranscriptionWord {
   final double endTime;
   final double confidence;
 
+  /// Optional top-N alternative candidates for this word's first
+  /// content-bearing token (Whisper greedy decode only, when altN > 0
+  /// AND the loaded libcrispasr is ≥ 0.5.13). Empty in the common
+  /// off-by-default case. Ordered descending by probability.
+  final List<TranscriptionWordAlt> alts;
+
   const TranscriptionWord({
     required this.word,
     required this.startTime,
     required this.endTime,
     required this.confidence,
+    this.alts = const [],
   });
 }
 
