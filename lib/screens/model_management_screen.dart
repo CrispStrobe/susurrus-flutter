@@ -75,14 +75,22 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   Future<void> _probeHf() async {
     setState(() => _probing = true);
     try {
-      final added =
+      final result =
           await ref.read(modelServiceProvider).refreshAvailableQuants();
       if (!mounted) return;
+      final base = result.added == 0
+          ? 'No new quants discovered on HuggingFace.'
+          : 'Discovered ${result.added} new quant variant${result.added == 1 ? "" : "s"}.';
+      // Surface gated / 401 repos so the user knows some sources
+      // weren't reachable — historically this was silent and they
+      // wondered why "we only see q4_k" for everything.
+      final detail = result.hasFailures
+          ? ' Skipped ${result.failedRepos.length} private/gated repo${result.failedRepos.length == 1 ? "" : "s"}.'
+          : '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(added == 0
-              ? 'No new quants discovered on HuggingFace.'
-              : 'Discovered $added new quant variant${added == 1 ? "" : "s"}.'),
+          content: Text('$base$detail'),
+          duration: Duration(seconds: result.hasFailures ? 8 : 4),
         ),
       );
       await _loadModels();

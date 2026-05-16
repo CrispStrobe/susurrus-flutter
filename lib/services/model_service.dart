@@ -1178,7 +1178,13 @@ class ModelService {
   static const Map<String, BackendRepo> backendRepos = {
     'whisper': BackendRepo(
       backend: 'whisper',
-      repoId: 'cstr/whisper-ggml-quants',
+      // Public, hosted by ggerganov — 33+ quant variants
+      // (tiny / base / small / medium / large in f16, q5_0, q5_1,
+      // q8_0 + .en monolingual variants). The historical
+      // cstr/whisper-ggml-quants repo was gated and silently
+      // returned 401 from the HF API, leaving the model picker
+      // with only the hardcoded q5_0 entries.
+      repoId: 'ggerganov/whisper.cpp',
       baseName: 'ggml-',
       displayPrefix: 'Whisper',
       description: 'Whisper (quantised GGML)',
@@ -1592,8 +1598,9 @@ class ModelService {
   ///
   /// Returns the total number of freshly-discovered ModelDefinitions
   /// (can be 0 if every file was already in the hardcoded catalog).
-  Future<int> refreshAvailableQuants() async {
+  Future<QuantProbeResult> refreshAvailableQuants() async {
     int added = 0;
+    final failed = <String>[];
     for (final repo in backendRepos.values) {
       try {
         final models = await _probeRepo(repo);
@@ -1607,12 +1614,13 @@ class ModelService {
         Log.instance
             .i('model', 'Probed ${repo.repoId}: ${models.length} variants');
       } catch (e, st) {
+        failed.add(repo.repoId);
         Log.instance.w('model', 'Quant probe failed for ${repo.repoId}',
             error: e, stack: st);
       }
     }
     _lastProbeAt = DateTime.now();
-    return added;
+    return QuantProbeResult(added: added, failedRepos: failed);
   }
 
   /// Discover models from CrispASR's built-in C-side registry — no
@@ -2531,6 +2539,21 @@ class BackendRepo {
     required this.description,
     this.extension = '.gguf',
   });
+}
+
+/// Result envelope from `ModelService.refreshAvailableQuants()`.
+/// `added` is the count of newly-discovered quant variants merged into
+/// the catalogue. `failedRepos` lists repo ids whose probe threw —
+/// most commonly because the upstream HF repo is gated and returns
+/// 401 to anonymous requests. The UI uses this to differentiate "all
+/// probes succeeded but nothing new was found" from "some probes
+/// quietly failed".
+class QuantProbeResult {
+  final int added;
+  final List<String> failedRepos;
+  const QuantProbeResult({required this.added, required this.failedRepos});
+
+  bool get hasFailures => failedRepos.isNotEmpty;
 }
 
 class ModelInfo {
