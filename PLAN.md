@@ -172,19 +172,15 @@ Open items only below.
   catalogue entries for `firered-lid-f16` + `ecapa-lid-107-f16`,
   and `LidService.methodForFilename` routes by basename.
 
-* **5.1.6 v3.1 Curated chat-model catalogue** — v3 ships the
-  file-picker MVP (the user points at any GGUF on disk). The
-  next-level UX is a curated list of recommended small chat
-  models (Qwen2.5-3B-Instruct, Llama-3.2-3B, Phi-3-mini,
-  Gemma-2-2B, …) with HF download URLs and the existing
-  download / progress UI plumbed in. Re-uses the
-  download-with-resume infra that ASR-model selection
-  already has; new bits are the catalogue itself (curation +
-  per-model recommended `nCtx` / `nGpuLayers`) and a Settings
-  → Local LLM picker that defaults to the catalogue but
-  still allows Browse… for power users. ~half-day on top of
-  v3 once a curation decision is made on which models to
-  ship in the list.
+* ~~**5.1.6 v3.1 Curated chat-model catalogue**~~ —
+  **shipped May 2026**. 5 entries spanning small/medium/large
+  buckets + ≥ 2 families (SmolLM2-360M, Qwen2.5-0.5B,
+  Llama-3.2-1B, Qwen2.5-3B, Llama-3.2-3B — all Q4_K_M via
+  bartowski/* HF repos). Settings → Local LLM gets a
+  "Suggested chat models" picker; Model Management gets a
+  Chat-LLM filter chip. Recommended `nCtx` / `nGpuLayers`
+  values live in the model description text — users tune via
+  the existing Advanced section sliders.
 
 * ~~**Responsive UI — phone sub-screens for Settings dialogs**~~
   — **shipped May 2026**. The Cloud LLM / Local LLM / Hotkey

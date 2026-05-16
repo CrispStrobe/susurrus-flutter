@@ -6,7 +6,13 @@ import '../main.dart' show modelServiceProvider;
 import '../services/model_service.dart';
 
 class ModelManagementScreen extends ConsumerStatefulWidget {
-  const ModelManagementScreen({super.key});
+  /// Optional deep-link filter — when set, the kind-filter chip
+  /// row opens with that kind pre-selected. Used by Settings →
+  /// Local LLM's "Manage" link to drop the user into the chat-LLM
+  /// view without an extra tap.
+  const ModelManagementScreen({super.key, this.initialKindFilter});
+
+  final ModelKind? initialKindFilter;
 
   @override
   ConsumerState<ModelManagementScreen> createState() =>
@@ -29,6 +35,10 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
   @override
   void initState() {
     super.initState();
+    // Pre-select the filter chip when the route arrived with
+    // `?kind=<name>` (or the host explicitly passed
+    // `initialKindFilter:`).
+    _kindFilter = widget.initialKindFilter;
     _loadModels();
     // Auto-probe HuggingFace the first time the screen opens so users see
     // every available quant for every backend without having to know the
@@ -189,6 +199,11 @@ class _ModelManagementScreenState extends ConsumerState<ModelManagementScreen> {
           chip('Voices', ModelKind.voice),
           chip('Codecs', ModelKind.codec),
           chip('Post-processors', ModelKind.punc),
+          // §5.1.6 v3.1 — chat-LLM catalogue. Localised string so
+          // future families (additional non-ASR/TTS kinds) can
+          // tag-along easily.
+          chip(AppLocalizations.of(context).modelsKindFilterChatLlm,
+              ModelKind.chatLlm),
         ],
       ),
     );

@@ -5,6 +5,56 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.1.6 v3.1 — Curated chat-model catalogue (May 2026)
+
+The §5.1.6 v3 file-picker MVP shipped with no curation — users
+had to know where to find a chat-capable GGUF and how to
+choose one. This pass adds a curated list so the common case
+becomes "pick a model from a dropdown, hit Download".
+
+Model catalogue:
+
+- 5 curated entries spanning small / medium / large size
+  buckets and ≥ 2 architectures so users on every hardware tier
+  can pick something that fits:
+    * SmolLM2 360M Instruct (Q4_K_M, ~270 MB) — low-resource
+    * Qwen2.5 0.5B Instruct (Q4_K_M, ~400 MB) — tight memory
+    * Llama 3.2 1B Instruct (Q4_K_M, ~770 MB) — balanced
+    * Qwen2.5 3B Instruct (Q4_K_M, ~2 GB) — recommended default
+    * Llama 3.2 3B Instruct (Q4_K_M, ~2 GB) — strong alternative
+- New ModelKind.chatLlm enum value; entries live in
+  ModelService.crispasrBackendModels alongside the other
+  non-Whisper GGUF families. backend tag = 'chat' so the
+  existing download / progress UI plumbs through unchanged.
+- URLs point at bartowski's GGUF repos — stable, active, and
+  the de-facto-canonical small-model GGUF source.
+
+Settings → Local LLM:
+
+- New "Suggested chat models" section above the existing
+  Browse… button. Each row shows display name + size + status
+  icon (radio-button-checked when selected, check-circle when
+  downloaded, cloud-download otherwise) and is tappable:
+    * Downloaded → selects that path (commit on Save)
+    * Not downloaded → opens Model Management deep-linked to
+      the Chat-LLM filter
+
+Model Management:
+
+- New "Chat LLM" filter chip alongside ASR / TTS / Voices /
+  Codecs / Post-processors. Routes `?kind=chatLlm` to
+  pre-select on open via a new `initialKindFilter` param on
+  the screen + a GoRoute branch in main.dart.
+
+Localisation: 9 new strings × 2 locales (en + de).
+
+Tests (test/chat_llm_catalogue_test.dart): 4 structural-pin
+cases — ≥5 entries, populated required fields per row,
+size-bucket coverage, family diversity. A regression that
+drops or mistypes a row lands here before it ships.
+
+Full suite: 372 pass / 14 skip / 0 fail (was 368).
+
 ### Whisper decoder-fallback thresholds (May 2026)
 
 The four CLI flags `--entropy-thold`, `--logprob-thold`,

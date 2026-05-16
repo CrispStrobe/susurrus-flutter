@@ -1908,6 +1908,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).';
 
   @override
+  String get settingsLocalLlmCatalogueTitle => 'Suggested chat models';
+
+  @override
+  String get settingsLocalLlmCatalogueHelp =>
+      'Tap a downloaded model to select it. Tap an undownloaded model to open Model Management and download it.';
+
+  @override
+  String get settingsLocalLlmCatalogueManage => 'Manage';
+
+  @override
+  String settingsLocalLlmCatalogueDownloaded(String size) {
+    return 'Downloaded · $size';
+  }
+
+  @override
+  String settingsLocalLlmCatalogueNotDownloaded(String size) {
+    return 'Not downloaded · $size';
+  }
+
+  @override
+  String get settingsLocalLlmCatalogueDownload => 'DOWNLOAD';
+
+  @override
+  String get modelsKindFilterChatLlm => 'Chat LLM';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisation method';
 
   @override

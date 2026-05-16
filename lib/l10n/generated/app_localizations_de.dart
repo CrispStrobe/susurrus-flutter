@@ -1917,6 +1917,32 @@ class AppLocalizationsDe extends AppLocalizations {
       'Temperaturschritt pro Fallback-Durchlauf. Standard 0.2. Auf 0 setzen, um die Fallback-Schleife komplett zu deaktivieren (entspricht --no-fallback).';
 
   @override
+  String get settingsLocalLlmCatalogueTitle => 'Empfohlene Chat-Modelle';
+
+  @override
+  String get settingsLocalLlmCatalogueHelp =>
+      'Heruntergeladenes Modell antippen, um es auszuwählen. Nicht heruntergeladenes antippen, um zur Modell-Verwaltung zu gehen.';
+
+  @override
+  String get settingsLocalLlmCatalogueManage => 'Verwalten';
+
+  @override
+  String settingsLocalLlmCatalogueDownloaded(String size) {
+    return 'Heruntergeladen · $size';
+  }
+
+  @override
+  String settingsLocalLlmCatalogueNotDownloaded(String size) {
+    return 'Nicht heruntergeladen · $size';
+  }
+
+  @override
+  String get settingsLocalLlmCatalogueDownload => 'HERUNTERLADEN';
+
+  @override
+  String get modelsKindFilterChatLlm => 'Chat-LLM';
+
+  @override
   String get advancedDiarizeMethod => 'Diarisierungs-Methode';
 
   @override

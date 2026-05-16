@@ -966,6 +966,96 @@ class ModelService {
       backend: 'lid',
       kind: ModelKind.lid,
     ),
+    // ─────────────────────────────────────────────────────────────
+    // §5.1.6 v3.1 — Curated chat-LLM catalogue.
+    //
+    // Pointed at bartowski's GGUF repos for stability — bartowski
+    // re-publishes new model releases promptly + keeps the layout
+    // consistent across families. Quantization picked is Q4_K_M
+    // throughout: the smallest variant that still keeps quality
+    // close to FP16 on these instruction-tuned models, and the
+    // industry default for "small enough to run on a laptop, big
+    // enough to be useful".
+    //
+    // Recommended nCtx / nGpuLayers per model live in the model
+    // description text — the user always gets sensible session
+    // defaults from `ChatOpenParams()`, and the Settings → Local
+    // LLM advanced section's sliders let them override
+    // per-machine. We don't materialise the recommended values
+    // into ModelDefinition because the Tidy / Summarize call
+    // sites don't reach into the registry — they read whatever
+    // is on disk and let the user tune via Settings.
+    // ─────────────────────────────────────────────────────────────
+    'smollm2-360m-instruct-q4_k_m': ModelDefinition(
+      name: 'smollm2-360m-instruct-q4_k_m',
+      displayName: 'SmolLM2 360M Instruct (Q4_K_M)',
+      fileName: 'SmolLM2-360M-Instruct-Q4_K_M.gguf',
+      url:
+          'https://huggingface.co/bartowski/SmolLM2-360M-Instruct-GGUF/resolve/main/SmolLM2-360M-Instruct-Q4_K_M.gguf',
+      sizeBytes: 270 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Tiny chat model (~270 MB) for low-resource hosts. Recommended nCtx 2048. Good for short Tidy passes; under-powered for long-form summarisation.',
+      quantization: 'q4_k_m',
+      backend: 'chat',
+      kind: ModelKind.chatLlm,
+    ),
+    'qwen2.5-0.5b-instruct-q4_k_m': ModelDefinition(
+      name: 'qwen2.5-0.5b-instruct-q4_k_m',
+      displayName: 'Qwen2.5 0.5B Instruct (Q4_K_M)',
+      fileName: 'Qwen2.5-0.5B-Instruct-Q4_K_M.gguf',
+      url:
+          'https://huggingface.co/bartowski/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 400 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Small multilingual chat model (~400 MB). Recommended nCtx 4096. Solid choice when memory or CPU is tight; reasonable Tidy + short-summary quality.',
+      quantization: 'q4_k_m',
+      backend: 'chat',
+      kind: ModelKind.chatLlm,
+    ),
+    'llama-3.2-1b-instruct-q4_k_m': ModelDefinition(
+      name: 'llama-3.2-1b-instruct-q4_k_m',
+      displayName: 'Llama 3.2 1B Instruct (Q4_K_M)',
+      fileName: 'Llama-3.2-1B-Instruct-Q4_K_M.gguf',
+      url:
+          'https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 770 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Balanced English-first chat model (~770 MB). Recommended nCtx 4096. Good Tidy quality, usable long-form summarisation; Meta Llama 3 community license.',
+      quantization: 'q4_k_m',
+      backend: 'chat',
+      kind: ModelKind.chatLlm,
+    ),
+    'qwen2.5-3b-instruct-q4_k_m': ModelDefinition(
+      name: 'qwen2.5-3b-instruct-q4_k_m',
+      displayName: 'Qwen2.5 3B Instruct (Q4_K_M)',
+      fileName: 'Qwen2.5-3B-Instruct-Q4_K_M.gguf',
+      url:
+          'https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 2 * 1024 * 1024 * 1024,
+      checksum: '',
+      description:
+          'Strong multilingual chat model (~2 GB). Recommended nCtx 8192. Excellent for both Tidy and Summarize; Apache-2.0 license. Recommended default on machines with ≥8 GB RAM.',
+      quantization: 'q4_k_m',
+      backend: 'chat',
+      kind: ModelKind.chatLlm,
+    ),
+    'llama-3.2-3b-instruct-q4_k_m': ModelDefinition(
+      name: 'llama-3.2-3b-instruct-q4_k_m',
+      displayName: 'Llama 3.2 3B Instruct (Q4_K_M)',
+      fileName: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
+      url:
+          'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 2 * 1024 * 1024 * 1024,
+      checksum: '',
+      description:
+          'English-first chat model (~2 GB). Recommended nCtx 8192. Strong Tidy + Summarize quality; Meta Llama 3 community license. Alternative to Qwen2.5-3B with different stylistic biases.',
+      quantization: 'q4_k_m',
+      backend: 'chat',
+      kind: ModelKind.chatLlm,
+    ),
   };
 
   /// Multilingual TTS voicepack catalog. Generated from the HF repos
@@ -2352,6 +2442,13 @@ enum ModelKind {
   /// the speech-translation backends (canary, voxtral, …) — those are
   /// `ModelKind.asr` because they consume audio.
   translate,
+
+  /// §5.1.6 v3.1 — local chat-LLM GGUF (Qwen2.5-Instruct,
+  /// Llama-3.2-Instruct, Phi-3-mini, Gemma-2, …). Loaded via the
+  /// CrispASR chat ABI (`CrispasrChatSession`) for the Tidy /
+  /// Summarize Local-LLM-cleanup path. Distinct from `asr` —
+  /// these are text-only models, not speech models.
+  chatLlm,
 }
 
 class ModelDefinition {

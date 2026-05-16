@@ -283,7 +283,22 @@ class _CrisperWeaverAppState extends ConsumerState<CrisperWeaverApp> {
       GoRoute(
         path: '/models',
         name: 'models',
-        builder: (context, state) => const ModelManagementScreen(),
+        builder: (context, state) {
+          // Optional `?kind=<ModelKind.name>` deep-link: pre-selects
+          // the filter chip on open. Used by Settings → Local LLM's
+          // "Manage" link to drop the user into the chat-LLM filter.
+          final raw = state.uri.queryParameters['kind'];
+          ModelKind? kind;
+          if (raw != null) {
+            for (final k in ModelKind.values) {
+              if (k.name == raw) {
+                kind = k;
+                break;
+              }
+            }
+          }
+          return ModelManagementScreen(initialKindFilter: kind);
+        },
       ),
       GoRoute(
         path: '/history',

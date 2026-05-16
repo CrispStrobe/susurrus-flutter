@@ -3296,6 +3296,48 @@ abstract class AppLocalizations {
   /// **'Temperature step per fallback pass. Default 0.2. Set to 0 to disable the fallback loop entirely (= the CLI\'s --no-fallback).'**
   String get advancedTemperatureIncHelper;
 
+  /// No description provided for @settingsLocalLlmCatalogueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested chat models'**
+  String get settingsLocalLlmCatalogueTitle;
+
+  /// No description provided for @settingsLocalLlmCatalogueHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a downloaded model to select it. Tap an undownloaded model to open Model Management and download it.'**
+  String get settingsLocalLlmCatalogueHelp;
+
+  /// No description provided for @settingsLocalLlmCatalogueManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get settingsLocalLlmCatalogueManage;
+
+  /// No description provided for @settingsLocalLlmCatalogueDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded · {size}'**
+  String settingsLocalLlmCatalogueDownloaded(String size);
+
+  /// No description provided for @settingsLocalLlmCatalogueNotDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded · {size}'**
+  String settingsLocalLlmCatalogueNotDownloaded(String size);
+
+  /// No description provided for @settingsLocalLlmCatalogueDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'DOWNLOAD'**
+  String get settingsLocalLlmCatalogueDownload;
+
+  /// No description provided for @modelsKindFilterChatLlm.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat LLM'**
+  String get modelsKindFilterChatLlm;
+
   /// No description provided for @advancedDiarizeMethod.
   ///
   /// In en, this message translates to:
