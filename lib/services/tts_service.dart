@@ -108,7 +108,23 @@ class TtsService {
     _backend = null;
 
     try {
-      final s = crispasr.CrispasrSession.open(modelPath);
+      // Pass the backend explicitly so the C-side doesn't have to
+      // auto-detect from GGUF metadata. The auto-detect path returned
+      // null on kokoro / vibevoice-tts loads even though the dylib
+      // reported the backend as available — `crispasr_session_open
+      // returned null` surfaced as "fehlende Begleitdatei" up the
+      // stack because the catch block degrades the error to "missing
+      // companion".
+      //
+      // We pull the backend from the catalog. If we can't resolve
+      // (probe entries from before the BackendRepo.kind fix may not
+      // have it), fall through to the bare open and let auto-detect
+      // try.
+      final def = modelService.lookupDefinition(modelName);
+      final backend = def?.backend;
+      final s = (backend == null || backend.isEmpty)
+          ? crispasr.CrispasrSession.open(modelPath)
+          : crispasr.CrispasrSession.open(modelPath, backend: backend);
       if (codecPath != null) s.setCodecPath(codecPath);
       // qwen3-tts VoiceDesign branch — takes priority because it
       // can't combine with setVoice / setSpeakerName.
