@@ -165,15 +165,12 @@ Open items only below.
 
 #### Open items
 
-* **LID picker — Firered / Ecapa methods** — upstream's
-  enum-typed top-level `detectLanguagePcm` still only exposes
-  `LidMethod.whisper` + `.silero`. Firered + Ecapa are
-  reachable through the integer-typed
-  `CrispasrSession.detectLanguage(method: int)`, but
-  CrisperWeaver's `LidService` uses the top-level function.
-  Waiting on the upstream Dart binding to extend the enum (or
-  on a CrisperWeaver refactor to route through the
-  session-level method when those backends are picked).
+* ~~**LID picker — Firered / Ecapa methods**~~ —
+  **shipped May 2026**. Upstream CrispASR 0.5.8 extended
+  `LidMethod` to all four methods; CrisperWeaver's Advanced
+  Options picker now offers all four, the model registry has
+  catalogue entries for `firered-lid-f16` + `ecapa-lid-107-f16`,
+  and `LidService.methodForFilename` routes by basename.
 
 * **5.1.6 v3.1 Curated chat-model catalogue** — v3 ships the
   file-picker MVP (the user points at any GGUF on disk). The

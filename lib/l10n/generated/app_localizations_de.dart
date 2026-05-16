@@ -1787,7 +1787,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get advancedLidMethodHelper =>
-      'Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero benötigt eine eigene GGUF (16 MB, 95 Sprachen).';
+      'Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero / FireRed / Ecapa benötigen jeweils ihre eigene GGUF.';
 
   @override
   String get advancedLidMethodWhisper =>
@@ -1795,6 +1795,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get advancedLidMethodSilero => 'Silero (95 Sprachen, ~16 MB GGUF)';
+
+  @override
+  String get advancedLidMethodFirered => 'FireRed (120 Sprachen, ~300 MB GGUF)';
+
+  @override
+  String get advancedLidMethodEcapa => 'ECAPA-TDNN (107 Sprachen, ~42 MB GGUF)';
 
   @override
   String get advancedDiarizeMethod => 'Diarisierungs-Methode';

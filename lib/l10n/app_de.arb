@@ -777,9 +777,11 @@
   "advancedVadSpeechPadHelper": "Zusätzlicher Kontext links und rechts jedes Sprachsegments.",
 
   "advancedLidMethod": "Sprach-Erkennungsmethode",
-  "advancedLidMethodHelper": "Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero benötigt eine eigene GGUF (16 MB, 95 Sprachen).",
+  "advancedLidMethodHelper": "Nur aktiv, wenn das Modell keine eingebaute Spracherkennung hat und Auto gewählt wurde. Whisper nutzt ein vorhandenes ggml-*.bin; Silero / FireRed / Ecapa benötigen jeweils ihre eigene GGUF.",
   "advancedLidMethodWhisper": "Whisper-Encoder (nutzt vorhandenes Modell)",
   "advancedLidMethodSilero": "Silero (95 Sprachen, ~16 MB GGUF)",
+  "advancedLidMethodFirered": "FireRed (120 Sprachen, ~300 MB GGUF)",
+  "advancedLidMethodEcapa": "ECAPA-TDNN (107 Sprachen, ~42 MB GGUF)",
 
   "advancedDiarizeMethod": "Diarisierungs-Methode",
   "advancedDiarizeMethodHelper": "Nur wirksam bei aktiver Diarisierung. VAD-Turns ist mono-freundlich; Pyannote benötigt eine eigene GGUF; Energie / Kreuzkorrelation benötigen Stereo.",

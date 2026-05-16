@@ -3095,7 +3095,7 @@ abstract class AppLocalizations {
   /// No description provided for @advancedLidMethodHelper.
   ///
   /// In en, this message translates to:
-  /// **'Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero needs its own GGUF (16 MB, 95 langs).'**
+  /// **'Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero / Firered / Ecapa each need their own GGUF.'**
   String get advancedLidMethodHelper;
 
   /// No description provided for @advancedLidMethodWhisper.
@@ -3109,6 +3109,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Silero (95 languages, ~16 MB GGUF)'**
   String get advancedLidMethodSilero;
+
+  /// No description provided for @advancedLidMethodFirered.
+  ///
+  /// In en, this message translates to:
+  /// **'FireRed (120 languages, ~300 MB GGUF)'**
+  String get advancedLidMethodFirered;
+
+  /// No description provided for @advancedLidMethodEcapa.
+  ///
+  /// In en, this message translates to:
+  /// **'ECAPA-TDNN (107 languages, ~42 MB GGUF)'**
+  String get advancedLidMethodEcapa;
 
   /// No description provided for @advancedDiarizeMethod.
   ///

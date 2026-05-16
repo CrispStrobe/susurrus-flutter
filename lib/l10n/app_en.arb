@@ -777,9 +777,11 @@
   "advancedVadSpeechPadHelper": "Extra context added on each side of every speech segment.",
 
   "advancedLidMethod": "Language detection method",
-  "advancedLidMethodHelper": "Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero needs its own GGUF (16 MB, 95 langs).",
+  "advancedLidMethodHelper": "Used when the model lacks native LID and you picked Auto. Whisper reuses any multilingual ggml-*.bin; Silero / Firered / Ecapa each need their own GGUF.",
   "advancedLidMethodWhisper": "Whisper encoder (reuses an existing model)",
   "advancedLidMethodSilero": "Silero (95 languages, ~16 MB GGUF)",
+  "advancedLidMethodFirered": "FireRed (120 languages, ~300 MB GGUF)",
+  "advancedLidMethodEcapa": "ECAPA-TDNN (107 languages, ~42 MB GGUF)",
 
   "advancedDiarizeMethod": "Diarisation method",
   "advancedDiarizeMethodHelper": "Only takes effect when diarisation is enabled. vad-turns is mono-friendly; pyannote requires its segmentation GGUF; energy / xcorr need stereo audio.",

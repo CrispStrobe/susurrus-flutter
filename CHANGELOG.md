@@ -5,6 +5,38 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### Match CrispASR upstream — LID picker Firered + Ecapa (May 2026)
+
+Closes the LID picker gap from the previous TTS-sampling pass.
+CrispASR 0.5.8 (the upstream bump that ships in parallel)
+extends `LidMethod` from `{whisper, silero}` to all four
+methods the C side has supported since 0.4.6 — `firered` and
+`ecapa`. CrisperWeaver now exposes the full set in the
+Advanced Options LID picker, registers their canonical GGUFs
+in the model catalogue, and routes LidService's filename
+detection accordingly.
+
+- `LidMethod.firered` (FireRed-LID, 120 languages, ~300 MB
+  GGUF — highest language coverage)
+- `LidMethod.ecapa` (ECAPA-TDNN, 107 languages, ~42 MB GGUF —
+  strong on noisy / accented speech)
+- Model registry gets new entries: `ecapa-lid-107-f16`,
+  `firered-lid-f16`, both routed to the canonical
+  `huggingface.co/cstr/<name>-GGUF` repos.
+- `LidService.methodForFilename` is now a public static helper
+  that maps any downloaded LID GGUF basename to the right
+  `LidMethod`. Catches mismatches between the user's picker
+  selection and what's actually on disk (the C side returns
+  rc=-2 on mismatch, so the file is the source of truth).
+- 7 new unit tests pin every basename → method mapping the
+  registry can produce (legacy `silero-lang95-*`, canonical
+  `silero-lid-*` / `firered-lid-*` / `ecapa-lid-*`, every
+  whisper variant, plus the regression guard that
+  `LidMethod.values.length == 4` and indexes line up with the
+  C-side `CrispasrLidMethod` enum).
+
+Total suite: 358 pass / 14 skip.
+
 ### Match CrispASR upstream — TTS sampling + phoneme cache (May 2026)
 
 Audited the 85-surface CrispASR Dart binding against

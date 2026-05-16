@@ -929,6 +929,43 @@ class ModelService {
       backend: 'lid',
       kind: ModelKind.lid,
     ),
+    // ECAPA-TDNN LID — speechbrain/lang-id-voxlingua107-ecapa,
+    // Apache-2.0, 107 languages, attentive statistical pooling.
+    // Stronger on noisy / accented speech than Silero; ~42 MB F16.
+    'ecapa-lid-107-f16': ModelDefinition(
+      name: 'ecapa-lid-107-f16',
+      displayName: 'ECAPA-TDNN LID 107-langs (f16)',
+      fileName: 'ecapa-lid-107-f16.gguf',
+      url:
+          'https://huggingface.co/cstr/ecapa-lid-107-GGUF/resolve/main/ecapa-lid-107-f16.gguf',
+      sizeBytes: 42 * 1024 * 1024,
+      checksum: '',
+      description:
+          'ECAPA-TDNN language identification (107 languages) — '
+          'speechbrain/lang-id-voxlingua107, strong on noisy / accented speech',
+      quantization: 'f16',
+      backend: 'lid',
+      kind: ModelKind.lid,
+    ),
+    // FireRed LID — FireRedTeam/FireRedLID, 6-layer Transformer LID
+    // head, 120 languages. Higher coverage than Silero/ECAPA at a
+    // ~10× model-size cost; pick this when low-resource languages
+    // are in scope.
+    'firered-lid-f16': ModelDefinition(
+      name: 'firered-lid-f16',
+      displayName: 'FireRed LID 120-langs (f16)',
+      fileName: 'firered-lid-f16.gguf',
+      url:
+          'https://huggingface.co/cstr/firered-lid-GGUF/resolve/main/firered-lid-f16.gguf',
+      sizeBytes: 300 * 1024 * 1024,
+      checksum: '',
+      description:
+          'FireRed language identification (120 languages) — '
+          'highest coverage among bundled LID GGUFs, especially on low-resource languages',
+      quantization: 'f16',
+      backend: 'lid',
+      kind: ModelKind.lid,
+    ),
   };
 
   /// Multilingual TTS voicepack catalog. Generated from the HF repos

@@ -881,6 +881,12 @@ class _AdvancedDecodingSectionState
           DropdownMenuItem(
               value: crispasr.LidMethod.silero,
               child: Text(l.advancedLidMethodSilero)),
+          DropdownMenuItem(
+              value: crispasr.LidMethod.ecapa,
+              child: Text(l.advancedLidMethodEcapa)),
+          DropdownMenuItem(
+              value: crispasr.LidMethod.firered,
+              child: Text(l.advancedLidMethodFirered)),
         ],
         onChanged: (v) {
           if (v == null) return;
