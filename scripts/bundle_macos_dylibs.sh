@@ -113,7 +113,29 @@ fi
 # Ad-hoc codesign so Gatekeeper accepts the modified bundle locally.
 # Release builds should re-sign with a real Developer ID via codesign
 # separately.
-codesign --force --deep --sign - "$APP" >/dev/null
+#
+# Preserve the entitlements baked in by `flutter build macos` —
+# without `--entitlements`, `codesign --force` strips them, leaving
+# the .app without `com.apple.security.files.user-selected.read-write`
+# etc., and the file_picker plugin then throws
+# `PlatformException(ENTITLEMENT_NOT_FOUND, …)` at runtime.
+ENT_TMP="$(mktemp -t crisperweaver-entitlements).plist"
+trap 'rm -f "$ENT_TMP"' EXIT
+if codesign -d --entitlements - "$APP/Contents/MacOS/$(basename "$APP" .app)" \
+     >"$ENT_TMP" 2>/dev/null && [[ -s "$ENT_TMP" ]]; then
+  codesign --force --deep --sign - --entitlements "$ENT_TMP" "$APP" >/dev/null
+else
+  # First sign on a fresh build won't have extractable entitlements;
+  # fall back to the on-disk file. Debug-profile is the safer default
+  # since it's a superset (no hardened runtime tightening, network
+  # server for hot-reload).
+  ENT_SRC="$(cd "$(dirname "$0")/.." && pwd)/macos/Runner/DebugProfile.entitlements"
+  if [[ -f "$ENT_SRC" ]]; then
+    codesign --force --deep --sign - --entitlements "$ENT_SRC" "$APP" >/dev/null
+  else
+    codesign --force --deep --sign - "$APP" >/dev/null
+  fi
+fi
 
 echo "Bundled dylibs:"
 ls -l "$FRAMEWORKS" | grep -E "\.dylib" | awk '{print "  " $NF}'
