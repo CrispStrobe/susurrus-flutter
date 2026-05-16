@@ -326,6 +326,15 @@ class TtsService {
   /// case where users typically tweak by ±20%.
   static Float32List _resampleSpeed(Float32List pcm, double speed) {
     if (pcm.isEmpty || speed == 1.0) return pcm;
+    // Guard against pathological slider values. A 0 / negative /
+    // NaN speed makes the (pcm.length / speed) division produce
+    // Infinity or NaN, and Dart's .floor() throws
+    // "Unsupported operation: Infinity or NaN toInt" with no
+    // recoverable context — surfaces to the user as
+    // "Synthese fehlgeschlagen". The slider clamps to 0.25–4 in
+    // the UI but a preset round-trip / stored 0.0 from an older
+    // build can still slip through.
+    if (!speed.isFinite || speed <= 0) return pcm;
     final int outLen = (pcm.length / speed).floor();
     if (outLen <= 0) return Float32List(0);
     final out = Float32List(outLen);
