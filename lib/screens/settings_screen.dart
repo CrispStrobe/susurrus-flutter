@@ -642,7 +642,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ListTile(
           title: Text(AppLocalizations.of(context).settingsHfToken),
           subtitle: Text(settings.hfToken.isEmpty
-              ? 'Not set (required for gated models)'
+              ? AppLocalizations.of(context).settingsHfTokenNotSet
               : '••••••••${settings.hfToken.length > 8 ? settings.hfToken.substring(settings.hfToken.length - 4) : ""}'),
           trailing: const Icon(Icons.vpn_key),
           onTap: () => _showHfTokenDialog(settings),

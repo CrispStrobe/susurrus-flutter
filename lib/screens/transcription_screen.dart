@@ -780,136 +780,169 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
           },
         ),
 
-        const SizedBox(height: 16),
-
-        // Model Selection
-        const Text('Model:', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
 
-        // Filter row — name search + backend dropdown.
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _modelFilterController,
-                decoration: InputDecoration(
-                  isDense: true,
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  hintText: AppLocalizations.of(context).modelFilterHint,
-                  border: const OutlineInputBorder(),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  suffixIcon: _modelNameFilter.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _modelFilterController.clear();
-                            setState(() => _modelNameFilter = '');
-                          },
-                        ),
-                ),
-                onChanged: (v) =>
-                    setState(() => _modelNameFilter = v.toLowerCase()),
-              ),
-            ),
-            const SizedBox(width: 8),
-            DropdownButton<String>(
-              value: _backendFilter,
-              items: [
-                DropdownMenuItem(
-                    value: '',
-                    child: Text(AppLocalizations.of(context).modelAnyBackend)),
-                for (final b in _uniqueBackends()) ...[
-                  DropdownMenuItem(value: b, child: Text(b)),
-                ],
-              ],
-              onChanged: (v) => setState(() => _backendFilter = v ?? ''),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-
-        if (_loadingModels && _availableModels.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_availableModels.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                Text(AppLocalizations.of(context).transcriptionNoModelsFound),
-                TextButton.icon(
-                  onPressed: () {
-                    Log.instance.d('ui', 'Retry tapped in advanced options');
-                    _loadModels();
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: Text(AppLocalizations.of(context).transcriptionRetry),
-                ),
-              ],
-            ),
-          )
-        else
-          Container(
-            height: 250,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Builder(
-              builder: (context) {
-                final filtered = _filteredModels();
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'No models match this filter.',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final model = filtered[index];
-                    final isSelected = _modelName == model.name;
-                    return ListTile(
-                      dense: true,
-                      selected: isSelected,
-                      title: Text(
-                        model.displayName,
-                        style: TextStyle(
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      subtitle: Text(
-                          '${model.size} • ${model.backend} • ${model.quantization.isEmpty ? "f16" : model.quantization}'),
-                      trailing: _buildModelAction(model),
-                      onTap: () => _selectModelWithDownloadPrompt(model),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+        // Model Selection — collapsed by default so the long picker
+        // list doesn't dominate the left panel. Title surfaces the
+        // currently-selected model so the user knows what's active
+        // without expanding. Tap to open the filter + list.
+        _buildModelSection(),
 
         const SizedBox(height: 16),
 
         // Advanced decoding knobs (translate / beam / initial prompt).
         const AdvancedDecodingSection(),
       ],
+    );
+  }
+
+  /// Collapsible model picker — search field, backend dropdown, and
+  /// the candidate list. The ExpansionTile header shows the active
+  /// `_modelName` so the user knows what's selected at a glance
+  /// without expanding.
+  Widget _buildModelSection() {
+    final l = AppLocalizations.of(context);
+    final selected = _availableModels
+        .where((m) => m.name == _modelName)
+        .cast<ModelInfo?>()
+        .firstWhere((_) => true, orElse: () => null);
+    final headerSubtitle = selected == null
+        ? (_modelName.isEmpty ? '—' : _modelName)
+        : '${selected.displayName} • ${selected.size} • ${selected.backend} • '
+            '${selected.quantization.isEmpty ? "f16" : selected.quantization}';
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        // Tighten the default padding so it lines up with the other
+        // sections in the panel.
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: Text(l.model,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(
+          headerSubtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        children: [
+          // Filter row — name search + backend dropdown.
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _modelFilterController,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    hintText: l.modelFilterHint,
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    suffixIcon: _modelNameFilter.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _modelFilterController.clear();
+                              setState(() => _modelNameFilter = '');
+                            },
+                          ),
+                  ),
+                  onChanged: (v) =>
+                      setState(() => _modelNameFilter = v.toLowerCase()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _backendFilter,
+                items: [
+                  DropdownMenuItem(
+                      value: '', child: Text(l.modelAnyBackend)),
+                  for (final b in _uniqueBackends())
+                    DropdownMenuItem(value: b, child: Text(b)),
+                ],
+                onChanged: (v) => setState(() => _backendFilter = v ?? ''),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_loadingModels && _availableModels.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_availableModels.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Text(l.transcriptionNoModelsFound),
+                  TextButton.icon(
+                    onPressed: () {
+                      Log.instance.d('ui', 'Retry tapped in advanced options');
+                      _loadModels();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l.transcriptionRetry),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Builder(
+                builder: (context) {
+                  final filtered = _filteredModels();
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No models match this filter.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final model = filtered[index];
+                      final isSelected = _modelName == model.name;
+                      return ListTile(
+                        dense: true,
+                        selected: isSelected,
+                        title: Text(
+                          model.displayName,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: Text(
+                            '${model.size} • ${model.backend} • ${model.quantization.isEmpty ? "f16" : model.quantization}'),
+                        trailing: _buildModelAction(model),
+                        onTap: () => _selectModelWithDownloadPrompt(model),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 

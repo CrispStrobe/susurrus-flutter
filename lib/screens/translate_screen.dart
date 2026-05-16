@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show modelServiceProvider;
@@ -140,7 +141,22 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
                       color: Theme.of(context).colorScheme.errorContainer,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Text(l.translateNoModelsDownloaded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l.translateNoModelsDownloaded),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () => context.push('/models'),
+                                icon: const Icon(Icons.cloud_download_outlined,
+                                    size: 18),
+                                label: Text(l.synthOpenModelManagement),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else ...[
