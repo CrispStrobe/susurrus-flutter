@@ -966,6 +966,28 @@ class ModelService {
       backend: 'lid',
       kind: ModelKind.lid,
     ),
+    // TitaNet-Large speaker embedding — Nvidia NeMo TitaNet-Large
+    // ported to GGUF, 192-d L2-normalised embeddings. Pairs with
+    // `CrispasrTitaNet` + `CrispasrSpeakerDB` to resolve diarised
+    // speaker clusters to enrolled names. Lives in the LID bucket
+    // (speech-encoder GGUF) so Model Management groups it alongside
+    // the other auxiliary speech models rather than the ASR mains.
+    'titanet-large-f16': ModelDefinition(
+      name: 'titanet-large-f16',
+      displayName: 'TitaNet-Large speaker embedding (f16)',
+      fileName: 'titanet-large.gguf',
+      url:
+          'https://huggingface.co/cstr/titanet-large-GGUF/resolve/main/titanet-large.gguf',
+      sizeBytes: 44612960,
+      checksum: '',
+      description:
+          'TitaNet-Large 192-d speaker embedding extractor — pair with '
+          'enrolled speakers in Settings → Speakers to resolve diarised '
+          '"Speaker 0 / Speaker 1" labels to real names',
+      quantization: 'f16',
+      backend: 'titanet',
+      kind: ModelKind.lid,
+    ),
     // ─────────────────────────────────────────────────────────────
     // §5.1.6 v3.1 — Curated chat-LLM catalogue.
     //
@@ -1720,7 +1742,7 @@ class ModelService {
     const punc = {'firered-punc', 'fullstop-punc'};
     const diarize = {'pyannote'};
     const vad = {'vad'};
-    const lid = {'lid'};
+    const lid = {'lid', 'titanet'};
     const translate = {'m2m100', 'm2m100-wmt21', 'madlad'};
     if (tts.contains(backend)) return ModelKind.tts;
     if (punc.contains(backend)) return ModelKind.punc;
