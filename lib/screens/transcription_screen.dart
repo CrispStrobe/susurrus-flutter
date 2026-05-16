@@ -12,6 +12,8 @@ import 'package:share_plus/share_plus.dart';
 import '../utils/audio_utils.dart';
 
 import '../main.dart';
+import 'package:crispasr/crispasr.dart' as crispasr;
+
 import '../engines/crispasr_engine.dart' show CrispASREngine;
 import '../engines/transcription_engine.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -1295,6 +1297,7 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
         suppressNonSpeechTokens: adv.suppressNonSpeechTokens,
         suppressTokensRegex: adv.suppressTokensRegex,
         carryInitialPrompt: adv.carryInitialPrompt,
+        enhanceAudio: adv.enhanceAudio,
         transcribeWindowStartSec: adv.transcribeWindowStartSec,
         transcribeWindowDurationSec: adv.transcribeWindowDurationSec,
       );
@@ -1875,13 +1878,31 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
     final started = DateTime.now();
     try {
       final audioData = await audioService.loadAudioFile(File(job.filePath));
+      // §5.1.10 — RNNoise enhancement runs on the full loaded PCM
+      // before the §5.8 window slice. Order matters: slicing first
+      // would lose the context the denoiser needs at the boundary
+      // (RNNoise has ~10 ms of look-ahead state per frame).
+      // Pre-0.5.12 libcrispasr raises UnsupportedError; we log
+      // and fall through so toggling the switch never breaks
+      // batch jobs.
+      var baseSamples = audioData.samples;
+      if (adv.enhanceAudio) {
+        try {
+          baseSamples = crispasr.enhanceAudioRnnoise(audioData.samples);
+        } on UnsupportedError catch (e) {
+          Log.instance.w(
+              'batch',
+              'enhanceAudio requested but libcrispasr lacks the '
+                  'symbol — using original PCM ($e)');
+        }
+      }
       // §5.8 — `--offset-t / --duration` window slice. Pre-slice
       // the PCM here so the engine only processes the requested
       // [start, start+duration) range; we shift the returned
       // segment timestamps by `windowStart` so they stay absolute
       // in file time. Empty window (0/0) is a no-op.
       final windowedSamples = CrispASREngine.sliceTranscribeWindow(
-        audioData.samples,
+        baseSamples,
         audioData.sampleRate,
         adv.transcribeWindowStartSec,
         adv.transcribeWindowDurationSec,

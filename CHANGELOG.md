@@ -5,6 +5,60 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+### §5.1.10 — Audio enhancement before transcribe (May 2026)
+
+Field-recording quality was bottlenecked by Whisper's noise
+tolerance on HVAC / fan / keyboard backgrounds. A one-switch
+RNNoise pre-step now denoises the loaded PCM before any backend
+sees it. Off by default; toggled from Advanced Options.
+
+Upstream (CrispASR 0.5.12):
+
+- xiph/rnnoise v0.1 vendored under `src/rnnoise/` (BSD-3,
+  ~425 KB GRU weights baked into `rnn_data.c` — no separate
+  model download). Compiled into libcrispasr alongside
+  grammar-parser, same "vendored C utility in src/" pattern.
+- New `src/crispasr_enhance.{h,cpp}`: 16 kHz mono float32 in →
+  miniaudio resampler up to 48 kHz → RNNoise 480-sample frame
+  loop → miniaudio resampler back to 16 kHz → out. State is
+  allocated and freed per call so worker isolates can invoke
+  enhancement concurrently. Same "consume PCM → produce PCM"
+  layering as `crispasr_lid.{h,cpp}`.
+- New C-ABI `crispasr_enhance_audio_rnnoise(in_pcm, n_samples,
+  out_pcm, out_cap)`. Returns 0 on success, -1 on invalid
+  args, -2 on init / processing failure.
+- Dart: top-level `enhanceAudioRnnoise(Float32List pcm)`
+  returns a fresh same-length buffer. Pre-0.5.12 dylibs raise
+  `UnsupportedError` so callers graceful-degrade.
+
+CrisperWeaver:
+
+- New `AdvancedOptions.enhanceAudio` (default false). Mirrored
+  on `AdvancedTranscribeOptions` + preset JSON round-trip.
+- UI: one `SwitchListTile` in Advanced Options ("Enhance
+  audio (noise reduction)"), backend-agnostic — placed above
+  the whisper-only fallback / decode-extras tiles so it's
+  visible regardless of active backend. Localised en + de.
+- Wired through both transcribe paths
+  (`TranscriptionService.transcribeFile` + the parallel-pool
+  dispatch in `_runJobOnPool`). Enhancement runs BEFORE the
+  §5.8 window slice — order matters: slicing first would lose
+  the boundary context RNNoise's ~10 ms look-ahead state
+  needs. Both paths catch `UnsupportedError` on pre-0.5.12
+  libcrispasr and fall through silently to the un-enhanced
+  PCM so toggling the switch never breaks transcription.
+
+Tests:
+
+- `preset_service_test.dart` "non-default values round-trip"
+  pins `enhanceAudio=true` through the JSON cycle.
+- New `test/audio_enhancement_live_test.dart` (slow-tagged):
+  synthetic 440 Hz tone + AWGN PCM, run through
+  `enhanceAudioRnnoise` against the locally-built libcrispasr,
+  assert (a) same length and (b) RMS drops ≥20%. Passes on the
+  dev box; silently skipped when the dylib is absent or
+  pre-0.5.12. Full suite: 372 pass / 14 skip / 0 fail.
+
 ### Whisper text-suppression + prompt-carry extras (May 2026)
 
 Three more whisper-only `wparams` knobs the CLI exposes

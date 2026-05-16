@@ -228,12 +228,30 @@ Open items only below.
   wrapper or a pure-Dart muxer to fit. Deferred until either
   exists.
 
-* **5.1.10 Audio enhancement before transcribe** — Noise
-  reduction (RNNoise FFI), dereverberation. Useful for bad
-  recordings. ~2–3 days of FFI integration; the cleanest path
-  is putting it inside libcrispasr alongside VAD / LID so we
-  don't grow a second native dep with its own platform matrix.
-  Tracked as a future CrispASR upstream item.
+* ~~**5.1.10 Audio enhancement before transcribe**~~ —
+  **shipped May 2026 (CrispASR 0.5.12 + CrisperWeaver)**.
+  RNNoise (xiph/rnnoise v0.1, BSD-3, ~425 KB GRU weights
+  embedded in the binary) vendored under `CrispASR/src/rnnoise/`
+  alongside grammar-parser; new C-ABI
+  `crispasr_enhance_audio_rnnoise(in, n, out, out_cap)`
+  upsamples 16 kHz → 48 kHz via miniaudio's resampler, runs
+  RNNoise's 480-sample frame loop, downsamples back. State
+  is per-call so worker isolates run concurrently with no
+  coordination. Dart `enhanceAudioRnnoise(pcm)` wraps the
+  ABI; pre-0.5.12 dylibs raise UnsupportedError so callers
+  graceful-degrade. CrisperWeaver: one switch in Advanced
+  Options ("Enhance audio (noise reduction)"), backend-
+  agnostic, runs before the §5.8 window slice in both the
+  single-file path (`TranscriptionService.transcribeFile`)
+  and the parallel-pool dispatch (`_runJobOnPool`). Preset
+  round-trip pinned; live test (slow-tagged) asserts ≥20%
+  RMS drop on synthetic AWGN PCM.
+
+  Dereverberation is still deferred — RNNoise covers the
+  HVAC / fan / keyboard background-noise case, which is the
+  common one; reverb removal needs a different model class
+  (Demucs / WPE) at ~50–100× the compute. Revisit if user
+  feedback flags reverb-heavy recordings.
 
 #### Tier D — skip / wait for demand
 

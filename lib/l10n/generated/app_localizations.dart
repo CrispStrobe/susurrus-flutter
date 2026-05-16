@@ -3350,6 +3350,18 @@ abstract class AppLocalizations {
   /// **'Repeat the initial prompt at the start of every decode window (not just the first). Strengthens vocabulary biasing on long audio at the cost of weakening previous-context conditioning.'**
   String get advancedCarryInitialPromptHelper;
 
+  /// No description provided for @advancedEnhanceAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Enhance audio (noise reduction)'**
+  String get advancedEnhanceAudio;
+
+  /// No description provided for @advancedEnhanceAudioHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs an RNNoise pre-step on the audio before transcription. Reduces HVAC / fan / keyboard noise. Costs ~1× realtime on CPU; off by default.'**
+  String get advancedEnhanceAudioHelper;
+
   /// No description provided for @settingsLocalLlmCatalogueTitle.
   ///
   /// In en, this message translates to:

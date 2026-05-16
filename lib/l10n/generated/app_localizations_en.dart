@@ -1941,6 +1941,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Repeat the initial prompt at the start of every decode window (not just the first). Strengthens vocabulary biasing on long audio at the cost of weakening previous-context conditioning.';
 
   @override
+  String get advancedEnhanceAudio => 'Enhance audio (noise reduction)';
+
+  @override
+  String get advancedEnhanceAudioHelper =>
+      'Runs an RNNoise pre-step on the audio before transcription. Reduces HVAC / fan / keyboard noise. Costs ~1× realtime on CPU; off by default.';
+
+  @override
   String get settingsLocalLlmCatalogueTitle => 'Suggested chat models';
 
   @override

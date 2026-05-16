@@ -1949,6 +1949,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wiederholt das Initial-Prompt am Anfang jedes Decode-Fensters (nicht nur am Anfang). Stärkt Vokabular-Bias bei langen Audio-Dateien, schwächt Kontext-Conditioning aus vorherigen Fenstern.';
 
   @override
+  String get advancedEnhanceAudio => 'Audio verbessern (Rauschunterdrückung)';
+
+  @override
+  String get advancedEnhanceAudioHelper =>
+      'Führt vor der Transkription einen RNNoise-Vorlauf auf dem Audio aus. Reduziert Klima-/Lüfter-/Tastatur-Geräusche. Kosten ~1× Echtzeit auf CPU; standardmäßig deaktiviert.';
+
+  @override
   String get settingsLocalLlmCatalogueTitle => 'Empfohlene Chat-Modelle';
 
   @override

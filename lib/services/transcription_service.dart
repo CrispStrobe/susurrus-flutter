@@ -131,6 +131,13 @@ class AdvancedTranscribeOptions {
   final String suppressTokensRegex;
   final bool carryInitialPrompt;
 
+  /// §5.1.10 — RNNoise audio enhancement pre-step. When true, the
+  /// transcribe paths run `crispasr.enhanceAudioRnnoise(...)` on
+  /// the loaded PCM before the §5.8 window slice. Backend-
+  /// agnostic. Pre-0.5.12 libcrispasr builds fall through silently
+  /// (UnsupportedError → log + use original PCM).
+  final bool enhanceAudio;
+
   /// §5.8 — `--offset-t` equivalent. Transcribe-window start
   /// (seconds). 0 = start of file. Backend-agnostic: the service
   /// slices the PCM before dispatch and shifts returned segment
@@ -171,6 +178,7 @@ class AdvancedTranscribeOptions {
     this.suppressNonSpeechTokens = false,
     this.suppressTokensRegex = '',
     this.carryInitialPrompt = false,
+    this.enhanceAudio = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });
@@ -308,6 +316,25 @@ class TranscriptionService {
       final audioData = await _audioService.loadAudioFile(audioFile);
       onProgress?.call(0.1);
 
+      // §5.1.10 — RNNoise enhancement runs on the full loaded PCM
+      // before the §5.8 window slice. Order matters: slicing first
+      // would lose context the denoiser needs at the boundary
+      // (RNNoise has ~10 ms of look-ahead state per frame).
+      // Pre-0.5.12 libcrispasr builds raise UnsupportedError; we
+      // log and fall through to the un-enhanced samples so toggling
+      // the switch never breaks transcription.
+      Float32List baseSamples = audioData.samples;
+      if (advanced.enhanceAudio) {
+        try {
+          baseSamples = crispasr.enhanceAudioRnnoise(audioData.samples);
+        } on UnsupportedError catch (e) {
+          Log.instance.w(
+              'service',
+              'enhanceAudio requested but libcrispasr lacks the '
+                  'symbol — using original PCM ($e)');
+        }
+      }
+
       // §5.8 — `--offset-t / --duration` window. When set, slice
       // here so the engine only sees the requested slice; we then
       // shift returned segment timestamps by the window start so
@@ -317,11 +344,11 @@ class TranscriptionService {
           advanced.transcribeWindowDurationSec > 0;
       final samples = hasWindow
           ? CrispASREngine.sliceTranscribeWindow(
-              audioData.samples,
+              baseSamples,
               audioData.sampleRate,
               advanced.transcribeWindowStartSec,
               advanced.transcribeWindowDurationSec)
-          : audioData.samples;
+          : baseSamples;
       // When windowing, pass startOffsetSec=0 to the engine (the
       // slice already done above means there's nothing for the
       // engine to trim) and shift returned segments here.

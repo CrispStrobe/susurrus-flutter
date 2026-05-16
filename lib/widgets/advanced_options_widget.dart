@@ -230,6 +230,19 @@ class AdvancedOptions {
   final double noSpeechThold;
   final double temperatureInc;
 
+  /// §5.1.10 — RNNoise audio enhancement pre-step. When true, the
+  /// transcribe screen pipes the loaded 16 kHz PCM through
+  /// `crispasr.enhanceAudioRnnoise(...)` before the §5.8 window
+  /// slice / dispatch to whisper / parakeet / canary / etc.
+  /// Backend-agnostic — every transcribe path sees the same
+  /// denoised buffer.
+  ///
+  /// Costs ~1× realtime on a single CPU core; off by default so
+  /// nothing changes for users with clean recordings. Pre-0.5.12
+  /// libcrispasr builds raise UnsupportedError and the wiring
+  /// silently falls through to the un-enhanced PCM.
+  final bool enhanceAudio;
+
   /// Transcribe-window start (seconds). 0 = start of file.
   /// Pairs with [transcribeWindowDurationSec] — together they
   /// implement the equivalent of CrispASR CLI's `--offset-t` +
@@ -306,6 +319,7 @@ class AdvancedOptions {
     this.suppressNonSpeechTokens = false,
     this.suppressTokensRegex = '',
     this.carryInitialPrompt = false,
+    this.enhanceAudio = false,
     this.transcribeWindowStartSec = 0.0,
     this.transcribeWindowDurationSec = 0.0,
   });
@@ -350,6 +364,7 @@ class AdvancedOptions {
     bool? suppressNonSpeechTokens,
     String? suppressTokensRegex,
     bool? carryInitialPrompt,
+    bool? enhanceAudio,
     double? transcribeWindowStartSec,
     double? transcribeWindowDurationSec,
   }) =>
@@ -396,6 +411,7 @@ class AdvancedOptions {
             suppressTokensRegex ?? this.suppressTokensRegex,
         carryInitialPrompt:
             carryInitialPrompt ?? this.carryInitialPrompt,
+        enhanceAudio: enhanceAudio ?? this.enhanceAudio,
         transcribeWindowStartSec:
             transcribeWindowStartSec ?? this.transcribeWindowStartSec,
         transcribeWindowDurationSec:
@@ -741,6 +757,12 @@ class _AdvancedDecodingSectionState
         // the transcription worker only calls setGrammar when text
         // is non-empty so other backends don't take an extra trip.
         _buildGrammarRows(context, opts),
+        // §5.1.10 — RNNoise audio enhancement pre-step.
+        // Backend-agnostic; the transcribe screen pipes loaded
+        // PCM through crispasr.enhanceAudioRnnoise(...) before
+        // the §5.8 window slice / dispatch. Off by default;
+        // pre-0.5.12 libcrispasr falls through silently.
+        _buildEnhanceAudioRow(context, opts),
         // Whisper decoder-fallback thresholds (Whisper-only).
         // Five-slider ExpansionTile — defaults reproduce
         // whisper_full_default_params exactly so leaving every
@@ -1279,6 +1301,26 @@ class _AdvancedDecodingSectionState
                   opts.copyWith(carryInitialPrompt: v),
         ),
       ],
+    );
+  }
+
+  /// §5.1.10 — RNNoise audio enhancement pre-step. One switch,
+  /// backend-agnostic. The transcribe paths run RNNoise on the
+  /// loaded 16 kHz PCM before any window slicing / dispatch.
+  /// Pre-0.5.12 libcrispasr builds raise UnsupportedError; the
+  /// caller catches that and falls through to the un-enhanced
+  /// PCM so toggling the switch never breaks transcription.
+  Widget _buildEnhanceAudioRow(BuildContext context, AdvancedOptions opts) {
+    final l = AppLocalizations.of(context);
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(l.advancedEnhanceAudio),
+      subtitle: Text(l.advancedEnhanceAudioHelper,
+          style: const TextStyle(fontSize: 11)),
+      value: opts.enhanceAudio,
+      onChanged: (v) => ref.read(advancedOptionsProvider.notifier).state =
+          opts.copyWith(enhanceAudio: v),
     );
   }
 

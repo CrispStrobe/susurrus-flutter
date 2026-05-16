@@ -101,6 +101,9 @@ void main() {
         suppressNonSpeechTokens: true,
         suppressTokensRegex: r'\[NOISE\]',
         carryInitialPrompt: true,
+        // §5.1.10 — audio enhancement pre-step. Non-default value
+        // so the round-trip pins the JSON key explicitly.
+        enhanceAudio: true,
       );
       final json = advancedOptionsToJson(opts);
       final restored = advancedOptionsFromJson(json);
@@ -134,6 +137,8 @@ void main() {
       expect(restored.suppressNonSpeechTokens, isTrue);
       expect(restored.suppressTokensRegex, r'\[NOISE\]');
       expect(restored.carryInitialPrompt, isTrue);
+      // §5.1.10 — audio-enhancement toggle survives the round trip.
+      expect(restored.enhanceAudio, isTrue);
     });
 
     test('missing keys fall through to ctor defaults', () {

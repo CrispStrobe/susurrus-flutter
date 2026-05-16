@@ -826,6 +826,8 @@
   "advancedSuppressTokensRegexHelper": "Tokens, deren Text dem Regex entspricht, werden bei der Decodierung verworfen. Leer deaktiviert. Praktisch gegen halluzinierte Tokens oder Sprecher-Tags.",
   "advancedCarryInitialPrompt": "Initial-Prompt in jedes Fenster",
   "advancedCarryInitialPromptHelper": "Wiederholt das Initial-Prompt am Anfang jedes Decode-Fensters (nicht nur am Anfang). Stärkt Vokabular-Bias bei langen Audio-Dateien, schwächt Kontext-Conditioning aus vorherigen Fenstern.",
+  "advancedEnhanceAudio": "Audio verbessern (Rauschunterdrückung)",
+  "advancedEnhanceAudioHelper": "Führt vor der Transkription einen RNNoise-Vorlauf auf dem Audio aus. Reduziert Klima-/Lüfter-/Tastatur-Geräusche. Kosten ~1× Echtzeit auf CPU; standardmäßig deaktiviert.",
   "settingsLocalLlmCatalogueTitle": "Empfohlene Chat-Modelle",
   "settingsLocalLlmCatalogueHelp": "Heruntergeladenes Modell antippen, um es auszuwählen. Nicht heruntergeladenes antippen, um zur Modell-Verwaltung zu gehen.",
   "settingsLocalLlmCatalogueManage": "Verwalten",

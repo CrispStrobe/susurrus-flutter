@@ -167,6 +167,7 @@ Map<String, dynamic> _advancedOptionsToJson(AdvancedOptions o) =>
       'suppressNonSpeechTokens': o.suppressNonSpeechTokens,
       'suppressTokensRegex': o.suppressTokensRegex,
       'carryInitialPrompt': o.carryInitialPrompt,
+      'enhanceAudio': o.enhanceAudio,
       'transcribeWindowStartSec': o.transcribeWindowStartSec,
       'transcribeWindowDurationSec': o.transcribeWindowDurationSec,
     };
@@ -232,6 +233,7 @@ AdvancedOptions _advancedOptionsFromJson(Map<String, dynamic> j) {
         (j['suppressTokensRegex'] as String?) ?? '',
     carryInitialPrompt:
         (j['carryInitialPrompt'] as bool?) ?? false,
+    enhanceAudio: (j['enhanceAudio'] as bool?) ?? false,
     transcribeWindowStartSec:
         ((j['transcribeWindowStartSec'] as num?) ?? 0.0).toDouble(),
     transcribeWindowDurationSec:
