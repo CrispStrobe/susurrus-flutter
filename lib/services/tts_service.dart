@@ -350,6 +350,15 @@ class TtsService {
   /// dialog.
   Future<File> writeWav(SynthesizedAudio audio, {String? basename}) async {
     final dir = await getTemporaryDirectory();
+    // macOS with sandbox-app disabled returns
+    // ~/Library/Caches/<bundle-id>/ from getTemporaryDirectory(),
+    // and that path doesn't auto-exist on first use — we have to
+    // create it. iOS / Android / Linux's temp dirs already exist
+    // by the time the API hands us a path. Calling create() with
+    // recursive:true is idempotent and cheap, so no platform gate.
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final name = basename ?? 'crisperweaver-synth-$stamp.wav';
     final out = File(p.join(dir.path, name));
