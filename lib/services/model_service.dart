@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:crypto/crypto.dart';
 import 'package:crispasr/crispasr.dart' as crispasr;
 
+import 'ios_helpers.dart';
 import 'log_service.dart';
 import 'settings_service.dart';
 
@@ -1475,8 +1476,37 @@ class ModelService {
   }
 
   Future<void> initialize() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    _modelsDir = path.join(appDir.path, 'models');
+    String baseDirPath;
+    // On iOS, prefer the App Group container so model downloads survive
+    // `flutter install` (which uninstalls the old build first, wiping
+    // the per-app `Documents/` sandbox). Other platforms keep the
+    // historical layout — macOS / Linux / Windows / Android either
+    // disable the sandbox entirely (macOS) or persist `Documents/`
+    // across normal updates.
+    //
+    // App Group identity matches the one declared in
+    // Runner.entitlements + ShareExtension.entitlements, so the Share
+    // Extension can also see the models directory if it ever needs to
+    // hand audio off without an extra copy.
+    if (Platform.isIOS) {
+      final groupPath =
+          await appGroupContainerPath('group.com.crispstrobe.crisperweaver');
+      if (groupPath != null && groupPath.isNotEmpty) {
+        baseDirPath = groupPath;
+        Log.instance.i('model',
+            'Using App Group container for models', fields: {'path': groupPath});
+      } else {
+        final appDir = await getApplicationDocumentsDirectory();
+        baseDirPath = appDir.path;
+        Log.instance.w('model',
+            'App Group resolve failed — falling back to docs dir',
+            fields: {'path': appDir.path});
+      }
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      baseDirPath = appDir.path;
+    }
+    _modelsDir = path.join(baseDirPath, 'models');
     await Directory(_modelsDir).create(recursive: true);
 
     // Default sandbox layout. The custom-models-dir override

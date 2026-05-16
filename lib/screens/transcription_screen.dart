@@ -1259,12 +1259,15 @@ class _TranscriptionScreenState extends ConsumerState<TranscriptionScreen> {
       // it requires NSAppleMusicUsageDescription. Use FileType.custom
       // with explicit extensions so iOS picks the document picker on
       // every platform.
+      //
+      // Only formats our FFI decoder (miniaudio) handles natively:
+      // wav / mp3 / flac / ogg. m4a / aac / mp4 / wma fail with
+      // "Not a valid WAV file" because miniaudio rejects them and
+      // the Dart fallback only parses WAV. Add those back once we
+      // wire a platform-native AAC decoder on iOS / macOS.
       result = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: const [
-          'wav', 'mp3', 'm4a', 'flac', 'ogg', 'aac',
-          'opus', 'wma', 'aif', 'aiff', 'mp4'
-        ],
+        allowedExtensions: const ['wav', 'mp3', 'flac', 'ogg'],
         allowMultiple: true,
       );
     } catch (e, st) {

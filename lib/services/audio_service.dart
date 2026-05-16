@@ -306,7 +306,17 @@ class AudioService {
     final wave = String.fromCharCodes(bytes.sublist(8, 12));
 
     if (riff != 'RIFF' || wave != 'WAVE') {
-      throw const AudioProcessingException('Not a valid WAV file');
+      // We only reach this fallback when the FFI decoder rejected the
+      // file (miniaudio handles WAV / MP3 / FLAC / OGG). Tell the user
+      // what's actually supported instead of "not a valid WAV file" —
+      // the latter is technically true but unhelpful for someone who
+      // tried to load an MP4 / M4A / AAC.
+      throw const AudioProcessingException(
+        'Unsupported audio format. CrisperWeaver decodes WAV, MP3, '
+        'FLAC, and OGG natively. For M4A / AAC / MP4 / WMA, convert '
+        'to one of those first (Voice Memos exports as M4A — re-export '
+        'or use a converter).',
+      );
     }
 
     int channels = 0;

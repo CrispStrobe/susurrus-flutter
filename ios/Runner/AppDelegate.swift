@@ -47,6 +47,28 @@ import Foundation
               message: error.localizedDescription,
               details: nil))
           }
+
+        case "appGroupContainerPath":
+          // Returns the on-disk path of the App Group's shared
+          // container so Dart can park files that need to survive
+          // app-reinstalls (model downloads, prefs the ShareExtension
+          // also reads, etc.). Returns nil if the entitlement isn't
+          // configured or the OS hasn't provisioned the container yet.
+          guard let args = call.arguments as? [String: Any],
+                let groupId = args["groupId"] as? String else {
+            result(FlutterError(
+              code: "BAD_ARGS",
+              message: "expected {groupId: String}",
+              details: nil))
+            return
+          }
+          if let url = FileManager.default
+              .containerURL(forSecurityApplicationGroupIdentifier: groupId) {
+            result(url.path)
+          } else {
+            result(nil)
+          }
+
         default:
           result(FlutterMethodNotImplemented)
         }
