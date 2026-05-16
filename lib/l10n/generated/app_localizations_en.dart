@@ -1816,6 +1816,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.';
 
   @override
+  String get synthOpenModelManagement => 'Open Model Management';
+
+  @override
   String synthMissingDependency(String name) {
     return 'Missing required companion file: $name';
   }

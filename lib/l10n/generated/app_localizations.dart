@@ -3176,6 +3176,12 @@ abstract class AppLocalizations {
   /// **'No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.'**
   String get synthNoTtsModelsDownloaded;
 
+  /// No description provided for @synthOpenModelManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Model Management'**
+  String get synthOpenModelManagement;
+
   /// No description provided for @synthMissingDependency.
   ///
   /// In en, this message translates to:

@@ -1831,6 +1831,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.';
 
   @override
+  String get synthOpenModelManagement => 'Modellverwaltung öffnen';
+
+  @override
   String synthMissingDependency(String name) {
     return 'Fehlende Begleitdatei: $name';
   }

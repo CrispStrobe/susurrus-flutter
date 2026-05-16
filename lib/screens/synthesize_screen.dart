@@ -364,7 +364,22 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
                       color: Theme.of(context).colorScheme.errorContainer,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Text(l.synthNoTtsModelsDownloaded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l.synthNoTtsModelsDownloaded),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () => context.push('/models'),
+                                icon: const Icon(Icons.cloud_download_outlined,
+                                    size: 18),
+                                label: Text(l.synthOpenModelManagement),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else ...[

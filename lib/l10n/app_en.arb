@@ -788,6 +788,7 @@
   "synthStopButton": "Stop",
   "synthShareButton": "Save / share WAV",
   "synthNoTtsModelsDownloaded": "No TTS models downloaded yet. Open Models → Models tab → switch to \"TTS\" to fetch one.",
+  "synthOpenModelManagement": "Open Model Management",
   "synthMissingDependency": "Missing required companion file: {name}",
   "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}},
 

@@ -788,6 +788,7 @@
   "synthStopButton": "Stopp",
   "synthShareButton": "WAV speichern / teilen",
   "synthNoTtsModelsDownloaded": "Noch keine TTS-Modelle geladen. Öffne Modelle → Tab „TTS“, um eines herunterzuladen.",
+  "synthOpenModelManagement": "Modellverwaltung öffnen",
   "synthMissingDependency": "Fehlende Begleitdatei: {name}",
   "@synthMissingDependency": {"placeholders": {"name": {"type": "String"}}},
 
