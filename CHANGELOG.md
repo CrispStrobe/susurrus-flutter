@@ -5,6 +5,43 @@ the [GitHub releases page](https://github.com/CrispStrobe/CrisperWeaver/releases
 
 ## Unreleased
 
+## 0.6.0 — 2026-05-17
+
+Big shipping release after a long week of feature work +
+live-testing-driven bugfix runs:
+
+- **iOS Share Extension** — fully wired (build script +
+  vendored RSIShareViewController + App Group container for
+  models so they survive `flutter install`). Codesigned device
+  build verified.
+- **Windows MSIX** — packaging + file-type associations
+  (audio + subtitle extensions). Release workflow now uploads
+  `.msix` alongside the portable `.zip`.
+- **Speakers** — TitaNet 192-d enrollment + on-disk
+  SpeakerDB; diariser segments resolve to enrolled names.
+- **Models screen** — search bar + backend dropdown mirroring
+  the transcribe screen, plus a Translate kind filter chip
+  and HF probe failure visibility (the cstr/* repo coverage
+  expands now that probe failures are surfaced instead of
+  silenced).
+- **Auto-switch model** when the persisted default isn't
+  downloaded but other compatible models are.
+- **Kokoro / TTS** — works end-to-end on macOS (with a CPU
+  workaround for the upstream Metal regression — see
+  `handover-prompts/crispasr-kokoro-gpu-metal-regression.md`).
+  Voice / codec dropdowns trigger inline download. Empty-state
+  cards link straight into the right Models filter.
+- **Tons of small UX fixes** — close-X on every snackbar,
+  collapsible Model section on the Transcribe screen, friendly
+  first-launch "model not downloaded" snackbar, file picker
+  uses document picker (not Apple Music) on iOS, TTS screen
+  doesn't overflow when the keyboard opens, decoder-output
+  formats now i18n'd ("Segments" / "Full Text" / "Bitte wähle
+  eine Audiodatei…"), …
+
+Full diff vs v0.5.0 is in the GitHub Releases page once the
+tag is pushed.
+
 ### Windows — MSIX packaging + Explorer file associations
 
 Closes the long-standing "Windows is the only desktop without
