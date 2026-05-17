@@ -1292,6 +1292,20 @@ class ModelService {
       displayPrefix: 'VibeVoice ASR',
       description: 'Multilingual large ASR (~4.5 GB)',
     ),
+    // VibeVoice TTS — shares its HF repo with 20+ voicepack files,
+    // hence `voicepackBaseName`. Main quants: q4_k / q8_0 /
+    // tts-f16 / tts-f32-tokenizer (the latter two have the `-tts-`
+    // tag indicating the bundled Tekken tokenizer — required for
+    // chatterbox-style synth).
+    'vibevoice-tts': BackendRepo(
+      backend: 'vibevoice-tts',
+      repoId: 'cstr/vibevoice-realtime-0.5b-GGUF',
+      baseName: 'vibevoice-realtime-0.5b',
+      displayPrefix: 'VibeVoice Realtime 0.5B',
+      description: 'VibeVoice realtime TTS (q4_k 636 MB, q8_0 1.1 GB, tts-f16 2 GB)',
+      kind: ModelKind.tts,
+      voicepackBaseName: 'vibevoice-voice',
+    ),
     'mimo-asr': BackendRepo(
       backend: 'mimo-asr',
       repoId: 'cstr/mimo-asr-GGUF',
@@ -1307,6 +1321,18 @@ class ModelService {
       displayPrefix: 'Kokoro 82M TTS',
       description: 'Kokoro multilingual TTS (~100 MB)',
       kind: ModelKind.tts,
+    ),
+    // Kokoro voicepacks — separate HF repo, voicepack-only. Empty
+    // baseName means the main-quant probe skips this repo; the
+    // voicepack probe runs against the `kokoro-voice-*` files.
+    'kokoro-voices': BackendRepo(
+      backend: 'kokoro',
+      repoId: 'cstr/kokoro-voices-GGUF',
+      baseName: '',
+      displayPrefix: 'Kokoro 82M TTS',
+      description: 'Kokoro voicepacks',
+      kind: ModelKind.voice,
+      voicepackBaseName: 'kokoro-voice',
     ),
     // Orpheus — Llama-3.2-3B + SNAC codec TTS (needs codec via setCodecPath).
     'orpheus': BackendRepo(
@@ -1816,12 +1842,41 @@ class ModelService {
     final siblings = ((resp.data as Map)['siblings'] as List?) ?? const [];
 
     final out = <ModelDefinition>[];
+    final voicepackPrefix = repo.voicepackBaseName == null
+        ? null
+        : '${repo.voicepackBaseName}-';
     for (final raw in siblings) {
       if (raw is! Map) continue;
       final fname = raw['rfilename'] as String? ?? '';
       if (!fname.endsWith(repo.extension)) continue;
-      // Expect "<baseName>-<quant><extension>" or plain "<baseName><extension>".
       final stem = fname.substring(0, fname.length - repo.extension.length);
+      final sizeBytes = (raw['size'] as num?)?.toInt() ?? 0;
+
+      // Voicepack file? Stamp as ModelKind.voice, tag with the repo's
+      // backend so the synthesize screen's `m.backend == modelDef.backend`
+      // filter still groups them under the right main model.
+      if (voicepackPrefix != null && stem.startsWith(voicepackPrefix)) {
+        final voiceId = stem.substring(voicepackPrefix.length);
+        final modelNameKey = '${repo.voicepackBaseName}-$voiceId';
+        out.add(ModelDefinition(
+          name: modelNameKey,
+          displayName: '${repo.displayPrefix} voice — $voiceId',
+          fileName: fname,
+          url: 'https://huggingface.co/${repo.repoId}/resolve/main/$fname',
+          sizeBytes: sizeBytes,
+          checksum: '',
+          description:
+              '${repo.displayPrefix} voicepack — ${_formatSize(sizeBytes)}',
+          quantization: 'f16',
+          backend: repo.backend,
+          kind: ModelKind.voice,
+        ));
+        continue;
+      }
+
+      // Main-model variant? Skip when this is a voicepack-only repo
+      // (baseName left empty).
+      if (repo.baseName.isEmpty) continue;
       String? quant;
       String modelNameKey;
       if (stem == repo.baseName) {
@@ -1834,7 +1889,6 @@ class ModelService {
         // Skip files that don't follow the expected naming convention.
         continue;
       }
-      final sizeBytes = (raw['size'] as num?)?.toInt() ?? 0;
       out.add(ModelDefinition(
         name: modelNameKey,
         displayName: '${repo.displayPrefix} ($quant)',
@@ -2592,6 +2646,17 @@ class BackendRepo {
   // disappeared from their filter chips. ASR is still the default since
   // most backends are speech recognition.
   final ModelKind kind;
+  // Optional secondary file-name stem inside this same repo for
+  // voicepack files (e.g. `vibevoice-voice` inside the
+  // `cstr/vibevoice-realtime-0.5b-GGUF` repo, which holds both the
+  // main TTS quants AND 20+ voicepack `.gguf` files). When non-null,
+  // the probe ALSO enumerates files starting with
+  // `<voicepackBaseName>-` and stamps them as `ModelKind.voice`
+  // entries with the same `backend` as this repo. Leaving
+  // `baseName` empty + setting only `voicepackBaseName` is the way
+  // to register a voicepack-only repo (e.g.
+  // `cstr/kokoro-voices-GGUF`).
+  final String? voicepackBaseName;
 
   const BackendRepo({
     required this.backend,
@@ -2601,6 +2666,7 @@ class BackendRepo {
     required this.description,
     this.extension = '.gguf',
     this.kind = ModelKind.asr,
+    this.voicepackBaseName,
   });
 }
 
