@@ -32,6 +32,7 @@ import 'screens/edit_audio_screen.dart';
 import 'services/audio_service.dart';
 import 'services/batch_queue_service.dart';
 import 'services/desktop_open_with_bridge.dart';
+import 'services/env_helpers.dart';
 import 'services/history_service.dart';
 import 'services/log_service.dart';
 import 'services/native_licenses.dart';
@@ -57,6 +58,16 @@ List<String> _bootArgs = const [];
 void main(List<String> args) async {
   _bootArgs = List<String>.unmodifiable(args);
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Pin kokoro's F0Ntrain + decoder-body compute graphs to CPU on
+  // Apple Silicon Metal. Set BEFORE any libcrispasr session opens —
+  // the C side reads these via env_bool() inside
+  // kokoro_init_from_file. Workaround for an AdainResBlk1d Metal
+  // kernel divergence localised by the upstream bisect on
+  // 2026-05-17; remaining stages (text encoder, BERT, predictor
+  // duration LSTM, iSTFTNet generator) still get Metal acceleration.
+  // Drop this once upstream fixes AdainResBlk1d on Metal.
+  applyKokoroMetalWorkaround();
 
   // just_audio ships native code for iOS/Android/macOS/web only. On
   // Windows and Linux it has no platform implementation, which crashes

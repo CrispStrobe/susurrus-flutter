@@ -122,31 +122,13 @@ class TtsService {
       // try.
       final def = modelService.lookupDefinition(modelName);
       final backend = def?.backend;
-      // Re-instated workaround. CrispASR ef2f79c0 + 4e9c6ba8 fixed
-      // the obvious 5.8× duration blowup (kokoro now returns the
-      // expected 39000-sample buffer on Metal), but the content
-      // itself is still wrong — byte-for-byte different from the
-      // CPU output and audibly garbage. Likely a downstream tensor
-      // in the predictor chain still gets stale data on the Metal
-      // path. Until upstream produces audio that matches CPU
-      // byte-for-byte (or close to it), keep kokoro on CPU.
-      crispasr.CrispasrSession s;
-      if (backend == null || backend.isEmpty) {
-        s = crispasr.CrispasrSession.open(modelPath);
-      } else if (backend == 'kokoro') {
-        try {
-          s = crispasr.CrispasrSession.openWithParams(
-            modelPath,
-            backend: backend,
-            nThreads: 4,
-            useGpu: false,
-          );
-        } on UnsupportedError {
-          s = crispasr.CrispasrSession.open(modelPath, backend: backend);
-        }
-      } else {
-        s = crispasr.CrispasrSession.open(modelPath, backend: backend);
-      }
+      // Per-backend GPU pinning happens via env vars set in
+      // main.dart (see `applyKokoroMetalWorkaround()`), not by
+      // gating session-open here. Open kokoro normally with
+      // GPU on — the bad stages auto-fall-back to CPU.
+      final s = (backend == null || backend.isEmpty)
+          ? crispasr.CrispasrSession.open(modelPath)
+          : crispasr.CrispasrSession.open(modelPath, backend: backend);
       if (codecPath != null) s.setCodecPath(codecPath);
       // qwen3-tts VoiceDesign branch — takes priority because it
       // can't combine with setVoice / setSpeakerName.
