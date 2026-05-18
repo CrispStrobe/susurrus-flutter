@@ -123,22 +123,24 @@ fi
 # the .app without `com.apple.security.files.user-selected.read-write`
 # etc., and the file_picker plugin then throws
 # `PlatformException(ENTITLEMENT_NOT_FOUND, …)` at runtime.
-ENT_TMP="$(mktemp -t crisperweaver-entitlements).plist"
-trap 'rm -f "$ENT_TMP"' EXIT
-if codesign -d --entitlements - "$APP/Contents/MacOS/$(basename "$APP" .app)" \
-     >"$ENT_TMP" 2>/dev/null && [[ -s "$ENT_TMP" ]]; then
-  codesign --force --deep --sign - --entitlements "$ENT_TMP" "$APP" >/dev/null
+#
+# Read the entitlements straight from the source plist in
+# macos/Runner/ rather than `codesign -d --entitlements -`: that
+# command emits a binary `kSecCodeSignerEntitlements` blob (with
+# 8-byte magic header), not a plist, so re-feeding it to
+# `codesign --entitlements` warns "unrecognized blob type" and
+# fails on CI. Choosing Debug vs Release from the .app path keeps
+# Release builds clean of hot-reload-only entries.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+case "$APP" in
+  *"/Release/"*) ENT_SRC="$REPO_ROOT/macos/Runner/Release.entitlements" ;;
+  *)             ENT_SRC="$REPO_ROOT/macos/Runner/DebugProfile.entitlements" ;;
+esac
+if [[ -f "$ENT_SRC" ]]; then
+  codesign --force --deep --sign - --entitlements "$ENT_SRC" "$APP" >/dev/null
 else
-  # First sign on a fresh build won't have extractable entitlements;
-  # fall back to the on-disk file. Debug-profile is the safer default
-  # since it's a superset (no hardened runtime tightening, network
-  # server for hot-reload).
-  ENT_SRC="$(cd "$(dirname "$0")/.." && pwd)/macos/Runner/DebugProfile.entitlements"
-  if [[ -f "$ENT_SRC" ]]; then
-    codesign --force --deep --sign - --entitlements "$ENT_SRC" "$APP" >/dev/null
-  else
-    codesign --force --deep --sign - "$APP" >/dev/null
-  fi
+  echo "warn: entitlements source $ENT_SRC missing, signing without" >&2
+  codesign --force --deep --sign - "$APP" >/dev/null
 fi
 
 echo "Bundled dylibs:"
